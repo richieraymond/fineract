@@ -18,97 +18,67 @@
  */
 package org.apache.fineract.infrastructure.core.service;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.TimeZone;
+import static java.time.temporal.ChronoUnit.DAYS;
 
-import org.apache.fineract.infrastructure.core.data.ApiParameterError;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoUnit;
 import org.apache.fineract.infrastructure.core.domain.FineractPlatformTenant;
-import org.apache.fineract.infrastructure.core.exception.PlatformApiDataValidationException;
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-import org.joda.time.LocalDate;
-import org.joda.time.LocalDateTime;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
 
-public class DateUtils {
+public final class DateUtils {
 
-    public static DateTimeZone getDateTimeZoneOfTenant() {
-        final FineractPlatformTenant tenant = ThreadLocalContextUtil.getTenant();
-        DateTimeZone zone = null;
-        if (tenant != null) {
-            zone = DateTimeZone.forID(tenant.getTimezoneId());
-            TimeZone.getTimeZone(tenant.getTimezoneId());
-        }
-        return zone;
+    public static final String DEFAULT_DATE_FORMAT = "yyyy-MM-dd";
+    public static final String DEFAULT_DATETIME_FORMAT = DEFAULT_DATE_FORMAT + " HH:mm:ss";
+    public static final DateTimeFormatter DEFAULT_DATETIME_FORMATTER = new DateTimeFormatterBuilder().appendPattern(DEFAULT_DATETIME_FORMAT)
+            .toFormatter();
+    public static final DateTimeFormatter DEFAULT_DATE_FORMATTER = new DateTimeFormatterBuilder().appendPattern(DEFAULT_DATE_FORMAT)
+            .toFormatter();
+
+    private DateUtils() {
+
     }
 
-    public static TimeZone getTimeZoneOfTenant() {
-        final FineractPlatformTenant tenant = ThreadLocalContextUtil.getTenant();
-        TimeZone zone = null;
-        if (tenant != null) {
-            zone = TimeZone.getTimeZone(tenant.getTimezoneId());
-        }
-        return zone;
+    public static ZoneId getSystemZoneId() {
+        return ZoneId.systemDefault();
     }
 
-    public static Date getDateOfTenant() {
-        return getLocalDateOfTenant().toDateTimeAtStartOfDay().toDate();
+    public static ZoneId getDateTimeZoneOfTenant() {
+        final FineractPlatformTenant tenant = ThreadLocalContextUtil.getTenant();
+        return ZoneId.of(tenant.getTimezoneId());
     }
 
     public static LocalDate getLocalDateOfTenant() {
-
-        LocalDate today = new LocalDate();
-
-        final DateTimeZone zone = getDateTimeZoneOfTenant();
-        if (zone != null) {
-            today = new LocalDate(zone);
-        }
-
-        return today;
+        final ZoneId zone = getDateTimeZoneOfTenant();
+        return LocalDate.now(zone);
     }
 
     public static LocalDateTime getLocalDateTimeOfTenant() {
-
-        LocalDateTime today = new LocalDateTime();
-
-        final DateTimeZone zone = getDateTimeZoneOfTenant();
-        if (zone != null) {
-            today = new LocalDateTime(zone);
-        }
-
-        return today;
+        final ZoneId zone = getDateTimeZoneOfTenant();
+        return LocalDateTime.now(zone).truncatedTo(ChronoUnit.SECONDS);
     }
 
-    public static LocalDate parseLocalDate(final String stringDate, final String pattern) {
-
-        try {
-            final DateTimeFormatter dateStringFormat = DateTimeFormat.forPattern(pattern);
-            dateStringFormat.withZone(getDateTimeZoneOfTenant());
-            final DateTime dateTime = dateStringFormat.parseDateTime(stringDate);
-            return dateTime.toLocalDate();
-        } catch (final IllegalArgumentException e) {
-            final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
-            final ApiParameterError error = ApiParameterError.parameterError("validation.msg.invalid.date.pattern", "The parameter date ("
-                    + stringDate + ") is invalid w.r.t. pattern " + pattern, "date", stringDate, pattern);
-            dataValidationErrors.add(error);
-            throw new PlatformApiDataValidationException("validation.msg.validation.errors.exist", "Validation errors exist.",
-                    dataValidationErrors);
-        }
+    public static OffsetDateTime getOffsetDateTimeOfTenant() {
+        final ZoneId zone = getDateTimeZoneOfTenant();
+        return OffsetDateTime.now(zone).truncatedTo(ChronoUnit.SECONDS);
     }
 
-    public static String formatToSqlDate(final Date date) {
-        final DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
-        df.setTimeZone(getTimeZoneOfTenant());
-        final String formattedSqlDate = df.format(date);
-        return formattedSqlDate;
+    public static LocalDateTime getLocalDateTimeOfSystem() {
+        return LocalDateTime.now(ZoneId.systemDefault()).truncatedTo(ChronoUnit.SECONDS);
     }
 
     public static boolean isDateInTheFuture(final LocalDate localDate) {
-        return localDate.isAfter(getLocalDateOfTenant());
+        return localDate.isAfter(getBusinessLocalDate());
+    }
+
+    public static LocalDate getBusinessLocalDate() {
+        return ThreadLocalContextUtil.getBusinessDate();
+    }
+
+    public static long getDifferenceInDays(final LocalDate localDateBefore, final LocalDate localDateAfter) {
+        return DAYS.between(localDateBefore, localDateAfter);
     }
 }

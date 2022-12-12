@@ -18,13 +18,15 @@
  */
 package org.apache.fineract.portfolio.savings.data;
 
+import java.io.Serializable;
+import lombok.Getter;
 import org.apache.fineract.portfolio.savings.SavingsAccountTransactionType;
 
 /**
- * Immutable data object represent savings account transaction type
- * enumerations.
+ * Immutable data object represent savings account transaction type enumerations.
  */
-public class SavingsAccountTransactionEnumData {
+@Getter
+public class SavingsAccountTransactionEnumData implements Serializable {
 
     private final Long id;
     private final String code;
@@ -68,88 +70,34 @@ public class SavingsAccountTransactionEnumData {
         this.escheat = Long.valueOf(SavingsAccountTransactionType.ESCHEAT.getValue()).equals(this.id);
         this.amountHold = Long.valueOf(SavingsAccountTransactionType.AMOUNT_HOLD.getValue()).equals(this.id);
         this.amountRelease = Long.valueOf(SavingsAccountTransactionType.AMOUNT_RELEASE.getValue()).equals(this.id);
-        // this.overdraftFee =
-        // Long.valueOf(SavingsAccountTransactionType.OVERDRAFT_INTEREST.getValue()).equals(this.id);
     }
 
-    public Long getId() {
-        return this.id;
+    public boolean isIncomeFromInterest() {
+        return this.overdraftInterest;
     }
 
-    public String getCode() {
-        return this.code;
-    }
-
-    public String getValue() {
-        return this.value;
-    }
-
-    public boolean isDeposit() {
-        return this.deposit;
-    }
-
-    public boolean isWithdrawal() {
-        return this.withdrawal;
+    public boolean isOverDraftInterestPosting() {
+        return this.overdraftInterest;
     }
 
     public boolean isDepositOrWithdrawal() {
         return this.deposit || this.withdrawal;
     }
 
-    public boolean isInterestPosting() {
-        return this.interestPosting;
+    public boolean isChargeTransaction() {
+        return isPayCharge() || isWithdrawalFee() || isAnnualFee();
     }
 
-    public boolean isFeeDeduction() {
-        return this.feeDeduction;
+    public boolean isAnnualFee() {
+        return Long.valueOf(SavingsAccountTransactionType.ANNUAL_FEE.getValue()).equals(this.id);
     }
 
-    public boolean isInitiateTransfer() {
-        return this.initiateTransfer;
+    public boolean isPayCharge() {
+        return Long.valueOf(SavingsAccountTransactionType.PAY_CHARGE.getValue()).equals(this.id);
     }
 
-    public boolean isApproveTransfer() {
-        return this.approveTransfer;
-    }
-
-    public boolean isWithdrawTransfer() {
-        return this.withdrawTransfer;
-    }
-
-    public boolean isRejectTransfer() {
-        return this.rejectTransfer;
-    }
-
-    public boolean isOverdraftInterest() {
-        return this.overdraftInterest;
-    }
-
-    public boolean isWrittenoff() {
-        return this.writtenoff;
-    }
-
-    public boolean isOverdraftFee() {
-        return this.overdraftFee;
-    }
-
-    public boolean isWithholdTax() {
-        return this.withholdTax;
-    }
-    
-    public boolean isDividendPayout() {
-        return this.dividendPayout;
-    }
-    
-    public boolean isEscheat() {
-    	return this.escheat;
-    }
-    
-    public boolean isAmountOnHold() {
-        return this.amountHold;
-    }
-
-    public boolean isAmountRelease() {
-        return this.amountRelease;
+    public boolean isWithdrawalFee() {
+        return Long.valueOf(SavingsAccountTransactionType.WITHDRAWAL_FEE.getValue()).equals(this.id);
     }
 
 }

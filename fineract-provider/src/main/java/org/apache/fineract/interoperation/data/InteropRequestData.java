@@ -18,21 +18,34 @@
  */
 package org.apache.fineract.interoperation.data;
 
+import static org.apache.fineract.interoperation.util.InteropUtil.DEFAULT_LOCALE;
+import static org.apache.fineract.interoperation.util.InteropUtil.ISO8601_DATE_TIME_FORMAT;
+import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_ACCOUNT_ID;
+import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_AMOUNT;
+import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_EXPIRATION;
+import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_EXTENSION_LIST;
+import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_GEO_CODE;
+import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_LOCALE;
+import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_NOTE;
+import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_REQUEST_CODE;
+import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_TRANSACTION_CODE;
+import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_TRANSACTION_ROLE;
+import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_TRANSACTION_TYPE;
+
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
-import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
-import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
-import org.apache.fineract.interoperation.domain.InteropTransactionRole;
-import org.joda.time.LocalDate;
-import org.joda.time.LocalDateTime;
-
-import javax.validation.constraints.NotNull;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
-import static org.apache.fineract.interoperation.util.InteropUtil.*;
+import javax.validation.constraints.NotNull;
+import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
+import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
+import org.apache.fineract.interoperation.domain.InteropTransactionRole;
+import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
 
 public class InteropRequestData {
 
@@ -53,13 +66,14 @@ public class InteropRequestData {
 
     private GeoCodeData geoCode;
 
+    @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     private LocalDateTime expiration;
 
     private List<ExtensionData> extensionList;
 
     protected InteropRequestData(@NotNull String transactionCode, String requestCode, @NotNull String accountId, @NotNull MoneyData amount,
-                                 @NotNull InteropTransactionRole transactionRole, InteropTransactionTypeData transactionType, String note,
-                                 GeoCodeData geoCode, LocalDateTime expiration, List<ExtensionData> extensionList) {
+            @NotNull InteropTransactionRole transactionRole, InteropTransactionTypeData transactionType, String note, GeoCodeData geoCode,
+            LocalDateTime expiration, List<ExtensionData> extensionList) {
         this.transactionCode = transactionCode;
         this.requestCode = requestCode;
         this.accountId = accountId;
@@ -72,7 +86,8 @@ public class InteropRequestData {
         this.extensionList = extensionList;
     }
 
-    protected InteropRequestData(@NotNull String transactionCode, @NotNull String accountId, @NotNull MoneyData amount, @NotNull InteropTransactionRole transactionRole) {
+    protected InteropRequestData(@NotNull String transactionCode, @NotNull String accountId, @NotNull MoneyData amount,
+            @NotNull InteropTransactionRole transactionRole) {
         this(transactionCode, null, accountId, amount, transactionRole, null, null, null, null, null);
     }
 
@@ -144,12 +159,14 @@ public class InteropRequestData {
         amount.normalizeAmount(currency);
     }
 
-    public static InteropRequestData validateAndParse(final DataValidatorBuilder dataValidator, JsonObject element, FromJsonHelper jsonHelper) {
-        if (element == null)
+    public static InteropRequestData validateAndParse(final DataValidatorBuilder dataValidator, JsonObject element,
+            FromJsonHelper jsonHelper) {
+        if (element == null) {
             return null;
+        }
 
         String transactionCode = jsonHelper.extractStringNamed(PARAM_TRANSACTION_CODE, element);
-        DataValidatorBuilder  dataValidatorCopy = dataValidator.reset().parameter(PARAM_TRANSACTION_CODE).value(transactionCode).notBlank();
+        DataValidatorBuilder dataValidatorCopy = dataValidator.reset().parameter(PARAM_TRANSACTION_CODE).value(transactionCode).notBlank();
 
         String requestCode = jsonHelper.extractStringNamed(PARAM_REQUEST_CODE, element);
 
@@ -162,10 +179,12 @@ public class InteropRequestData {
         MoneyData amount = MoneyData.validateAndParse(dataValidator, moneyElement, jsonHelper);
 
         JsonObject transactionTypeElement = jsonHelper.extractJsonObjectNamed(PARAM_TRANSACTION_TYPE, element);
-        InteropTransactionTypeData transactionType = InteropTransactionTypeData.validateAndParse(dataValidator, transactionTypeElement, jsonHelper);
+        InteropTransactionTypeData transactionType = InteropTransactionTypeData.validateAndParse(dataValidator, transactionTypeElement,
+                jsonHelper);
 
         String transactionRoleString = jsonHelper.extractStringNamed(PARAM_TRANSACTION_ROLE, element);
-        InteropTransactionRole transactionRole = transactionRoleString == null ? InteropTransactionRole.PAYER : InteropTransactionRole.valueOf(transactionRoleString);
+        InteropTransactionRole transactionRole = transactionRoleString == null ? InteropTransactionRole.PAYER
+                : InteropTransactionRole.valueOf(transactionRoleString);
 
         String note = jsonHelper.extractStringNamed(PARAM_NOTE, element);
 
@@ -174,20 +193,26 @@ public class InteropRequestData {
 
         String locale = jsonHelper.extractStringNamed(PARAM_LOCALE, element);
         LocalDateTime expiration = locale == null
-                ? jsonHelper.extractLocalTimeNamed(PARAM_EXPIRATION, element, ISO8601_DATE_TIME_FORMAT, DEFAULT_LOCALE)
-                : jsonHelper.extractLocalTimeNamed(PARAM_EXPIRATION, element); // PARAM_DATE_FORMAT also must be set
+                ? jsonHelper.extractLocalDateTimeNamed(PARAM_EXPIRATION, element, ISO8601_DATE_TIME_FORMAT, DEFAULT_LOCALE)
+                : jsonHelper.extractLocalDateTimeNamed(PARAM_EXPIRATION, element); // PARAM_DATE_FORMAT
+        // also
+        // must
+        // be
+        // set
 
         JsonArray extensionArray = jsonHelper.extractJsonArrayNamed(PARAM_EXTENSION_LIST, element);
         ArrayList<ExtensionData> extensionList = null;
         if (extensionArray != null) {
             extensionList = new ArrayList<>(extensionArray.size());
             for (JsonElement jsonElement : extensionArray) {
-                if (jsonElement.isJsonObject())
+                if (jsonElement.isJsonObject()) {
                     extensionList.add(ExtensionData.validateAndParse(dataValidator, jsonElement.getAsJsonObject(), jsonHelper));
+                }
             }
         }
 
-        return dataValidator.hasError() ? null : new InteropRequestData(transactionCode, requestCode, accountId, amount,
-                transactionRole, transactionType, note, geoCode, expiration, extensionList);
+        return dataValidator.hasError() ? null
+                : new InteropRequestData(transactionCode, requestCode, accountId, amount, transactionRole, transactionType, note, geoCode,
+                        expiration, extensionList);
     }
 }

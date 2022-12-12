@@ -18,8 +18,8 @@
  */
 package org.apache.fineract.portfolio.loanaccount.domain.transactionprocessor.impl;
 
+import java.time.LocalDate;
 import java.util.List;
-
 import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
 import org.apache.fineract.organisation.monetary.domain.Money;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanRepaymentScheduleInstallment;
@@ -27,17 +27,30 @@ import org.apache.fineract.portfolio.loanaccount.domain.LoanTransaction;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanTransactionToRepaymentScheduleMapping;
 import org.apache.fineract.portfolio.loanaccount.domain.transactionprocessor.AbstractLoanRepaymentScheduleTransactionProcessor;
 import org.apache.fineract.portfolio.loanaccount.domain.transactionprocessor.LoanRepaymentScheduleTransactionProcessor;
-import org.joda.time.LocalDate;
 
 /**
- * This {@link LoanRepaymentScheduleTransactionProcessor} defaults to having the
- * payment order of Interest first, then principal, penalties and fees.
+ * This {@link LoanRepaymentScheduleTransactionProcessor} defaults to having the payment order of Interest first, then
+ * principal, penalties and fees.
  */
 public class EarlyPaymentLoanRepaymentScheduleTransactionProcessor extends AbstractLoanRepaymentScheduleTransactionProcessor {
 
+    public static final String STRATEGY_CODE = "early-repayment-strategy";
+
+    private static final String STRATEGY_NAME = "Early Repayment Strategy";
+
+    @Override
+    public String getCode() {
+        return STRATEGY_CODE;
+    }
+
+    @Override
+    public String getName() {
+        return STRATEGY_NAME;
+    }
+
     /**
-     * For early/'in advance' repayments, pay off in the same way as on-time
-     * payments, interest first, principal, penalties and charges.
+     * For early/'in advance' repayments, pay off in the same way as on-time payments, interest first, principal,
+     * penalties and charges.
      */
     @SuppressWarnings("unused")
     @Override
@@ -58,8 +71,8 @@ public class EarlyPaymentLoanRepaymentScheduleTransactionProcessor extends Abstr
                     loanTransaction.getPenaltyChargesPortion(currency));
             transactionAmountRemaining = transactionAmountRemaining.minus(penaltyChargesPortion);
 
-            feeChargesPortion = currentInstallment
-                    .waiveFeeChargesComponent(transactionDate, loanTransaction.getFeeChargesPortion(currency));
+            feeChargesPortion = currentInstallment.waiveFeeChargesComponent(transactionDate,
+                    loanTransaction.getFeeChargesPortion(currency));
             transactionAmountRemaining = transactionAmountRemaining.minus(feeChargesPortion);
 
         } else if (loanTransaction.isInterestWaiver()) {
@@ -85,16 +98,15 @@ public class EarlyPaymentLoanRepaymentScheduleTransactionProcessor extends Abstr
             loanTransaction.updateComponents(principalPortion, interestPortion, feeChargesPortion, penaltyChargesPortion);
         }
         if (principalPortion.plus(interestPortion).plus(feeChargesPortion).plus(penaltyChargesPortion).isGreaterThanZero()) {
-            transactionMappings.add(LoanTransactionToRepaymentScheduleMapping.createFrom(currentInstallment, principalPortion,
-                    interestPortion, feeChargesPortion, penaltyChargesPortion));
+            transactionMappings.add(LoanTransactionToRepaymentScheduleMapping.createFrom(loanTransaction, currentInstallment,
+                    principalPortion, interestPortion, feeChargesPortion, penaltyChargesPortion));
         }
         return transactionAmountRemaining;
 
     }
 
     /**
-     * For late repayments, pay off in the same way as on-time payments,
-     * interest first then principal.
+     * For late repayments, pay off in the same way as on-time payments, interest first then principal.
      */
     @SuppressWarnings("unused")
     @Override
@@ -155,8 +167,8 @@ public class EarlyPaymentLoanRepaymentScheduleTransactionProcessor extends Abstr
             loanTransaction.updateComponents(principalPortion, interestPortion, feeChargesPortion, penaltyChargesPortion);
         }
         if (principalPortion.plus(interestPortion).plus(feeChargesPortion).plus(penaltyChargesPortion).isGreaterThanZero()) {
-            transactionMappings.add(LoanTransactionToRepaymentScheduleMapping.createFrom(currentInstallment, principalPortion,
-                    interestPortion, feeChargesPortion, penaltyChargesPortion));
+            transactionMappings.add(LoanTransactionToRepaymentScheduleMapping.createFrom(loanTransaction, currentInstallment,
+                    principalPortion, interestPortion, feeChargesPortion, penaltyChargesPortion));
         }
         return transactionAmountRemaining;
     }
@@ -197,8 +209,8 @@ public class EarlyPaymentLoanRepaymentScheduleTransactionProcessor extends Abstr
 
         loanTransaction.updateComponents(principalPortion, interestPortion, feeChargesPortion, penaltyChargesPortion);
         if (principalPortion.plus(interestPortion).plus(feeChargesPortion).plus(penaltyChargesPortion).isGreaterThanZero()) {
-            transactionMappings.add(LoanTransactionToRepaymentScheduleMapping.createFrom(currentInstallment, principalPortion,
-                    interestPortion, feeChargesPortion, penaltyChargesPortion));
+            transactionMappings.add(LoanTransactionToRepaymentScheduleMapping.createFrom(loanTransaction, currentInstallment,
+                    principalPortion, interestPortion, feeChargesPortion, penaltyChargesPortion));
         }
         return transactionAmountRemaining;
     }

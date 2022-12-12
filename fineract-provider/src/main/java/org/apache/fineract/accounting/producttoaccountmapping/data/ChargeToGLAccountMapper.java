@@ -18,19 +18,21 @@
  */
 package org.apache.fineract.accounting.producttoaccountmapping.data;
 
+import java.io.Serializable;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.apache.fineract.accounting.glaccount.data.GLAccountData;
 import org.apache.fineract.portfolio.charge.data.ChargeData;
 
-public class ChargeToGLAccountMapper {
+@RequiredArgsConstructor
+@Getter
+@Setter
+@Accessors(chain = true)
+public class ChargeToGLAccountMapper implements Serializable {
 
-    @SuppressWarnings("unused")
-    private final ChargeData charge;
-    @SuppressWarnings("unused")
-    private final GLAccountData incomeAccount;
-
-    public ChargeToGLAccountMapper(final ChargeData charge, final GLAccountData incomeAccount) {
-        this.charge = charge;
-        this.incomeAccount = incomeAccount;
-    }
-
+    private static final long serialVersionUID = 1L;
+    private ChargeData charge;
+    private GLAccountData incomeAccount;
 }

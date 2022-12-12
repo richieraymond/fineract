@@ -18,16 +18,20 @@
  */
 package org.apache.fineract.organisation.teller.domain;
 
+import java.time.LocalDate;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.Table;
+import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
 import org.apache.fineract.organisation.office.domain.Office;
 import org.apache.fineract.portfolio.client.domain.Client;
-import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
-
-import javax.persistence.*;
-import java.util.Date;
 
 @Entity
 @Table(name = "m_teller_transactions")
-public class TellerTransaction extends AbstractPersistableCustom<Long> {
+public class TellerTransaction extends AbstractPersistableCustom {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "office_id", nullable = false)
@@ -51,12 +55,11 @@ public class TellerTransaction extends AbstractPersistableCustom<Long> {
     @Column(name = "amount", nullable = false)
     private Double amount;
 
-    @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "posting_date", nullable = false)
-    private Date postingDate;
+    private LocalDate postingDate;
 
     public TellerTransaction() {
-        super();
+
     }
 
     public Office getOffice() {
@@ -107,11 +110,11 @@ public class TellerTransaction extends AbstractPersistableCustom<Long> {
         this.amount = amount;
     }
 
-    public Date getPostingDate() {
+    public LocalDate getPostingDate() {
         return postingDate;
     }
 
-    public void setPostingDate(Date postingDate) {
+    public void setPostingDate(LocalDate postingDate) {
         this.postingDate = postingDate;
     }
 }

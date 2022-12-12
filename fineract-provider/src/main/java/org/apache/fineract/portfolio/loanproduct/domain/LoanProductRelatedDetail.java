@@ -23,13 +23,11 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
 import javax.persistence.Embedded;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
-
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.ApiParameterError;
 import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
@@ -44,8 +42,8 @@ import org.apache.fineract.portfolio.loanaccount.loanschedule.domain.AprCalculat
 import org.apache.fineract.portfolio.loanproduct.LoanProductConstants;
 
 /**
- * LoanRepaymentScheduleDetail encapsulates all the details of a
- * {@link LoanProduct} that are also used and persisted by a {@link Loan}.
+ * LoanRepaymentScheduleDetail encapsulates all the details of a {@link LoanProduct} that are also used and persisted by
+ * a {@link Loan}.
  */
 @Embeddable
 public class LoanProductRelatedDetail implements LoanProductMinimumRepaymentScheduleRelatedDetail {
@@ -53,19 +51,19 @@ public class LoanProductRelatedDetail implements LoanProductMinimumRepaymentSche
     @Embedded
     private MonetaryCurrency currency;
 
-    @Column(name = "principal_amount", scale = 6, precision = 19, nullable = true)
+    @Column(name = "principal_amount", scale = 6, precision = 19)
     private BigDecimal principal;
 
-    @Column(name = "nominal_interest_rate_per_period", scale = 6, precision = 19, nullable = true)
+    @Column(name = "nominal_interest_rate_per_period", scale = 6, precision = 19)
     private BigDecimal nominalInterestRatePerPeriod;
 
     // FIXME - move away form JPA ordinal use for enums using just integer -
     // requires sql patch for existing users of software.
     @Enumerated(EnumType.ORDINAL)
-    @Column(name = "interest_period_frequency_enum", nullable = true)
+    @Column(name = "interest_period_frequency_enum")
     private PeriodFrequencyType interestPeriodFrequencyType;
 
-    @Column(name = "annual_nominal_interest_rate", scale = 6, precision = 19, nullable = true)
+    @Column(name = "annual_nominal_interest_rate", scale = 6, precision = 19)
     private BigDecimal annualNominalInterestRate;
 
     // FIXME - move away form JPA ordinal use for enums using just integer -
@@ -95,16 +93,16 @@ public class LoanProductRelatedDetail implements LoanProductMinimumRepaymentSche
     @Column(name = "number_of_repayments", nullable = false)
     private Integer numberOfRepayments;
 
-    @Column(name = "grace_on_principal_periods", nullable = true)
+    @Column(name = "grace_on_principal_periods")
     private Integer graceOnPrincipalPayment;
 
-    @Column(name = "recurring_moratorium_principal_periods", nullable = true)
+    @Column(name = "recurring_moratorium_principal_periods")
     private Integer recurringMoratoriumOnPrincipalPeriods;
 
-    @Column(name = "grace_on_interest_periods", nullable = true)
+    @Column(name = "grace_on_interest_periods")
     private Integer graceOnInterestPayment;
 
-    @Column(name = "grace_interest_free_periods", nullable = true)
+    @Column(name = "grace_interest_free_periods")
     private Integer graceOnInterestCharged;
 
     // FIXME - move away form JPA ordinal use for enums using just integer -
@@ -113,10 +111,10 @@ public class LoanProductRelatedDetail implements LoanProductMinimumRepaymentSche
     @Column(name = "amortization_method_enum", nullable = false)
     private AmortizationMethod amortizationMethod;
 
-    @Column(name = "arrearstolerance_amount", scale = 6, precision = 19, nullable = true)
+    @Column(name = "arrearstolerance_amount", scale = 6, precision = 19)
     private BigDecimal inArrearsTolerance;
 
-    @Column(name = "grace_on_arrears_ageing", nullable = true)
+    @Column(name = "grace_on_arrears_ageing")
     private Integer graceOnArrearsAgeing;
 
     @Column(name = "days_in_month_enum", nullable = false)
@@ -127,7 +125,7 @@ public class LoanProductRelatedDetail implements LoanProductMinimumRepaymentSche
 
     @Column(name = "interest_recalculation_enabled")
     private boolean isInterestRecalculationEnabled;
-    
+
     @Column(name = "is_equal_amortization", nullable = false)
     private boolean isEqualAmortization = false;
 
@@ -136,15 +134,17 @@ public class LoanProductRelatedDetail implements LoanProductMinimumRepaymentSche
             final BigDecimal nominalAnnualInterestRate, final InterestMethod interestMethod,
             final InterestCalculationPeriodMethod interestCalculationPeriodMethod, final boolean allowPartialPeriodInterestCalcualtion,
             final Integer repaymentEvery, final PeriodFrequencyType repaymentPeriodFrequencyType, final Integer numberOfRepayments,
-            final Integer graceOnPrincipalPayment, final Integer recurringMoratoriumOnPrincipalPeriods, final Integer graceOnInterestPayment, final Integer graceOnInterestCharged,
-            final AmortizationMethod amortizationMethod, final BigDecimal inArrearsTolerance, final Integer graceOnArrearsAgeing,
-            final Integer daysInMonthType, final Integer daysInYearType, final boolean isInterestRecalculationEnabled, final boolean isEqualAmortization) {
+            final Integer graceOnPrincipalPayment, final Integer recurringMoratoriumOnPrincipalPeriods,
+            final Integer graceOnInterestPayment, final Integer graceOnInterestCharged, final AmortizationMethod amortizationMethod,
+            final BigDecimal inArrearsTolerance, final Integer graceOnArrearsAgeing, final Integer daysInMonthType,
+            final Integer daysInYearType, final boolean isInterestRecalculationEnabled, final boolean isEqualAmortization) {
 
         return new LoanProductRelatedDetail(currency, principal, nominalInterestRatePerPeriod, interestRatePeriodFrequencyType,
                 nominalAnnualInterestRate, interestMethod, interestCalculationPeriodMethod, allowPartialPeriodInterestCalcualtion,
-                repaymentEvery, repaymentPeriodFrequencyType, numberOfRepayments, graceOnPrincipalPayment, recurringMoratoriumOnPrincipalPeriods, graceOnInterestPayment,
-                graceOnInterestCharged, amortizationMethod, inArrearsTolerance, graceOnArrearsAgeing, daysInMonthType, daysInYearType,
-                isInterestRecalculationEnabled, isEqualAmortization);
+                repaymentEvery, repaymentPeriodFrequencyType, numberOfRepayments, graceOnPrincipalPayment,
+                recurringMoratoriumOnPrincipalPeriods, graceOnInterestPayment, graceOnInterestCharged, amortizationMethod,
+                inArrearsTolerance, graceOnArrearsAgeing, daysInMonthType, daysInYearType, isInterestRecalculationEnabled,
+                isEqualAmortization);
     }
 
     protected LoanProductRelatedDetail() {
@@ -156,9 +156,10 @@ public class LoanProductRelatedDetail implements LoanProductMinimumRepaymentSche
             final BigDecimal defaultAnnualNominalInterestRate, final InterestMethod interestMethod,
             final InterestCalculationPeriodMethod interestCalculationPeriodMethod, final boolean allowPartialPeriodInterestCalcualtion,
             final Integer repayEvery, final PeriodFrequencyType repaymentFrequencyType, final Integer defaultNumberOfRepayments,
-            final Integer graceOnPrincipalPayment, final Integer recurringMoratoriumOnPrincipalPeriods, final Integer graceOnInterestPayment, final Integer graceOnInterestCharged,
-            final AmortizationMethod amortizationMethod, final BigDecimal inArrearsTolerance, final Integer graceOnArrearsAgeing,
-            final Integer daysInMonthType, final Integer daysInYearType, final boolean isInterestRecalculationEnabled, final boolean isEqualAmortization) {
+            final Integer graceOnPrincipalPayment, final Integer recurringMoratoriumOnPrincipalPeriods,
+            final Integer graceOnInterestPayment, final Integer graceOnInterestCharged, final AmortizationMethod amortizationMethod,
+            final BigDecimal inArrearsTolerance, final Integer graceOnArrearsAgeing, final Integer daysInMonthType,
+            final Integer daysInYearType, final boolean isInterestRecalculationEnabled, final boolean isEqualAmortization) {
         this.currency = currency;
         this.principal = defaultPrincipal;
         this.nominalInterestRatePerPeriod = defaultNominalInterestRatePerPeriod;
@@ -189,7 +190,7 @@ public class LoanProductRelatedDetail implements LoanProductMinimumRepaymentSche
 
     private Integer defaultToNullIfZero(final Integer value) {
         Integer defaultTo = value;
-        if (value != null && Integer.valueOf(0).equals(value)) {
+        if (Integer.valueOf(0).equals(value)) {
             defaultTo = null;
         }
         return defaultTo;
@@ -228,7 +229,7 @@ public class LoanProductRelatedDetail implements LoanProductMinimumRepaymentSche
     public Integer recurringMoratoriumOnPrincipalPeriods() {
         return this.recurringMoratoriumOnPrincipalPeriods;
     }
-    
+
     @Override
     public Money getInArrearsTolerance() {
         return Money.of(this.currency, this.inArrearsTolerance);
@@ -236,8 +237,8 @@ public class LoanProductRelatedDetail implements LoanProductMinimumRepaymentSche
 
     @Override
     public BigDecimal getNominalInterestRatePerPeriod() {
-        return this.nominalInterestRatePerPeriod == null ? null : BigDecimal.valueOf(Double.valueOf(this.nominalInterestRatePerPeriod
-                .stripTrailingZeros().toString()));
+        return this.nominalInterestRatePerPeriod == null ? null
+                : BigDecimal.valueOf(Double.parseDouble(this.nominalInterestRatePerPeriod.stripTrailingZeros().toString()));
     }
 
     @Override
@@ -247,8 +248,8 @@ public class LoanProductRelatedDetail implements LoanProductMinimumRepaymentSche
 
     @Override
     public BigDecimal getAnnualNominalInterestRate() {
-        return this.annualNominalInterestRate == null ? null : BigDecimal.valueOf(Double.valueOf(this.annualNominalInterestRate
-                .stripTrailingZeros().toString()));
+        return this.annualNominalInterestRate == null ? null
+                : BigDecimal.valueOf(Double.parseDouble(this.annualNominalInterestRate.stripTrailingZeros().toString()));
     }
 
     @Override
@@ -351,17 +352,17 @@ public class LoanProductRelatedDetail implements LoanProductMinimumRepaymentSche
             actualChanges.put("locale", localeAsInput);
             this.repaymentPeriodFrequencyType = PeriodFrequencyType.fromInt(newValue);
         }
-            if (this.repaymentPeriodFrequencyType == PeriodFrequencyType.MONTHS) {
-        	Integer newValue = null;
-                final String repaymentFrequencyNthDayTypeParamName = "repaymentFrequencyNthDayType";
-                newValue = command.integerValueOfParameterNamed(repaymentFrequencyNthDayTypeParamName);
-                actualChanges.put(repaymentFrequencyNthDayTypeParamName, newValue);
+        if (this.repaymentPeriodFrequencyType == PeriodFrequencyType.MONTHS) {
+            Integer newValue = null;
+            final String repaymentFrequencyNthDayTypeParamName = "repaymentFrequencyNthDayType";
+            newValue = command.integerValueOfParameterNamed(repaymentFrequencyNthDayTypeParamName);
+            actualChanges.put(repaymentFrequencyNthDayTypeParamName, newValue);
 
-                final String repaymentFrequencyDayOfWeekTypeParamName = "repaymentFrequencyDayOfWeekType";
-                newValue = command.integerValueOfParameterNamed(repaymentFrequencyDayOfWeekTypeParamName);
-                actualChanges.put(repaymentFrequencyDayOfWeekTypeParamName, newValue);
+            final String repaymentFrequencyDayOfWeekTypeParamName = "repaymentFrequencyDayOfWeekType";
+            newValue = command.integerValueOfParameterNamed(repaymentFrequencyDayOfWeekTypeParamName);
+            actualChanges.put(repaymentFrequencyDayOfWeekTypeParamName, newValue);
 
-                actualChanges.put("locale", localeAsInput);
+            actualChanges.put("locale", localeAsInput);
         }
 
         final String numberOfRepaymentsParamName = "numberOfRepayments";
@@ -417,19 +418,19 @@ public class LoanProductRelatedDetail implements LoanProductMinimumRepaymentSche
         }
 
         final String interestCalculationPeriodTypeParamName = "interestCalculationPeriodType";
-        if (command
-                .isChangeInIntegerParameterNamed(interestCalculationPeriodTypeParamName, this.interestCalculationPeriodMethod.getValue())) {
+        if (command.isChangeInIntegerParameterNamed(interestCalculationPeriodTypeParamName,
+                this.interestCalculationPeriodMethod.getValue())) {
             final Integer newValue = command.integerValueOfParameterNamed(interestCalculationPeriodTypeParamName);
             actualChanges.put(interestCalculationPeriodTypeParamName, newValue);
             actualChanges.put("locale", localeAsInput);
             this.interestCalculationPeriodMethod = InterestCalculationPeriodMethod.fromInt(newValue);
         }
 
-        if (command.isChangeInBooleanParameterNamed(LoanProductConstants.allowPartialPeriodInterestCalcualtionParamName,
+        if (command.isChangeInBooleanParameterNamed(LoanProductConstants.ALLOW_PARTIAL_PERIOD_INTEREST_CALCUALTION_PARAM_NAME,
                 this.allowPartialPeriodInterestCalcualtion)) {
             final boolean newValue = command
-                    .booleanPrimitiveValueOfParameterNamed(LoanProductConstants.allowPartialPeriodInterestCalcualtionParamName);
-            actualChanges.put(LoanProductConstants.allowPartialPeriodInterestCalcualtionParamName, newValue);
+                    .booleanPrimitiveValueOfParameterNamed(LoanProductConstants.ALLOW_PARTIAL_PERIOD_INTEREST_CALCUALTION_PARAM_NAME);
+            actualChanges.put(LoanProductConstants.ALLOW_PARTIAL_PERIOD_INTEREST_CALCUALTION_PARAM_NAME, newValue);
             this.allowPartialPeriodInterestCalcualtion = newValue;
         }
 
@@ -444,9 +445,10 @@ public class LoanProductRelatedDetail implements LoanProductMinimumRepaymentSche
             actualChanges.put("locale", localeAsInput);
             this.graceOnPrincipalPayment = newValue;
         }
-        
+
         final String recurringMoratoriumOnPrincipalPeriodsParamName = "recurringMoratoriumOnPrincipalPeriods";
-        if (command.isChangeInIntegerParameterNamed(recurringMoratoriumOnPrincipalPeriodsParamName, this.recurringMoratoriumOnPrincipalPeriods)) {
+        if (command.isChangeInIntegerParameterNamed(recurringMoratoriumOnPrincipalPeriodsParamName,
+                this.recurringMoratoriumOnPrincipalPeriods)) {
             final Integer newValue = command.integerValueOfParameterNamed(recurringMoratoriumOnPrincipalPeriodsParamName);
             actualChanges.put(recurringMoratoriumOnPrincipalPeriodsParamName, newValue);
             actualChanges.put("locale", localeAsInput);
@@ -469,38 +471,39 @@ public class LoanProductRelatedDetail implements LoanProductMinimumRepaymentSche
             this.graceOnInterestCharged = newValue;
         }
 
-        if (command.isChangeInIntegerParameterNamed(LoanProductConstants.graceOnArrearsAgeingParameterName, this.graceOnArrearsAgeing)) {
-            final Integer newValue = command.integerValueOfParameterNamed(LoanProductConstants.graceOnArrearsAgeingParameterName);
-            actualChanges.put(LoanProductConstants.graceOnArrearsAgeingParameterName, newValue);
+        if (command.isChangeInIntegerParameterNamed(LoanProductConstants.GRACE_ON_ARREARS_AGEING_PARAMETER_NAME,
+                this.graceOnArrearsAgeing)) {
+            final Integer newValue = command.integerValueOfParameterNamed(LoanProductConstants.GRACE_ON_ARREARS_AGEING_PARAMETER_NAME);
+            actualChanges.put(LoanProductConstants.GRACE_ON_ARREARS_AGEING_PARAMETER_NAME, newValue);
             actualChanges.put("locale", localeAsInput);
             this.graceOnArrearsAgeing = newValue;
         }
 
-        if (command.isChangeInIntegerParameterNamed(LoanProductConstants.daysInMonthTypeParameterName, this.daysInMonthType)) {
-            final Integer newValue = command.integerValueOfParameterNamed(LoanProductConstants.daysInMonthTypeParameterName);
-            actualChanges.put(LoanProductConstants.daysInMonthTypeParameterName, newValue);
+        if (command.isChangeInIntegerParameterNamed(LoanProductConstants.DAYS_IN_MONTH_TYPE_PARAMETER_NAME, this.daysInMonthType)) {
+            final Integer newValue = command.integerValueOfParameterNamed(LoanProductConstants.DAYS_IN_MONTH_TYPE_PARAMETER_NAME);
+            actualChanges.put(LoanProductConstants.DAYS_IN_MONTH_TYPE_PARAMETER_NAME, newValue);
             actualChanges.put("locale", localeAsInput);
             this.daysInMonthType = newValue;
         }
 
-        if (command.isChangeInIntegerParameterNamed(LoanProductConstants.daysInYearTypeParameterName, this.daysInYearType)) {
-            final Integer newValue = command.integerValueOfParameterNamed(LoanProductConstants.daysInYearTypeParameterName);
-            actualChanges.put(LoanProductConstants.daysInYearTypeParameterName, newValue);
+        if (command.isChangeInIntegerParameterNamed(LoanProductConstants.DAYS_IN_YEAR_TYPE_PARAMETER_NAME, this.daysInYearType)) {
+            final Integer newValue = command.integerValueOfParameterNamed(LoanProductConstants.DAYS_IN_YEAR_TYPE_PARAMETER_NAME);
+            actualChanges.put(LoanProductConstants.DAYS_IN_YEAR_TYPE_PARAMETER_NAME, newValue);
             actualChanges.put("locale", localeAsInput);
             this.daysInYearType = newValue;
         }
 
-        if (command.isChangeInBooleanParameterNamed(LoanProductConstants.isInterestRecalculationEnabledParameterName,
+        if (command.isChangeInBooleanParameterNamed(LoanProductConstants.IS_INTEREST_RECALCULATION_ENABLED_PARAMETER_NAME,
                 this.isInterestRecalculationEnabled)) {
             final boolean newValue = command
-                    .booleanPrimitiveValueOfParameterNamed(LoanProductConstants.isInterestRecalculationEnabledParameterName);
-            actualChanges.put(LoanProductConstants.isInterestRecalculationEnabledParameterName, newValue);
+                    .booleanPrimitiveValueOfParameterNamed(LoanProductConstants.IS_INTEREST_RECALCULATION_ENABLED_PARAMETER_NAME);
+            actualChanges.put(LoanProductConstants.IS_INTEREST_RECALCULATION_ENABLED_PARAMETER_NAME, newValue);
             this.isInterestRecalculationEnabled = newValue;
         }
-        
-        if (command.isChangeInBooleanParameterNamed(LoanProductConstants.isEqualAmortizationParam, this.isEqualAmortization)) {
-            final boolean newValue = command.booleanPrimitiveValueOfParameterNamed(LoanProductConstants.isEqualAmortizationParam);
-            actualChanges.put(LoanProductConstants.isEqualAmortizationParam, newValue);
+
+        if (command.isChangeInBooleanParameterNamed(LoanProductConstants.IS_EQUAL_AMORTIZATION_PARAM, this.isEqualAmortization)) {
+            final boolean newValue = command.booleanPrimitiveValueOfParameterNamed(LoanProductConstants.IS_EQUAL_AMORTIZATION_PARAM);
+            actualChanges.put(LoanProductConstants.IS_EQUAL_AMORTIZATION_PARAM, newValue);
             this.isEqualAmortization = newValue;
         }
 
@@ -510,9 +513,9 @@ public class LoanProductRelatedDetail implements LoanProductMinimumRepaymentSche
     }
 
     public void updateCurrency(final MonetaryCurrency currency) {
-    	this.currency = currency ;
+        this.currency = currency;
     }
-    
+
     public void validateRepaymentPeriodWithGraceSettings() {
         final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
         final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors).resource("loanproduct");
@@ -531,37 +534,38 @@ public class LoanProductRelatedDetail implements LoanProductMinimumRepaymentSche
             baseDataValidator.reset().parameter("graceOnInterestCharged").value(this.graceOnInterestCharged)
                     .failWithCode(".mustBeLessThan.numberOfRepayments");
         }
-        
+
         int graceOnPrincipal = 0;
         if (this.getGraceOnPrincipalPayment() != null) {
-        	graceOnPrincipal = this.getGraceOnPrincipalPayment().intValue();
+            graceOnPrincipal = this.getGraceOnPrincipalPayment();
         }
         int recurMoratoriumOnPrincipal = 0;
         if (this.recurringMoratoriumOnPrincipalPeriods() != null) {
-        	recurMoratoriumOnPrincipal = this.recurringMoratoriumOnPrincipalPeriods().intValue();
-        }
-        
-        if (  ( recurMoratoriumOnPrincipal > 0 ) 
-        	&& ( (this.numberOfRepayments - graceOnPrincipal) % ( recurMoratoriumOnPrincipal + 1) != 1) ) {
-            baseDataValidator.reset().parameter("graceOnPrincipalPayments.and.recurringMoratoriumOnPrincipalPeriods")
-	            	.value(graceOnPrincipal)
-	            	.value(recurMoratoriumOnPrincipal)
-	                .failWithCode("causes.principal.moratorium.for.last.installment");
+            recurMoratoriumOnPrincipal = this.recurringMoratoriumOnPrincipalPeriods();
         }
 
-        if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException(dataValidationErrors); }
+        if ((recurMoratoriumOnPrincipal > 0) && ((this.numberOfRepayments - graceOnPrincipal) % (recurMoratoriumOnPrincipal + 1) != 1)) {
+            baseDataValidator.reset().parameter("graceOnPrincipalPayments.and.recurringMoratoriumOnPrincipalPeriods")
+                    .value(graceOnPrincipal).value(recurMoratoriumOnPrincipal)
+                    .failWithCode("causes.principal.moratorium.for.last.installment");
+        }
+
+        if (!dataValidationErrors.isEmpty()) {
+            throw new PlatformApiDataValidationException(dataValidationErrors);
+        }
     }
 
     private Integer defaultToZeroIfNull(final Integer value) {
         Integer result = value;
         if (value == null) {
-            result = Integer.valueOf(0);
+            result = 0;
         }
         return result;
     }
 
     private void updateInterestRateDerivedFields(final AprCalculator aprCalculator) {
-       this.annualNominalInterestRate = aprCalculator.calculateFrom(this.interestPeriodFrequencyType, this.nominalInterestRatePerPeriod, this.numberOfRepayments, this.repayEvery, this.repaymentPeriodFrequencyType);
+        this.annualNominalInterestRate = aprCalculator.calculateFrom(this.interestPeriodFrequencyType, this.nominalInterestRatePerPeriod,
+                this.numberOfRepayments, this.repayEvery, this.repaymentPeriodFrequencyType);
 
     }
 
@@ -569,7 +573,7 @@ public class LoanProductRelatedDetail implements LoanProductMinimumRepaymentSche
         return this.currency.getCode().equalsIgnoreCase(currencyCode);
     }
 
-    public void updatenterestPeriodFrequencyType(final PeriodFrequencyType interestPeriodFrequencyType) {
+    public void updateInterestPeriodFrequencyType(final PeriodFrequencyType interestPeriodFrequencyType) {
         this.interestPeriodFrequencyType = interestPeriodFrequencyType;
     }
 
@@ -659,7 +663,7 @@ public class LoanProductRelatedDetail implements LoanProductMinimumRepaymentSche
     public boolean isAllowPartialPeriodInterestCalcualtion() {
         return this.allowPartialPeriodInterestCalcualtion;
     }
-    
+
     public boolean isEqualAmortization() {
         return isEqualAmortization;
     }
@@ -668,4 +672,7 @@ public class LoanProductRelatedDetail implements LoanProductMinimumRepaymentSche
         this.isEqualAmortization = isEqualAmortization;
     }
 
+    public void setNominalInterestRatePerPeriod(BigDecimal nominalInterestRatePerPeriod) {
+        this.nominalInterestRatePerPeriod = nominalInterestRatePerPeriod;
+    }
 }

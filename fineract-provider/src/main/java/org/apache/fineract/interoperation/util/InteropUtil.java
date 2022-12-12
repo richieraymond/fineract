@@ -18,12 +18,13 @@
  */
 package org.apache.fineract.interoperation.util;
 
-import org.apache.fineract.infrastructure.core.api.JsonCommand;
-import serp.util.Strings;
-
 import java.util.Locale;
 
-public class InteropUtil {
+public final class InteropUtil {
+
+    private InteropUtil() {
+
+    }
 
     public static final String ISO8601_DATE_TIME_FORMAT = "yyyy-MM-ddTHH:mm:ss.SSS[-HH:MM]";
     public static final String ISO8601_DATE_FORMAT = "yyyy-MM-dd";
@@ -40,6 +41,7 @@ public class InteropUtil {
 
     public static final String ACTION_TRANSFER_PREPARE = "PREPARE";
     public static final String ACTION_TRANSFER_COMMIT = "CREATE";
+    public static final String ACTION_TRANSFER_RELEASE = "RELEASE";
 
     public static final String PARAM_LOCALE = "locale";
     public static final String PARAM_DATE_FORMAT = "dateFormat";
@@ -65,6 +67,8 @@ public class InteropUtil {
     public static final String PARAM_SUB_SCENARIO = "subScenario";
     public static final String PARAM_INITIATOR = "initiator";
     public static final String PARAM_INITIATOR_TYPE = "initiatorType";
+    public static final String PARAM_REFUND_INFO = "refundInfo";
+    public static final String PARAM_BALANCE_OF_PAYMENTS = "balanceOfPayments";
     public static final String PARAM_EXPIRATION = "expiration";
 
     public static final String PARAM_LATITUDE = "latitude";

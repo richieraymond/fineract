@@ -21,17 +21,13 @@ package org.apache.fineract.infrastructure.jobs.service;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.quartz.JobListener;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 /**
- * Global job Listener class to Stop the temporary scheduler once job execution
- * completes
+ * Global job Listener class to Stop the temporary scheduler once job execution completes
  */
-@Component
 public class SchedulerStopListener implements JobListener {
 
-    private static final String name = "Singlr Trigger Global Listner";
+    private static final String SINGLE_TRIGGER_GLOBAL_LISTENER = "Single Trigger Global Listener";
 
     // MIFOSX-1184: This class cannot use constructor injection, because one of
     // its dependencies (SchedulerStopListener) has a circular dependency to
@@ -41,14 +37,13 @@ public class SchedulerStopListener implements JobListener {
 
     private JobRegisterService jobRegisterService;
 
-    @Autowired
-    public void setJobRegisterService(JobRegisterService jobRegisterService) {
+    public SchedulerStopListener(JobRegisterService jobRegisterService) {
         this.jobRegisterService = jobRegisterService;
     }
 
     @Override
     public String getName() {
-        return name;
+        return SINGLE_TRIGGER_GLOBAL_LISTENER;
     }
 
     @Override
@@ -65,14 +60,8 @@ public class SchedulerStopListener implements JobListener {
     public void jobWasExecuted(final JobExecutionContext context, @SuppressWarnings("unused") final JobExecutionException jobException) {
         final String schedulerName = context.getTrigger().getJobDataMap().getString(SchedulerServiceConstants.SCHEDULER_NAME);
         if (schedulerName != null) {
-            final Thread newThread = new Thread(new Runnable() {
-
-                @Override
-                public void run() {
-                    SchedulerStopListener.this.jobRegisterService.stopScheduler(schedulerName);
-                }
-            });
-            newThread.run();
+            final Thread newThread = new Thread(() -> SchedulerStopListener.this.jobRegisterService.stopScheduler(schedulerName));
+            newThread.start();
         }
     }
 

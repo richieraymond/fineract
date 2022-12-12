@@ -21,15 +21,18 @@ package org.apache.fineract.accounting.accrual.serialization;
 import static org.apache.fineract.accounting.accrual.api.AccrualAccountingConstants.PERIODIC_ACCRUAL_ACCOUNTING_RESOURCE_NAME;
 import static org.apache.fineract.accounting.accrual.api.AccrualAccountingConstants.accrueTillParamName;
 
+import com.google.gson.JsonElement;
+import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.commons.lang.StringUtils;
+import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.accounting.accrual.api.AccrualAccountingConstants;
 import org.apache.fineract.infrastructure.core.data.ApiParameterError;
 import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
@@ -39,32 +42,24 @@ import org.apache.fineract.infrastructure.core.serialization.FromApiJsonDeserial
 import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.portfolio.loanaccount.guarantor.command.GuarantorCommand;
-import org.joda.time.LocalDate;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.google.gson.JsonElement;
-import com.google.gson.reflect.TypeToken;
-
 /**
- * Implementation of {@link FromApiJsonDeserializer} for
- * {@link GuarantorCommand}'s.
+ * Implementation of {@link FromApiJsonDeserializer} for {@link GuarantorCommand}'s.
  */
 @Component
+@RequiredArgsConstructor
 public final class AccrualAccountingDataValidator {
 
-    private final FromJsonHelper fromApiJsonHelper;
-	private static final Set<String> LOAN_PERIODIC_REQUEST_DATA_PARAMETERS = new HashSet<>(
-			Arrays.asList(accrueTillParamName, AccrualAccountingConstants.localeParamName,
-					AccrualAccountingConstants.dateFormatParamName));
+    private static final Set<String> LOAN_PERIODIC_REQUEST_DATA_PARAMETERS = new HashSet<>(
+            Arrays.asList(accrueTillParamName, AccrualAccountingConstants.localeParamName, AccrualAccountingConstants.dateFormatParamName));
 
-    @Autowired
-    public AccrualAccountingDataValidator(final FromJsonHelper fromApiJsonfromApiJsonHelper) {
-        this.fromApiJsonHelper = fromApiJsonfromApiJsonHelper;
-    }
+    private final FromJsonHelper fromApiJsonHelper;
 
     public void validateLoanPeriodicAccrualData(final String json) {
-        if (StringUtils.isBlank(json)) { throw new InvalidJsonException(); }
+        if (StringUtils.isBlank(json)) {
+            throw new InvalidJsonException();
+        }
         final Type typeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
         this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, LOAN_PERIODIC_REQUEST_DATA_PARAMETERS);
 
@@ -74,13 +69,15 @@ public final class AccrualAccountingDataValidator {
                 .resource(PERIODIC_ACCRUAL_ACCOUNTING_RESOURCE_NAME);
 
         final LocalDate date = this.fromApiJsonHelper.extractLocalDateNamed(accrueTillParamName, element);
-        baseDataValidator.reset().parameter(accrueTillParamName).value(date).notNull().validateDateBefore(DateUtils.getLocalDateOfTenant());
+        baseDataValidator.reset().parameter(accrueTillParamName).value(date).notNull().validateDateBefore(DateUtils.getBusinessLocalDate());
 
         throwExceptionIfValidationWarningsExist(dataValidationErrors);
 
     }
 
     public void throwExceptionIfValidationWarningsExist(final List<ApiParameterError> dataValidationErrors) {
-        if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException(dataValidationErrors); }
+        if (!dataValidationErrors.isEmpty()) {
+            throw new PlatformApiDataValidationException(dataValidationErrors);
+        }
     }
 }

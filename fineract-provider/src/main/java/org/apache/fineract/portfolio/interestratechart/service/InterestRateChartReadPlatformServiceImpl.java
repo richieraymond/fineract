@@ -21,15 +21,15 @@ package org.apache.fineract.portfolio.interestratechart.service;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-
 import org.apache.fineract.infrastructure.codes.data.CodeValueData;
 import org.apache.fineract.infrastructure.codes.service.CodeValueReadPlatformService;
 import org.apache.fineract.infrastructure.core.data.EnumOptionData;
 import org.apache.fineract.infrastructure.core.domain.JdbcSupport;
-import org.apache.fineract.infrastructure.core.service.RoutingDataSource;
+import org.apache.fineract.infrastructure.core.service.database.DatabaseSpecificSQLGenerator;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
 import org.apache.fineract.organisation.monetary.data.CurrencyData;
 import org.apache.fineract.portfolio.client.api.ClientApiConstants;
@@ -40,7 +40,6 @@ import org.apache.fineract.portfolio.interestratechart.data.InterestRateChartSla
 import org.apache.fineract.portfolio.interestratechart.exception.InterestRateChartNotFoundException;
 import org.apache.fineract.portfolio.interestratechart.incentive.InterestIncentiveAttributeName;
 import org.apache.fineract.portfolio.savings.data.DepositProductData;
-import org.joda.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -54,32 +53,33 @@ public class InterestRateChartReadPlatformServiceImpl implements InterestRateCha
 
     private final PlatformSecurityContext context;
     private final JdbcTemplate jdbcTemplate;
-    private final InterestRateChartMapper chartRowMapper = new InterestRateChartMapper();
-    private final InterestRateChartExtractor chartExtractor = new InterestRateChartExtractor();
+    private static final InterestRateChartMapper CHART_ROW_MAPPER = new InterestRateChartMapper();
+    private final InterestRateChartExtractor chartExtractor;
     private final InterestRateChartDropdownReadPlatformService chartDropdownReadPlatformService;
     private final InterestIncentiveDropdownReadPlatformService interestIncentiveDropdownReadPlatformService;
     private final CodeValueReadPlatformService codeValueReadPlatformService;
 
     @Autowired
-    public InterestRateChartReadPlatformServiceImpl(PlatformSecurityContext context, final RoutingDataSource dataSource,
+    public InterestRateChartReadPlatformServiceImpl(PlatformSecurityContext context, final JdbcTemplate jdbcTemplate,
             InterestRateChartDropdownReadPlatformService chartDropdownReadPlatformService,
             final InterestIncentiveDropdownReadPlatformService interestIncentiveDropdownReadPlatformService,
-            final CodeValueReadPlatformService codeValueReadPlatformService) {
+            final CodeValueReadPlatformService codeValueReadPlatformService, DatabaseSpecificSQLGenerator sqlGenerator) {
         this.context = context;
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
+        this.jdbcTemplate = jdbcTemplate;
         this.chartDropdownReadPlatformService = chartDropdownReadPlatformService;
         this.interestIncentiveDropdownReadPlatformService = interestIncentiveDropdownReadPlatformService;
         this.codeValueReadPlatformService = codeValueReadPlatformService;
+        chartExtractor = new InterestRateChartExtractor(sqlGenerator);
     }
 
     @Override
     public InterestRateChartData retrieveOne(Long chartId) {
         try {
             this.context.authenticatedUser();
-            final String sql = "select " + this.chartRowMapper.schema() + " where irc.id = ?";
-            return this.jdbcTemplate.queryForObject(sql, this.chartRowMapper, new Object[] { chartId });
+            final String sql = "select " + CHART_ROW_MAPPER.schema() + " where irc.id = ?";
+            return this.jdbcTemplate.queryForObject(sql, CHART_ROW_MAPPER, chartId); // NOSONAR
         } catch (final EmptyResultDataAccessException e) {
-            throw new InterestRateChartNotFoundException(chartId);
+            throw new InterestRateChartNotFoundException(chartId, e);
         }
     }
 
@@ -91,16 +91,19 @@ public class InterestRateChartReadPlatformServiceImpl implements InterestRateCha
         sql.append(this.chartExtractor.schema());
         sql.append(" where sp.id = ? order by irc.id, ");
         sql.append("CASE ");
-        sql.append("WHEN isPrimaryGroupingByAmount then ircd.amount_range_from ");
-        sql.append("WHEN isPrimaryGroupingByAmount then ircd.amount_range_to ");
+        sql.append("WHEN irc.is_primary_grouping_by_amount then ircd.amount_range_from ");
+        sql.append("WHEN irc.is_primary_grouping_by_amount then ircd.amount_range_to ");
         sql.append("END,");
         sql.append("ircd.from_period, ircd.to_period,");
         sql.append("CASE ");
-        sql.append("WHEN !isPrimaryGroupingByAmount then ircd.amount_range_from ");
-        sql.append("WHEN !isPrimaryGroupingByAmount then ircd.amount_range_to ");
+        sql.append("WHEN NOT irc.is_primary_grouping_by_amount then ircd.amount_range_from ");
+        sql.append("WHEN NOT irc.is_primary_grouping_by_amount then ircd.amount_range_to ");
         sql.append("END");
-        
-        return this.jdbcTemplate.query(sql.toString(), this.chartExtractor, new Object[] { productId });
+
+        return this.jdbcTemplate.query(
+                con -> con.prepareStatement(sql.toString(), ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE),
+                ps -> ps.setLong(1, productId), this.chartExtractor);
+
     }
 
     @Override
@@ -124,8 +127,10 @@ public class InterestRateChartReadPlatformServiceImpl implements InterestRateCha
     public InterestRateChartData retrieveOneWithSlabs(Long chartId) {
         this.context.authenticatedUser();
         final String sql = "select " + this.chartExtractor.schema() + " where irc.id = ? order by ircd.id asc";
-        Collection<InterestRateChartData> chartDatas = this.jdbcTemplate.query(sql, this.chartExtractor, new Object[] { chartId });
-        if (chartDatas == null || chartDatas.isEmpty()) { throw new InterestRateChartNotFoundException(chartId); }
+        Collection<InterestRateChartData> chartDatas = this.jdbcTemplate.query(sql, this.chartExtractor, new Object[] { chartId }); // NOSONAR
+        if (chartDatas == null || chartDatas.isEmpty()) {
+            throw new InterestRateChartNotFoundException(chartId);
+        }
 
         return chartDatas.iterator().next();
     }
@@ -176,7 +181,7 @@ public class InterestRateChartReadPlatformServiceImpl implements InterestRateCha
     private static final class InterestRateChartExtractor implements ResultSetExtractor<Collection<InterestRateChartData>> {
 
         InterestRateChartMapper chartMapper = new InterestRateChartMapper();
-        InterestRateChartSlabExtractor chartSlabsMapper = new InterestRateChartSlabExtractor();
+        InterestRateChartSlabExtractor chartSlabsMapper;
 
         private final String schemaSql;
 
@@ -184,11 +189,11 @@ public class InterestRateChartReadPlatformServiceImpl implements InterestRateCha
             return this.schemaSql;
         }
 
-        private InterestRateChartExtractor() {
+        private InterestRateChartExtractor(DatabaseSpecificSQLGenerator sqlGenerator) {
+            chartSlabsMapper = new InterestRateChartSlabExtractor(sqlGenerator);
             final StringBuilder sqlBuilder = new StringBuilder(400);
 
-            sqlBuilder
-                    .append("irc.id as ircId, irc.name as ircName, irc.description as ircDescription,")
+            sqlBuilder.append("irc.id as ircId, irc.name as ircName, irc.description as ircDescription,")
                     .append("irc.from_date as ircFromDate, irc.end_date as ircEndDate, ")
                     .append("irc.is_primary_grouping_by_amount as isPrimaryGroupingByAmount, ")
                     .append("ircd.id as ircdId, ircd.description as ircdDescription, ircd.period_type_enum ircdPeriodTypeId, ")
@@ -199,11 +204,11 @@ public class InterestRateChartReadPlatformServiceImpl implements InterestRateCha
                     .append("sp.id as savingsProductId, sp.name as savingsProductName, ").append("iri.id as iriId, ")
                     .append(" iri.entiry_type as entityType, iri.attribute_name as attributeName ,")
                     .append(" iri.condition_type as conditionType, iri.attribute_value as attributeValue, ")
-                    .append(" iri.incentive_type as incentiveType, iri.amount as amount, ")
-                    .append("code.code_value as attributeValueDesc ").append("from ")
+                    .append(" iri.incentive_type as incentiveType, iri.amount as amount, ").append("code.code_value as attributeValueDesc ")
+                    .append("from ")
                     .append("m_interest_rate_chart irc left join m_interest_rate_slab ircd on irc.id=ircd.interest_rate_chart_id ")
                     .append(" left join m_interest_incentives iri on iri.interest_rate_slab_id = ircd.id ")
-                    .append(" left join m_code_value code on code.id = iri.attribute_value ")
+                    .append(" left join m_code_value code on " + sqlGenerator.castChar("code.id") + " = iri.attribute_value ")
                     .append("left join m_currency curr on ircd.currency_code= curr.code ")
                     .append("left join m_deposit_product_interest_rate_chart dpirc on irc.id=dpirc.interest_rate_chart_id ")
                     .append("left join m_savings_product sp on sp.id=dpirc.deposit_product_id ");
@@ -272,7 +277,8 @@ public class InterestRateChartReadPlatformServiceImpl implements InterestRateCha
             final Long savingsProductId = JdbcSupport.getLongDefaultToNullIfZero(rs, "savingsProductId");
             final String savingsProductName = rs.getString("savingsProductName");
 
-            return InterestRateChartData.instance(id, name, description, fromDate, endDate, isPrimaryGroupingByAmount, savingsProductId, savingsProductName);
+            return InterestRateChartData.instance(id, name, description, fromDate, endDate, isPrimaryGroupingByAmount, savingsProductId,
+                    savingsProductName);
         }
 
     }
@@ -285,21 +291,20 @@ public class InterestRateChartReadPlatformServiceImpl implements InterestRateCha
             return this.schemaSql;
         }
 
-        private InterestRateChartSlabsMapper() {
+        private InterestRateChartSlabsMapper(DatabaseSpecificSQLGenerator sqlGenerator) {
             final StringBuilder sqlBuilder = new StringBuilder(400);
 
-            sqlBuilder
-                    .append("ircd.id as ircdId, ircd.description as ircdDescription, ircd.period_type_enum ircdPeriodTypeId, ")
-                    .append("ircd.from_period as ircdFromPeriod, ircd.to_period as ircdToPeriod, ircd.amount_range_from as ircdAmountRangeFrom, ")
+            sqlBuilder.append("ircd.id as ircdId, ircd.description as ircdDescription, ircd.period_type_enum ircdPeriodTypeId, ").append(
+                    "ircd.from_period as ircdFromPeriod, ircd.to_period as ircdToPeriod, ircd.amount_range_from as ircdAmountRangeFrom, ")
                     .append("ircd.amount_range_to as ircdAmountRangeTo, ircd.annual_interest_rate as ircdAnnualInterestRate, ")
                     .append("curr.code as currencyCode, curr.name as currencyName, curr.internationalized_name_code as currencyNameCode, ")
                     .append("curr.display_symbol as currencyDisplaySymbol, curr.decimal_places as currencyDigits, curr.currency_multiplesof as inMultiplesOf, ")
                     .append("iri.id as iriId, ").append(" iri.entiry_type as entityType, iri.attribute_name as attributeName ,")
                     .append(" iri.condition_type as conditionType, iri.attribute_value as attributeValue, ")
-                    .append(" iri.incentive_type as incentiveType, iri.amount as amount, ")
-                    .append("code.code_value as attributeValueDesc ").append("from ").append("m_interest_rate_slab ircd ")
+                    .append(" iri.incentive_type as incentiveType, iri.amount as amount, ").append("code.code_value as attributeValueDesc ")
+                    .append("from ").append("m_interest_rate_slab ircd ")
                     .append(" left join m_interest_incentives iri on iri.interest_rate_slab_id = ircd.id ")
-                    .append(" left join m_code_value code on code.id = iri.attribute_value ")
+                    .append(" left join m_code_value code on " + sqlGenerator.castChar("code.id") + " = iri.attribute_value ")
                     .append("left join m_currency curr on ircd.currency_code= curr.code ");
             this.schemaSql = sqlBuilder.toString();
         }
@@ -309,7 +314,9 @@ public class InterestRateChartReadPlatformServiceImpl implements InterestRateCha
             final Long id = JdbcSupport.getLongDefaultToNullIfZero(rs, "ircdId");
             // If there are not chart Slabs are associated then in
             // InterestRateChartExtractor the chart Slabs id will be null.
-            if (id == null) { return null; }
+            if (id == null) {
+                return null;
+            }
 
             final String description = rs.getString("ircdDescription");
             final Integer fromPeriod = JdbcSupport.getInteger(rs, "ircdFromPeriod");
@@ -331,8 +338,8 @@ public class InterestRateChartReadPlatformServiceImpl implements InterestRateCha
             final Integer currencyDigits = JdbcSupport.getInteger(rs, "currencyDigits");
             final Integer inMultiplesOf = JdbcSupport.getInteger(rs, "inMultiplesOf");
             // currency
-            final CurrencyData currency = new CurrencyData(currencyCode, currencyName, currencyDigits, inMultiplesOf,
-                    currencyDisplaySymbol, currencyNameCode);
+            final CurrencyData currency = new CurrencyData(currencyCode, currencyName, currencyDigits, inMultiplesOf, currencyDisplaySymbol,
+                    currencyNameCode);
 
             return InterestRateChartSlabData.instance(id, description, periodType, fromPeriod, toPeriod, amountRangeFrom, amountRangeTo,
                     annualInterestRate, currency);
@@ -342,7 +349,7 @@ public class InterestRateChartReadPlatformServiceImpl implements InterestRateCha
 
     private static final class InterestRateChartSlabExtractor implements ResultSetExtractor<InterestRateChartSlabData> {
 
-        InterestRateChartSlabsMapper chartSlabsMapper = new InterestRateChartSlabsMapper();
+        InterestRateChartSlabsMapper chartSlabsMapper;
         InterestIncentiveMapper incentiveMapper = new InterestIncentiveMapper();
 
         private final String schemaSql;
@@ -352,7 +359,8 @@ public class InterestRateChartReadPlatformServiceImpl implements InterestRateCha
             return this.schemaSql;
         }
 
-        private InterestRateChartSlabExtractor() {
+        private InterestRateChartSlabExtractor(DatabaseSpecificSQLGenerator sqlGenerator) {
+            chartSlabsMapper = new InterestRateChartSlabsMapper(sqlGenerator);
             this.schemaSql = chartSlabsMapper.schema();
         }
 
@@ -391,7 +399,9 @@ public class InterestRateChartReadPlatformServiceImpl implements InterestRateCha
                 final Long id = JdbcSupport.getLongDefaultToNullIfZero(rs, "iriId");
                 // If there are not Incentive are associated then in
                 // InterestRateChartExtractor the incentive id will be null.
-                if (id == null) { return null; }
+                if (id == null) {
+                    return null;
+                }
 
                 final String attributeValue = rs.getString("attributeValue");
                 String attributeValueDesc = null;

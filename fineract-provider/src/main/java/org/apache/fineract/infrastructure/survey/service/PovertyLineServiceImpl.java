@@ -20,10 +20,6 @@ package org.apache.fineract.infrastructure.survey.service;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.sql.DataSource;
-
-import org.apache.fineract.infrastructure.core.service.RoutingDataSource;
 import org.apache.fineract.infrastructure.survey.data.LikeliHoodPovertyLineData;
 import org.apache.fineract.infrastructure.survey.data.PovertyLineData;
 import org.apache.fineract.infrastructure.survey.data.PpiPovertyLineData;
@@ -36,21 +32,18 @@ import org.springframework.stereotype.Service;
 public class PovertyLineServiceImpl implements PovertyLineService {
 
     private final JdbcTemplate jdbcTemplate;
-    private final DataSource dataSource;
 
     @Autowired
-    PovertyLineServiceImpl(final RoutingDataSource dataSource) {
-        this.dataSource = dataSource;
-        this.jdbcTemplate = new JdbcTemplate(this.dataSource);
-
+    PovertyLineServiceImpl(final JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
     public PpiPovertyLineData retrieveAll(final String ppiName) {
 
-        final SqlRowSet povertyLines = this._getPovertyLines(ppiName);
+        final SqlRowSet povertyLines = this.getPovertyLines(ppiName);
 
-        final SqlRowSet likelihoods = this._getLikelihoods();
+        final SqlRowSet likelihoods = this.getLikelihoods();
 
         List<LikeliHoodPovertyLineData> listOfLikeliHoodPovertyLineData = new ArrayList<>();
 
@@ -65,8 +58,9 @@ public class PovertyLineServiceImpl implements PovertyLineService {
                 String likelihoodCode = povertyLines.getString("code");
 
                 if (likelihoodCode.equals(codeName)) {
-                    povertyLineDatas.add(new PovertyLineData(povertyLines.getLong("id"), povertyLines.getLong("score_from"), povertyLines
-                            .getLong("score_to"), povertyLines.getDouble("poverty_line")));
+                    povertyLineDatas.add(
+                            new PovertyLineData().setResourceId(povertyLines.getLong("id")).setScoreFrom(povertyLines.getLong("score_from"))
+                                    .setScoreTo(povertyLines.getLong("score_to")).setPovertyLine(povertyLines.getDouble("poverty_line")));
                 }
             }
 
@@ -75,14 +69,16 @@ public class PovertyLineServiceImpl implements PovertyLineService {
             // create the likelihood object with the list of povertyLine object
             // belonging to it
 
-            LikeliHoodPovertyLineData likeliHoodPovertyLineData = new LikeliHoodPovertyLineData(likelihoods.getLong("id"),
-                    povertyLineDatas, likelihoods.getString("name"), likelihoods.getString("code"), likelihoods.getLong("enabled"));
+            LikeliHoodPovertyLineData likeliHoodPovertyLineData = new LikeliHoodPovertyLineData().setResourceId(likelihoods.getLong("id"))
+                    .setPovertyLineData(povertyLineDatas).setLikeliHoodName(likelihoods.getString("name"))
+                    .setLikeliHoodCode(likelihoods.getString("code")).setEnabled(likelihoods.getLong("enabled"));
 
             listOfLikeliHoodPovertyLineData.add(likeliHoodPovertyLineData);
 
         }
 
-        PpiPovertyLineData ppiPovertyLineData = new PpiPovertyLineData(listOfLikeliHoodPovertyLineData, ppiName);
+        PpiPovertyLineData ppiPovertyLineData = new PpiPovertyLineData().setLikeliHoodPovertyLineData(listOfLikeliHoodPovertyLineData)
+                .setPpi(ppiName);
 
         return ppiPovertyLineData;
     }
@@ -90,14 +86,15 @@ public class PovertyLineServiceImpl implements PovertyLineService {
     @Override
     public LikeliHoodPovertyLineData retrieveForLikelihood(final String ppiName, final Long likelihoodId) {
 
-        final SqlRowSet povertyLines = this._getPovertyLines(likelihoodId);
+        final SqlRowSet povertyLines = this.getPovertyLines(likelihoodId);
 
         List<PovertyLineData> povertyLineDatas = new ArrayList<>();
 
         while (povertyLines.next()) {
 
-            povertyLineDatas.add(new PovertyLineData(povertyLines.getLong("id"), povertyLines.getLong("score_from"), povertyLines
-                    .getLong("score_to"), povertyLines.getDouble("poverty_line")));
+            povertyLineDatas
+                    .add(new PovertyLineData().setResourceId(povertyLines.getLong("id")).setScoreFrom(povertyLines.getLong("score_from"))
+                            .setScoreTo(povertyLines.getLong("score_to")).setPovertyLine(povertyLines.getDouble("poverty_line")));
         }
 
         povertyLines.first();
@@ -105,18 +102,19 @@ public class PovertyLineServiceImpl implements PovertyLineService {
         // create the likelihood object with the list of povertyLine object
         // belonging to it
 
-        return new LikeliHoodPovertyLineData(povertyLines.getLong("likelihood_id"), povertyLineDatas, povertyLines.getString("name"),
-                povertyLines.getString("code"), povertyLines.getLong("enabled"));
+        return new LikeliHoodPovertyLineData().setResourceId(povertyLines.getLong("id")).setPovertyLineData(povertyLineDatas)
+                .setLikeliHoodName(povertyLines.getString("name")).setLikeliHoodCode(povertyLines.getString("code"))
+                .setEnabled(povertyLines.getLong("enabled"));
 
     }
 
-    private SqlRowSet _getLikelihoods() {
+    private SqlRowSet getLikelihoods() {
         String sql = "SELECT lkp.id, lkh.code , lkh.name, lkp.enabled " + " FROM ppi_likelihoods lkh "
                 + " JOIN ppi_likelihoods_ppi lkp on lkp.likelihood_id = lkh.id ";
         return this.jdbcTemplate.queryForRowSet(sql);
     }
 
-    private SqlRowSet _getPovertyLines(final String ppiName) {
+    private SqlRowSet getPovertyLines(final String ppiName) {
         String sql = "SELECT pl.id, sc.score_from, sc.score_to , pl.poverty_line,lkh.code ,  lkh.name , lkp.ppi_name "
                 + " FROM ppi_poverty_line pl " + " JOIN ppi_likelihoods lkh on lkh.id = pl.likelihood_ppi_id "
                 + " JOIN ppi_likelihoods_ppi lkp on lkp.id = pl.likelihood_ppi_id " + " JOIN ppi_scores sc on sc.id = pl.score_id "
@@ -126,12 +124,10 @@ public class PovertyLineServiceImpl implements PovertyLineService {
 
     }
 
-    private SqlRowSet _getPovertyLines(final Long likelihoodId) {
+    private SqlRowSet getPovertyLines(final Long likelihoodId) {
         String sql = "SELECT pl.id, sc.score_from, sc.score_to , pl.poverty_line,lkh.code , lkp.enabled, lkp.id as likelihood_id , lkh.name , lkp.ppi_name "
-                + " FROM ppi_poverty_line pl "
-                + " JOIN ppi_likelihoods_ppi lkp on lkp.id = pl.likelihood_ppi_id "
-                + " JOIN ppi_likelihoods lkh on lkh.id = lkp.likelihood_id "
-                + " JOIN ppi_scores sc on sc.id = pl.score_id "
+                + " FROM ppi_poverty_line pl " + " JOIN ppi_likelihoods_ppi lkp on lkp.id = pl.likelihood_ppi_id "
+                + " JOIN ppi_likelihoods lkh on lkh.id = lkp.likelihood_id " + " JOIN ppi_scores sc on sc.id = pl.score_id "
                 + " WHERE pl.likelihood_ppi_id = ? ";
 
         return this.jdbcTemplate.queryForRowSet(sql, new Object[] { likelihoodId });

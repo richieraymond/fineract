@@ -21,35 +21,26 @@ package org.apache.fineract.infrastructure.documentmanagement.service;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
-
+import lombok.RequiredArgsConstructor;
 import org.apache.fineract.infrastructure.core.domain.JdbcSupport;
-import org.apache.fineract.infrastructure.core.service.RoutingDataSource;
 import org.apache.fineract.infrastructure.documentmanagement.contentrepository.ContentRepository;
 import org.apache.fineract.infrastructure.documentmanagement.contentrepository.ContentRepositoryFactory;
 import org.apache.fineract.infrastructure.documentmanagement.data.DocumentData;
 import org.apache.fineract.infrastructure.documentmanagement.data.FileData;
 import org.apache.fineract.infrastructure.documentmanagement.exception.DocumentNotFoundException;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class DocumentReadPlatformServiceImpl implements DocumentReadPlatformService {
 
     private final JdbcTemplate jdbcTemplate;
     private final PlatformSecurityContext context;
     private final ContentRepositoryFactory contentRepositoryFactory;
-
-    @Autowired
-    public DocumentReadPlatformServiceImpl(final PlatformSecurityContext context, final RoutingDataSource dataSource,
-            final ContentRepositoryFactory documentStoreFactory) {
-        this.context = context;
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
-        this.contentRepositoryFactory = documentStoreFactory;
-    }
 
     @Override
     public Collection<DocumentData> retrieveAllDocuments(final String entityType, final Long entityId) {
@@ -61,7 +52,7 @@ public class DocumentReadPlatformServiceImpl implements DocumentReadPlatformServ
         // scope for the particular entities
         final DocumentMapper mapper = new DocumentMapper(true, true);
         final String sql = "select " + mapper.schema() + " order by d.id";
-        return this.jdbcTemplate.query(sql, mapper, new Object[] { entityType, entityId });
+        return this.jdbcTemplate.query(sql, mapper, new Object[] { entityType, entityId }); // NOSONAR
     }
 
     @Override
@@ -72,7 +63,7 @@ public class DocumentReadPlatformServiceImpl implements DocumentReadPlatformServ
             final ContentRepository contentRepository = this.contentRepositoryFactory.getRepository(documentData.storageType());
             return contentRepository.fetchFile(documentData);
         } catch (final EmptyResultDataAccessException e) {
-            throw new DocumentNotFoundException(entityType, entityId, documentId);
+            throw new DocumentNotFoundException(entityType, entityId, documentId, e);
         }
     }
 
@@ -82,21 +73,14 @@ public class DocumentReadPlatformServiceImpl implements DocumentReadPlatformServ
             final DocumentMapper mapper = new DocumentMapper(true, true);
             return fetchDocumentDetails(entityType, entityId, documentId, mapper);
         } catch (final EmptyResultDataAccessException e) {
-            throw new DocumentNotFoundException(entityType, entityId, documentId);
+            throw new DocumentNotFoundException(entityType, entityId, documentId, e);
         }
     }
 
-    /**
-     * @param entityType
-     * @param entityId
-     * @param documentId
-     * @param mapper
-     * @return
-     */
     private DocumentData fetchDocumentDetails(final String entityType, final Long entityId, final Long documentId,
             final DocumentMapper mapper) {
         final String sql = "select " + mapper.schema() + " and d.id=? ";
-        return this.jdbcTemplate.queryForObject(sql, mapper, new Object[] { entityType, entityId, documentId });
+        return this.jdbcTemplate.queryForObject(sql, mapper, new Object[] { entityType, entityId, documentId }); // NOSONAR
     }
 
     private static final class DocumentMapper implements RowMapper<DocumentData> {
@@ -104,7 +88,7 @@ public class DocumentReadPlatformServiceImpl implements DocumentReadPlatformServ
         private final boolean hideLocation;
         private final boolean hideStorageType;
 
-        public DocumentMapper(final boolean hideLocation, final boolean hideStorageType) {
+        DocumentMapper(final boolean hideLocation, final boolean hideStorageType) {
             this.hideLocation = hideLocation;
             this.hideStorageType = hideStorageType;
         }
@@ -118,7 +102,6 @@ public class DocumentReadPlatformServiceImpl implements DocumentReadPlatformServ
 
         @Override
         public DocumentData mapRow(final ResultSet rs, @SuppressWarnings("unused") final int rowNum) throws SQLException {
-
             final Long id = JdbcSupport.getLong(rs, "id");
             final Long parentEntityId = JdbcSupport.getLong(rs, "parentEntityId");
             final Long fileSize = JdbcSupport.getLong(rs, "fileSize");
@@ -139,5 +122,4 @@ public class DocumentReadPlatformServiceImpl implements DocumentReadPlatformServ
                     storageType);
         }
     }
-
 }

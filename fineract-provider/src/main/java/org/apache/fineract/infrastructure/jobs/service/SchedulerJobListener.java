@@ -18,8 +18,13 @@
  */
 package org.apache.fineract.infrastructure.jobs.service;
 
+import java.time.LocalDate;
 import java.util.Date;
-
+import java.util.HashMap;
+import lombok.RequiredArgsConstructor;
+import org.apache.fineract.infrastructure.businessdate.domain.BusinessDateType;
+import org.apache.fineract.infrastructure.businessdate.service.BusinessDateReadPlatformService;
+import org.apache.fineract.infrastructure.core.domain.ActionContext;
 import org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil;
 import org.apache.fineract.infrastructure.jobs.domain.ScheduledJobDetail;
 import org.apache.fineract.infrastructure.jobs.domain.ScheduledJobRunHistory;
@@ -30,7 +35,6 @@ import org.quartz.JobExecutionException;
 import org.quartz.JobKey;
 import org.quartz.JobListener;
 import org.quartz.Trigger;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.mapping.GrantedAuthoritiesMapper;
 import org.springframework.security.core.authority.mapping.NullAuthoritiesMapper;
@@ -38,30 +42,19 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 /**
- * Global job Listener class to set Tenant details to
- * {@link ThreadLocalContextUtil} for batch Job and stores the batch job status
- * to database after the execution
- * 
+ * Global job Listener class to set Tenant details to {@link ThreadLocalContextUtil} for batch Job and stores the batch
+ * job status to database after the execution
  */
 @Component
+@RequiredArgsConstructor
 public class SchedulerJobListener implements JobListener {
 
-    private int stackTraceLevel = 0;
-
     private final String name = SchedulerServiceConstants.DEFAULT_LISTENER_NAME;
-
     private final SchedularWritePlatformService schedularService;
-
-    private final AppUserRepositoryWrapper userRepository ;
-    
+    private final AppUserRepositoryWrapper userRepository;
     private final GrantedAuthoritiesMapper authoritiesMapper = new NullAuthoritiesMapper();
-    
-    @Autowired
-    public SchedulerJobListener(final SchedularWritePlatformService schedularService,
-            final AppUserRepositoryWrapper userRepository) {
-        this.schedularService = schedularService;
-        this.userRepository = userRepository ;
-    }
+    private final BusinessDateReadPlatformService businessDateReadPlatformService;
+    private int stackTraceLevel = 0;
 
     @Override
     public String getName() {
@@ -74,6 +67,9 @@ public class SchedulerJobListener implements JobListener {
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(user, user.getPassword(),
                 authoritiesMapper.mapAuthorities(user.getAuthorities()));
         SecurityContextHolder.getContext().setAuthentication(auth);
+        HashMap<BusinessDateType, LocalDate> businessDates = businessDateReadPlatformService.getBusinessDates();
+        ThreadLocalContextUtil.setActionContext(ActionContext.DEFAULT);
+        ThreadLocalContextUtil.setBusinessDates(businessDates);
     }
 
     @Override
@@ -99,7 +95,7 @@ public class SchedulerJobListener implements JobListener {
             StackTraceElement[] stackTraceElements = null;
             errorMessage = throwable.getMessage();
             stackTraceElements = throwable.getStackTrace();
-            final StringBuffer sb = new StringBuffer(throwable.toString());
+            final StringBuilder sb = new StringBuilder(throwable.toString());
             for (final StackTraceElement element : stackTraceElements) {
                 sb.append("\n \t at ").append(element.getClassName()).append(".").append(element.getMethodName()).append("(")
                         .append(element.getLineNumber()).append(")");
@@ -111,16 +107,17 @@ public class SchedulerJobListener implements JobListener {
         if (context.getMergedJobDataMap().containsKey(SchedulerServiceConstants.TRIGGER_TYPE_REFERENCE)) {
             triggerType = context.getMergedJobDataMap().getString(SchedulerServiceConstants.TRIGGER_TYPE_REFERENCE);
         }
-        if (triggerType == SchedulerServiceConstants.TRIGGER_TYPE_CRON && trigger.getNextFireTime() != null
+        if (SchedulerServiceConstants.TRIGGER_TYPE_CRON.equals(triggerType) && trigger.getNextFireTime() != null
                 && trigger.getNextFireTime().after(scheduledJobDetails.getNextRunTime())) {
-            scheduledJobDetails.updateNextRunTime(trigger.getNextFireTime());
+            scheduledJobDetails.setNextRunTime(trigger.getNextFireTime());
         }
 
-        scheduledJobDetails.updatePreviousRunStartTime(context.getFireTime());
-        scheduledJobDetails.updateCurrentlyRunningStatus(false);
+        scheduledJobDetails.setPreviousRunStartTime(context.getFireTime());
+        scheduledJobDetails.setCurrentlyRunning(false);
 
-        final ScheduledJobRunHistory runHistory = new ScheduledJobRunHistory(scheduledJobDetails, version, context.getFireTime(),
-                new Date(), status, errorMessage, triggerType, errorLog);
+        final ScheduledJobRunHistory runHistory = new ScheduledJobRunHistory().setScheduledJobDetail(scheduledJobDetails)
+                .setVersion(version).setStartTime(context.getFireTime()).setEndTime(new Date()).setStatus(status)
+                .setErrorMessage(errorMessage).setTriggerType(triggerType).setErrorLog(errorLog);
         // scheduledJobDetails.addRunHistory(runHistory);
 
         this.schedularService.saveOrUpdate(scheduledJobDetails, runHistory);
@@ -128,14 +125,15 @@ public class SchedulerJobListener implements JobListener {
     }
 
     private Throwable getCauseFromException(final Throwable exception) {
-        if (this.stackTraceLevel <= SchedulerServiceConstants.STACK_TRACE_LEVEL
-                && exception.getCause() != null
+        if (this.stackTraceLevel <= SchedulerServiceConstants.STACK_TRACE_LEVEL && exception.getCause() != null
                 && (exception.getCause().toString().contains(SchedulerServiceConstants.SCHEDULER_EXCEPTION)
-                        || exception.getCause().toString().contains(SchedulerServiceConstants.JOB_EXECUTION_EXCEPTION) || exception
-                        .getCause().toString().contains(SchedulerServiceConstants.JOB_METHOD_INVOCATION_FAILED_EXCEPTION))) {
+                        || exception.getCause().toString().contains(SchedulerServiceConstants.JOB_EXECUTION_EXCEPTION)
+                        || exception.getCause().toString().contains(SchedulerServiceConstants.JOB_METHOD_INVOCATION_FAILED_EXCEPTION))) {
             this.stackTraceLevel++;
             return getCauseFromException(exception.getCause());
-        } else if (exception.getCause() != null) { return exception.getCause(); }
+        } else if (exception.getCause() != null) {
+            return exception.getCause();
+        }
         return exception;
     }
 

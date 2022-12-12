@@ -20,19 +20,25 @@ package org.apache.fineract.infrastructure.survey.domain;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Table;
-
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
+import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
 import org.apache.fineract.infrastructure.survey.api.LikelihoodApiConstants;
 import org.apache.fineract.infrastructure.survey.data.LikelihoodStatus;
-import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
 
 @Entity
 @Table(name = "ppi_likelihoods_ppi")
-public final class Likelihood extends AbstractPersistableCustom<Long> {
+@Getter
+@Setter
+@NoArgsConstructor
+@Accessors(chain = true)
+public final class Likelihood extends AbstractPersistableCustom {
 
     @Column(name = "ppi_name", nullable = false)
     private String ppiName;
@@ -66,18 +72,5 @@ public final class Likelihood extends AbstractPersistableCustom<Long> {
 
     public boolean isActivateCommand(final JsonCommand command) {
         return command.booleanPrimitiveValueOfParameterNamed(LikelihoodApiConstants.ACTIVE);
-    }
-
-    public String getPpiName() {
-        return ppiName;
-    }
-
-    @Override
-    public Long getId() {
-        return super.getId();
-    }
-
-    public void disable() {
-        this.enabled = LikelihoodStatus.DISABLED;
     }
 }

@@ -21,23 +21,22 @@ package org.apache.fineract.infrastructure.cache.domain;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Table;
-
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
 
 @Entity
 @Table(name = "c_cache")
-public class PlatformCache extends AbstractPersistableCustom<Long> {
+@Getter
+@Setter
+@NoArgsConstructor
+@Accessors(chain = true)
+public class PlatformCache extends AbstractPersistableCustom {
 
     @Column(name = "cache_type_enum")
     private Integer cacheType;
-
-    protected PlatformCache() {
-        this.cacheType = null;
-    }
-
-    public PlatformCache(final CacheType cacheType) {
-        this.cacheType = cacheType.getValue();
-    }
 
     public boolean isNoCachedEnabled() {
         return CacheType.fromInt(this.cacheType).isNoCache();
@@ -51,7 +50,4 @@ public class PlatformCache extends AbstractPersistableCustom<Long> {
         return CacheType.fromInt(this.cacheType).isDistributedCache();
     }
 
-    public void update(final CacheType cacheType) {
-        this.cacheType = cacheType.getValue();
-    }
 }

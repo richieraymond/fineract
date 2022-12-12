@@ -18,25 +18,20 @@
  */
 package org.apache.fineract.accounting.journalentry.service;
 
+import lombok.RequiredArgsConstructor;
 import org.apache.fineract.accounting.journalentry.data.SavingsDTO;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class AccountingProcessorForSavingsFactory {
 
     private final ApplicationContext applicationContext;
 
-    @Autowired
-    public AccountingProcessorForSavingsFactory(final ApplicationContext applicationContext) {
-        this.applicationContext = applicationContext;
-    }
-
     /***
-     * Looks like overkill for now, but wanted to keep the savings side of
-     * accounting identical to that of Loans (would we need an Accrual based
-     * accounting in the future?)
+     * Looks like overkill for now, but wanted to keep the savings side of accounting identical to that of Loans (would
+     * we need an Accrual based accounting in the future?)
      ***/
     public AccountingProcessorForSavings determineProcessor(final SavingsDTO savingsDTO) {
 

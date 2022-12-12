@@ -20,9 +20,7 @@ package org.apache.fineract.infrastructure.jobs.service;
 
 public enum JobName {
 
-    UPDATE_LOAN_SUMMARY("Update loan Summary"), //
     UPDATE_LOAN_ARREARS_AGEING("Update Loan Arrears Ageing"), //
-    UPDATE_LOAN_PAID_IN_ADVANCE("Update Loan Paid In Advance"), //
     APPLY_ANNUAL_FEE_FOR_SAVINGS("Apply Annual Fee For Savings"), //
     APPLY_HOLIDAYS_TO_LOANS("Apply Holidays To Loans"), //
     POST_INTEREST_FOR_SAVINGS("Post Interest For Savings"), //
@@ -41,20 +39,28 @@ public enum JobName {
     GENERATE_LOANLOSS_PROVISIONING("Generate Loan Loss Provisioning"), //
     POST_DIVIDENTS_FOR_SHARES("Post Dividends For Shares"), //
     UPDATE_SAVINGS_DORMANT_ACCOUNTS("Update Savings Dormant Accounts"), //
-    ADD_PERIODIC_ACCRUAL_ENTRIES_FOR_LOANS_WITH_INCOME_POSTED_AS_TRANSACTIONS("Add Accrual Transactions For Loans With Income Posted As Transactions"),
-    EXECUTE_REPORT_MAILING_JOBS("Execute Report Mailing Jobs"),
-    UPDATE_SMS_OUTBOUND_WITH_CAMPAIGN_MESSAGE("Update SMS Outbound with Campaign Message"),
-    SEND_MESSAGES_TO_SMS_GATEWAY("Send Messages to SMS Gateway"), 
-    GET_DELIVERY_REPORTS_FROM_SMS_GATEWAY("Get Delivery Reports from SMS Gateway"),
-	GENERATE_ADHOCCLIENT_SCEHDULE("Generate AdhocClient Schedule"),
-	SEND_MESSAGES_TO_EMAIL_GATEWAY("Send messages to Email gateway"),
-    UPDATE_EMAIL_OUTBOUND_WITH_CAMPAIGN_MESSAGE("Update Email Outbound with campaign message"),
-    EXECUTE_EMAIL("Execute Email"),
-    UPDATE_TRAIL_BALANCE_DETAILS("Update Trial Balance Details");
+    ADD_PERIODIC_ACCRUAL_ENTRIES_FOR_LOANS_WITH_INCOME_POSTED_AS_TRANSACTIONS(
+            "Add Accrual Transactions For Loans With Income Posted As Transactions"), //
+    EXECUTE_REPORT_MAILING_JOBS("Execute Report Mailing Jobs"), //
+    UPDATE_SMS_OUTBOUND_WITH_CAMPAIGN_MESSAGE("Update SMS Outbound with Campaign Message"), //
+    SEND_MESSAGES_TO_SMS_GATEWAY("Send Messages to SMS Gateway"), //
+    GET_DELIVERY_REPORTS_FROM_SMS_GATEWAY("Get Delivery Reports from SMS Gateway"), //
+    GENERATE_ADHOC_CLIENT_SCHEDULE("Generate AdhocClient Schedule"), //
+    UPDATE_EMAIL_OUTBOUND_WITH_CAMPAIGN_MESSAGE("Update Email Outbound with campaign message"), //
+    EXECUTE_EMAIL("Execute Email"), //
+    UPDATE_TRIAL_BALANCE_DETAILS("Update Trial Balance Details"), //
+    EXECUTE_DIRTY_JOBS("Execute All Dirty Jobs"), //
+    INCREASE_BUSINESS_DATE_BY_1_DAY("Increase Business Date by 1 day"), //
+    INCREASE_COB_DATE_BY_1_DAY("Increase COB Date by 1 day"), //
+    LOAN_COB("Loan COB"), //
+    LOAN_DELINQUENCY_CLASSIFICATION("Loan Delinquency Classification"), //
+    SEND_ASYNCHRONOUS_EVENTS("Send Asynchronous Events"), //
+    PURGE_EXTERNAL_EVENTS("Purge External Events"), //
+    PURGE_PROCESSED_COMMANDS("Purge Processed Commands");
 
     private final String name;
 
-    private JobName(final String name) {
+    JobName(final String name) {
         this.name = name;
     }
 
@@ -62,4 +68,5 @@ public enum JobName {
     public String toString() {
         return this.name;
     }
+
 }

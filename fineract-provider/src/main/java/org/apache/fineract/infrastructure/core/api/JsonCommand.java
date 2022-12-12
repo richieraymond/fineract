@@ -18,35 +18,33 @@
  */
 package org.apache.fineract.infrastructure.core.api;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.MonthDay;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAccessor;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.commons.lang.ObjectUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
 import org.apache.fineract.infrastructure.security.domain.BasicPasswordEncodablePlatformUser;
 import org.apache.fineract.infrastructure.security.domain.PlatformUser;
 import org.apache.fineract.infrastructure.security.service.PlatformPasswordEncoder;
-import org.joda.time.LocalDate;
-import org.joda.time.LocalDateTime;
-import org.joda.time.MonthDay;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
-
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.reflect.TypeToken;
 
 /**
  * Immutable representation of a command.
- * 
- * Wraps the provided JSON with convenience functions for extracting parameter
- * values and checking for changes against an existing value.
+ *
+ * Wraps the provided JSON with convenience functions for extracting parameter values and checking for changes against
+ * an existing value.
  */
 public final class JsonCommand {
 
@@ -66,29 +64,31 @@ public final class JsonCommand {
     private final Long productId;
     private final Long creditBureauId;
     private final Long organisationCreditBureauId;
+    private final String jobName;
 
     public static JsonCommand from(final String jsonCommand, final JsonElement parsedCommand, final FromJsonHelper fromApiJsonHelper,
             final String entityName, final Long resourceId, final Long subresourceId, final Long groupId, final Long clientId,
             final Long loanId, final Long savingsId, final String transactionId, final String url, final Long productId,
-            final Long creditBureauId,final Long organisationCreditBureauId) {
+            final Long creditBureauId, final Long organisationCreditBureauId, final String jobName) {
         return new JsonCommand(null, jsonCommand, parsedCommand, fromApiJsonHelper, entityName, resourceId, subresourceId, groupId,
-                clientId, loanId, savingsId, transactionId, url, productId,creditBureauId,organisationCreditBureauId);
+                clientId, loanId, savingsId, transactionId, url, productId, creditBureauId, organisationCreditBureauId, jobName);
 
     }
 
     public static JsonCommand fromExistingCommand(final Long commandId, final String jsonCommand, final JsonElement parsedCommand,
             final FromJsonHelper fromApiJsonHelper, final String entityName, final Long resourceId, final Long subresourceId,
-            final String url, final Long productId,final Long creditBureauId,final Long organisationCreditBureauId) {
+            final String url, final Long productId, final Long creditBureauId, final Long organisationCreditBureauId,
+            final String jobName) {
         return new JsonCommand(commandId, jsonCommand, parsedCommand, fromApiJsonHelper, entityName, resourceId, subresourceId, null, null,
-                null, null, null, url, productId,creditBureauId,organisationCreditBureauId);
+                null, null, null, url, productId, creditBureauId, organisationCreditBureauId, jobName);
     }
 
     public static JsonCommand fromExistingCommand(final Long commandId, final String jsonCommand, final JsonElement parsedCommand,
             final FromJsonHelper fromApiJsonHelper, final String entityName, final Long resourceId, final Long subresourceId,
             final Long groupId, final Long clientId, final Long loanId, final Long savingsId, final String transactionId, final String url,
-            final Long productId,Long creditBureauId,final Long organisationCreditBureauId) {
+            final Long productId, Long creditBureauId, final Long organisationCreditBureauId, final String jobName) {
         return new JsonCommand(commandId, jsonCommand, parsedCommand, fromApiJsonHelper, entityName, resourceId, subresourceId, groupId,
-                clientId, loanId, savingsId, transactionId, url, productId,creditBureauId,organisationCreditBureauId);
+                clientId, loanId, savingsId, transactionId, url, productId, creditBureauId, organisationCreditBureauId, jobName);
 
     }
 
@@ -96,13 +96,22 @@ public final class JsonCommand {
         final String jsonCommand = command.fromApiJsonHelper.toJson(parsedCommand);
         return new JsonCommand(command.commandId, jsonCommand, parsedCommand, command.fromApiJsonHelper, command.entityName,
                 command.resourceId, command.subresourceId, command.groupId, command.clientId, command.loanId, command.savingsId,
-                command.transactionId, command.url, command.productId,command.creditBureauId,command.organisationCreditBureauId);
+                command.transactionId, command.url, command.productId, command.creditBureauId, command.organisationCreditBureauId,
+                command.jobName);
+    }
+
+    public static JsonCommand fromExistingCommand(JsonCommand command, final JsonElement parsedCommand, final Long clientId) {
+        final String jsonCommand = command.fromApiJsonHelper.toJson(parsedCommand);
+        return new JsonCommand(command.commandId, jsonCommand, parsedCommand, command.fromApiJsonHelper, command.entityName,
+                command.resourceId, command.subresourceId, command.groupId, clientId, command.loanId, command.savingsId,
+                command.transactionId, command.url, command.productId, command.creditBureauId, command.organisationCreditBureauId,
+                command.jobName);
     }
 
     public JsonCommand(final Long commandId, final String jsonCommand, final JsonElement parsedCommand,
             final FromJsonHelper fromApiJsonHelper, final String entityName, final Long resourceId, final Long subresourceId,
             final Long groupId, final Long clientId, final Long loanId, final Long savingsId, final String transactionId, final String url,
-            final Long productId,final Long creditBureauId, final Long organisationCreditBureauId) {
+            final Long productId, final Long creditBureauId, final Long organisationCreditBureauId, final String jobName) {
 
         this.commandId = commandId;
         this.jsonCommand = jsonCommand;
@@ -118,19 +127,25 @@ public final class JsonCommand {
         this.transactionId = transactionId;
         this.url = url;
         this.productId = productId;
-        this.creditBureauId=creditBureauId;
-        this.organisationCreditBureauId=organisationCreditBureauId;
+        this.creditBureauId = creditBureauId;
+        this.organisationCreditBureauId = organisationCreditBureauId;
+        this.jobName = jobName;
     }
-    
+
     public static JsonCommand fromJsonElement(final Long resourceId, final JsonElement parsedCommand) {
         return new JsonCommand(resourceId, parsedCommand);
     }
-    
+
+    public static JsonCommand fromJsonElement(final Long resourceId, final JsonElement parsedCommand,
+            final FromJsonHelper fromApiJsonHelper) {
+        return new JsonCommand(resourceId, parsedCommand, fromApiJsonHelper);
+    }
+
     public JsonCommand(final Long resourceId, final JsonElement parsedCommand) {
         this.parsedCommand = parsedCommand;
         this.resourceId = resourceId;
         this.commandId = null;
-        this.jsonCommand = null;        
+        this.jsonCommand = null;
         this.fromApiJsonHelper = null;
         this.entityName = null;
         this.subresourceId = null;
@@ -141,14 +156,40 @@ public final class JsonCommand {
         this.transactionId = null;
         this.url = null;
         this.productId = null;
-        this.creditBureauId=null;
-        this.organisationCreditBureauId=null;
+        this.creditBureauId = null;
+        this.organisationCreditBureauId = null;
+        this.jobName = null;
     }
-    
+
+    public JsonCommand(final Long resourceId, final JsonElement parsedCommand, final FromJsonHelper fromApiJsonHelper) {
+        this.parsedCommand = parsedCommand;
+        this.resourceId = resourceId;
+        this.commandId = null;
+        this.jsonCommand = null;
+        this.fromApiJsonHelper = fromApiJsonHelper;
+        this.entityName = null;
+        this.subresourceId = null;
+        this.groupId = null;
+        this.clientId = null;
+        this.loanId = null;
+        this.savingsId = null;
+        this.transactionId = null;
+        this.url = null;
+        this.productId = null;
+        this.creditBureauId = null;
+        this.organisationCreditBureauId = null;
+        this.jobName = null;
+    }
+
+    public static JsonCommand from(final String jsonCommand) {
+        return new JsonCommand(null, jsonCommand, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+
+    }
+
     public Long getOrganisationCreditBureauId() {
         return this.organisationCreditBureauId;
     }
-    
+
     public Long getCreditBureauId() {
         return this.creditBureauId;
     }
@@ -167,7 +208,7 @@ public final class JsonCommand {
         }
         return null;
     }
-    
+
     public String jsonFragment(final String paramName) {
         String jsonFragment = null;
         if (this.parsedCommand.getAsJsonObject().has(paramName)) {
@@ -221,19 +262,11 @@ public final class JsonCommand {
         return this.productId;
     }
 
-    private boolean differenceExistsTime(final LocalDateTime baseValue, final LocalDateTime workingCopyValue) {
-        boolean differenceExists = false;
-
-        if (baseValue != null) {
-            differenceExists = !baseValue.equals(workingCopyValue);
-        } else {
-            differenceExists = workingCopyValue != null;
-        }
-
-        return differenceExists;
+    public String getJobName() {
+        return this.jobName;
     }
-    
-    private boolean differenceExists(final LocalDate baseValue, final LocalDate workingCopyValue) {
+
+    private boolean differenceExists(final TemporalAccessor baseValue, final TemporalAccessor workingCopyValue) {
         boolean differenceExists = false;
 
         if (baseValue != null) {
@@ -336,32 +369,37 @@ public final class JsonCommand {
         return this.fromApiJsonHelper.extractLongNamed(parameterName, this.parsedCommand);
     }
 
-    public boolean isChangeInDateParameterNamed(final String parameterName, final Date existingValue) {
-        LocalDate localDate = null;
-        if (existingValue != null) {
-            localDate = LocalDate.fromDateFields(existingValue);
-        }
-        return isChangeInLocalDateParameterNamed(parameterName, localDate);
+    public boolean isChangeInDateParameterNamed(final String parameterName, final LocalDate existingValue) {
+        return isChangeInLocalDateParameterNamed(parameterName, existingValue);
     }
-    
-    public boolean isChangeInTimeParameterNamed(final String parameterName, final Date existingValue,final String timeFormat) {
-        LocalDateTime time = null;
+
+    public boolean isChangeInTimeParameterNamed(final String parameterName, final LocalTime existingValue, final String timeFormat) {
+        LocalTime time = null;
         if (existingValue != null) {
-            DateTimeFormatter timeFormtter = DateTimeFormat.forPattern(timeFormat);
-            time = LocalDateTime.parse(existingValue.toString(), timeFormtter);
+            DateTimeFormatter timeFormtter = DateTimeFormatter.ofPattern(timeFormat);
+            time = LocalTime.parse(existingValue.toString(), timeFormtter);
         }
         return isChangeInLocalTimeParameterNamed(parameterName, time);
     }
 
-    public boolean isChangeInLocalTimeParameterNamed(final String parameterName, final LocalDateTime existingValue) {
+    public boolean isChangeInLocalTimeParameterNamed(final String parameterName, final LocalTime existingValue) {
         boolean isChanged = false;
         if (parameterExists(parameterName)) {
-            final LocalDateTime workingValue = localTimeValueOfParameterNamed(parameterName);
-            isChanged = differenceExistsTime(existingValue, workingValue);
+            final LocalTime workingValue = localTimeValueOfParameterNamed(parameterName);
+            isChanged = differenceExists(existingValue, workingValue);
         }
         return isChanged;
     }
-    
+
+    public boolean isChangeInLocalDateTimeParameterNamed(final String parameterName, final LocalDateTime existingValue) {
+        boolean isChanged = false;
+        if (parameterExists(parameterName)) {
+            final LocalTime workingValue = localTimeValueOfParameterNamed(parameterName);
+            isChanged = differenceExists(existingValue, workingValue);
+        }
+        return isChanged;
+    }
+
     public boolean isChangeInLocalDateParameterNamed(final String parameterName, final LocalDate existingValue) {
         boolean isChanged = false;
         if (parameterExists(parameterName)) {
@@ -374,18 +412,21 @@ public final class JsonCommand {
     public LocalDate localDateValueOfParameterNamed(final String parameterName) {
         return this.fromApiJsonHelper.extractLocalDateNamed(parameterName, this.parsedCommand);
     }
-    public LocalDateTime localTimeValueOfParameterNamed(final String parameterName) {
+
+    public LocalTime localTimeValueOfParameterNamed(final String parameterName) {
         return this.fromApiJsonHelper.extractLocalTimeNamed(parameterName, this.parsedCommand);
+    }
+
+    public LocalDateTime localDateTimeValueOfParameterNamed(final String parameterName) {
+        return this.fromApiJsonHelper.extractLocalDateTimeNamed(parameterName, this.parsedCommand);
     }
 
     public MonthDay extractMonthDayNamed(final String parameterName) {
         return this.fromApiJsonHelper.extractMonthDayNamed(parameterName, this.parsedCommand);
     }
 
-    public Date DateValueOfParameterNamed(final String parameterName) {
-        final LocalDate localDate = this.fromApiJsonHelper.extractLocalDateNamed(parameterName, this.parsedCommand);
-        if (localDate == null) { return null; }
-        return localDate.toDateTimeAtStartOfDay().toDate();
+    public LocalDate dateValueOfParameterNamed(final String parameterName) {
+        return this.fromApiJsonHelper.extractLocalDateNamed(parameterName, this.parsedCommand);
     }
 
     public boolean isChangeInStringParameterNamed(final String parameterName, final String existingValue) {
@@ -409,6 +450,12 @@ public final class JsonCommand {
     public Map<String, String> mapValueOfParameterNamed(final String json) {
         final Type typeOfMap = new TypeToken<Map<String, String>>() {}.getType();
         final Map<String, String> value = this.fromApiJsonHelper.extractDataMap(typeOfMap, json);
+        return value;
+    }
+
+    public Map<String, Object> mapObjectValueOfParameterNamed(final String json) {
+        final Type typeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
+        final Map<String, Object> value = this.fromApiJsonHelper.extractObjectMap(typeOfMap, json);
         return value;
     }
 
@@ -566,7 +613,7 @@ public final class JsonCommand {
      */
     public boolean booleanPrimitiveValueOfParameterNamed(final String parameterName) {
         final Boolean value = this.fromApiJsonHelper.extractBooleanNamed(parameterName, this.parsedCommand);
-        return (Boolean) ObjectUtils.defaultIfNull(value, Boolean.FALSE);
+        return ObjectUtils.defaultIfNull(value, Boolean.FALSE);
     }
 
     public boolean isChangeInArrayParameterNamed(final String parameterName, final String[] existingValue) {
@@ -600,7 +647,8 @@ public final class JsonCommand {
             final Long saltValue) {
         final String passwordPlainText = stringValueOfParameterNamed(parameterName);
 
-        final PlatformUser dummyPlatformUser = new BasicPasswordEncodablePlatformUser(saltValue, "", passwordPlainText);
+        final PlatformUser dummyPlatformUser = new BasicPasswordEncodablePlatformUser().setId(saltValue).setUsername("")
+                .setPassword(passwordPlainText);
         return platformPasswordEncoder.encode(dummyPlatformUser);
     }
 

@@ -18,12 +18,15 @@
  */
 package org.apache.fineract.infrastructure.dataqueries.service;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.persistence.PersistenceException;
-
-import org.apache.commons.lang.exception.ExceptionUtils;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.fineract.infrastructure.configuration.domain.ConfigurationDomainService;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.ApiParameterError;
@@ -36,26 +39,23 @@ import org.apache.fineract.infrastructure.dataqueries.data.DatatableData;
 import org.apache.fineract.infrastructure.dataqueries.data.EntityTables;
 import org.apache.fineract.infrastructure.dataqueries.domain.EntityDatatableChecks;
 import org.apache.fineract.infrastructure.dataqueries.domain.EntityDatatableChecksRepository;
-import org.apache.fineract.infrastructure.dataqueries.exception.*;
+import org.apache.fineract.infrastructure.dataqueries.exception.DatatableEntryRequiredException;
+import org.apache.fineract.infrastructure.dataqueries.exception.DatatableNotFoundException;
+import org.apache.fineract.infrastructure.dataqueries.exception.EntityDatatableCheckAlreadyExistsException;
+import org.apache.fineract.infrastructure.dataqueries.exception.EntityDatatableCheckNotSupportedException;
+import org.apache.fineract.infrastructure.dataqueries.exception.EntityDatatableChecksNotFoundException;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
 import org.apache.fineract.portfolio.loanproduct.service.LoanProductReadPlatformService;
 import org.apache.fineract.portfolio.savings.service.SavingsProductReadPlatformService;
 import org.apache.fineract.useradministration.domain.AppUser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-
+@Slf4j
+@AllArgsConstructor
 @Service
 public class EntityDatatableChecksWritePlatformServiceImpl implements EntityDatatableChecksWritePlatformService {
-
-    private final static Logger logger = LoggerFactory.getLogger(EntityDatatableChecksWritePlatformServiceImpl.class);
 
     private final PlatformSecurityContext context;
     private final EntityDatatableChecksDataValidator fromApiJsonDeserializer;
@@ -65,24 +65,6 @@ public class EntityDatatableChecksWritePlatformServiceImpl implements EntityData
     private final SavingsProductReadPlatformService savingsProductReadPlatformService;
     private final FromJsonHelper fromApiJsonHelper;
     private final ConfigurationDomainService configurationDomainService;
-
-    @Autowired
-    public EntityDatatableChecksWritePlatformServiceImpl(final PlatformSecurityContext context,
-            final EntityDatatableChecksDataValidator fromApiJsonDeserializer,
-            final EntityDatatableChecksRepository entityDatatableChecksRepository,
-            final ReadWriteNonCoreDataService readWriteNonCoreDataService,
-            final LoanProductReadPlatformService loanProductReadPlatformService,
-            final SavingsProductReadPlatformService savingsProductReadPlatformService, final FromJsonHelper fromApiJsonHelper,
-            final ConfigurationDomainService configurationDomainService) {
-        this.context = context;
-        this.fromApiJsonDeserializer = fromApiJsonDeserializer;
-        this.entityDatatableChecksRepository = entityDatatableChecksRepository;
-        this.readWriteNonCoreDataService = readWriteNonCoreDataService;
-        this.loanProductReadPlatformService = loanProductReadPlatformService;
-        this.savingsProductReadPlatformService = savingsProductReadPlatformService;
-        this.fromApiJsonHelper = fromApiJsonHelper;
-        this.configurationDomainService = configurationDomainService;
-    }
 
     @Transactional
     @Override
@@ -98,15 +80,19 @@ public class EntityDatatableChecksWritePlatformServiceImpl implements EntityData
             String datatableName = command.stringValueOfParameterNamed("datatableName");
             DatatableData datatableData = this.readWriteNonCoreDataService.retrieveDatatable(datatableName);
 
-            if (datatableData == null) { throw new DatatableNotFoundException(datatableName); }
+            if (datatableData == null) {
+                throw new DatatableNotFoundException(datatableName);
+            }
 
             final String entity = command.stringValueOfParameterNamed("entity");
             final String foreignKeyColumnName = EntityTables.getForeignKeyColumnNameOnDatatable(entity);
             final boolean columnExist = datatableData.hasColumn(foreignKeyColumnName);
 
-            logger.info(datatableData.getRegisteredTableName() + "has column " + foreignKeyColumnName + " ? " + columnExist);
+            log.debug("{} has column {} ? {}", datatableData.getRegisteredTableName(), foreignKeyColumnName, columnExist);
 
-            if (!columnExist) { throw new EntityDatatableCheckNotSupportedException(datatableData.getRegisteredTableName(), entity); }
+            if (!columnExist) {
+                throw new EntityDatatableCheckNotSupportedException(datatableData.getRegisteredTableName(), entity);
+            }
 
             final Long productId = command.longValueOfParameterNamed("productId");
             final Long status = command.longValueOfParameterNamed("status");
@@ -115,7 +101,9 @@ public class EntityDatatableChecksWritePlatformServiceImpl implements EntityData
             if (productId == null) {
                 entityDatatableCheck = this.entityDatatableChecksRepository.findByEntityStatusAndDatatableIdAndNoProduct(entity, status,
                         datatableName);
-                if (!entityDatatableCheck.isEmpty()) { throw new EntityDatatableCheckAlreadyExistsException(entity, status, datatableName); }
+                if (!entityDatatableCheck.isEmpty()) {
+                    throw new EntityDatatableCheckAlreadyExistsException(entity, status, datatableName);
+                }
             } else {
                 if (entity.equals("m_loan")) {
                     // if invalid loan product id, throws exception
@@ -128,8 +116,9 @@ public class EntityDatatableChecksWritePlatformServiceImpl implements EntityData
                 }
                 entityDatatableCheck = this.entityDatatableChecksRepository.findByEntityStatusAndDatatableIdAndProductId(entity, status,
                         datatableName, productId);
-                if (!entityDatatableCheck.isEmpty()) { throw new EntityDatatableCheckAlreadyExistsException(entity, status, datatableName,
-                        productId); }
+                if (!entityDatatableCheck.isEmpty()) {
+                    throw new EntityDatatableCheckAlreadyExistsException(entity, status, datatableName, productId);
+                }
             }
 
             final EntityDatatableChecks check = EntityDatatableChecks.fromJson(command);
@@ -151,9 +140,15 @@ public class EntityDatatableChecksWritePlatformServiceImpl implements EntityData
     }
 
     @Override
-    public void runTheCheck(final Long entityId, final String entityName, final Long statusCode, String foreignKeyColumn) {
-        final List<EntityDatatableChecks> tableRequiredBeforeClientActivation = entityDatatableChecksRepository.findByEntityAndStatus(
-                entityName, statusCode);
+    public void runTheCheck(final Long entityId, final String entityName, final Integer statusCode, String foreignKeyColumn,
+            final String entitySubtype) {
+        List<EntityDatatableChecks> tableRequiredBeforeClientActivation;
+        if (entitySubtype == null) {
+            tableRequiredBeforeClientActivation = entityDatatableChecksRepository.findByEntityAndStatus(entityName, statusCode);
+        } else {
+            tableRequiredBeforeClientActivation = entityDatatableChecksRepository.findByEntityAndStatusAndSubtype(entityName, statusCode,
+                    entitySubtype.toUpperCase());
+        }
 
         if (tableRequiredBeforeClientActivation != null) {
             List<String> reqDatatables = new ArrayList<>();
@@ -162,16 +157,19 @@ public class EntityDatatableChecksWritePlatformServiceImpl implements EntityData
                 final String datatableName = t.getDatatableName();
                 final Long countEntries = readWriteNonCoreDataService.countDatatableEntries(datatableName, entityId, foreignKeyColumn);
 
-                logger.info("The are " + countEntries + " entries in the table " + datatableName);
+                log.debug("The are {} entries in the table {}", countEntries, datatableName);
                 if (countEntries.intValue() == 0) {
                     reqDatatables.add(datatableName);
                 }
             }
-            if (reqDatatables.size() > 0) { throw new DatatableEntryRequiredException(reqDatatables.toString()); }
+            if (reqDatatables.size() > 0) {
+                throw new DatatableEntryRequiredException(reqDatatables.toString());
+            }
         }
 
     }
 
+    @Transactional(readOnly = true)
     @Override
     public void runTheCheckForProduct(final Long entityId, final String entityName, final Long statusCode, String foreignKeyColumn,
             long productId) {
@@ -188,12 +186,14 @@ public class EntityDatatableChecksWritePlatformServiceImpl implements EntityData
                 final String datatableName = t.getDatatableName();
                 final Long countEntries = readWriteNonCoreDataService.countDatatableEntries(datatableName, entityId, foreignKeyColumn);
 
-                logger.info("The are " + countEntries + " entries in the table " + datatableName);
+                log.debug("The are {} entries in the table {}", countEntries, datatableName);
                 if (countEntries.intValue() == 0) {
                     reqDatatables.add(datatableName);
                 }
             }
-            if (reqDatatables.size() > 0) { throw new DatatableEntryRequiredException(reqDatatables.toString()); }
+            if (reqDatatables.size() > 0) {
+                throw new DatatableEntryRequiredException(reqDatatables.toString());
+            }
         }
 
     }
@@ -225,7 +225,6 @@ public class EntityDatatableChecksWritePlatformServiceImpl implements EntityData
                 try {
                     this.readWriteNonCoreDataService.createNewDatatableEntry(datatableName, entityId, datatableData.toString());
                 } catch (PlatformApiDataValidationException e) {
-                    List<ApiParameterError> errors = e.getErrors();
                     for (ApiParameterError error : e.getErrors()) {
                         error.setParameterName("datatables." + datatableName + "." + error.getParameterName());
                     }
@@ -236,30 +235,12 @@ public class EntityDatatableChecksWritePlatformServiceImpl implements EntityData
         return isMakerCheckerEnabled;
     }
 
-    private List<String> getDatatableNames(Long status, String entity, Long productId) {
-        List<String> ret = new ArrayList<>();
-        List<EntityDatatableChecks> tableRequiredBeforeAction = null;
-        if (productId != null) {
-            tableRequiredBeforeAction = this.entityDatatableChecksRepository.findByEntityStatusAndProduct(entity, status, productId);
-        }
-
-        if (tableRequiredBeforeAction == null || tableRequiredBeforeAction.size() < 1) {
-            tableRequiredBeforeAction = this.entityDatatableChecksRepository.findByEntityStatusAndNoProduct(entity, status);
-        }
-        if (tableRequiredBeforeAction != null && tableRequiredBeforeAction.size() > 0) {
-            for (EntityDatatableChecks t : tableRequiredBeforeAction) {
-                ret.add(t.getDatatableName());
-            }
-        }
-        return ret;
-    }
-
     @Transactional
     @Override
     public CommandProcessingResult deleteCheck(final Long entityDatatableCheckId) {
 
-        final EntityDatatableChecks check = this.entityDatatableChecksRepository.findOne(entityDatatableCheckId);
-        if (check == null) { throw new EntityDatatableChecksNotFoundException(entityDatatableCheckId); }
+        final EntityDatatableChecks check = this.entityDatatableChecksRepository.findById(entityDatatableCheckId)
+                .orElseThrow(() -> new EntityDatatableChecksNotFoundException(entityDatatableCheckId));
 
         this.entityDatatableChecksRepository.delete(check);
 
@@ -269,15 +250,14 @@ public class EntityDatatableChecksWritePlatformServiceImpl implements EntityData
     }
 
     /*
-     * Guaranteed to throw an exception no matter what the data integrity issue
-     * is.
+     * Guaranteed to throw an exception no matter what the data integrity issue is.
      */
     private void handleReportDataIntegrityIssues(final JsonCommand command, final Throwable realCause, final Exception dae) {
 
-        if (realCause.getMessage().contains("FOREIGN KEY (`x_registered_table_name`)")) {
+        if (realCause.getMessage().contains("FOREIGN KEY (x_registered_table_name)")) {
             final String datatableName = command.stringValueOfParameterNamed("datatableName");
-            throw new PlatformDataIntegrityException("error.msg.entityDatatableCheck.foreign.key.constraint", "datatable with name '"
-                    + datatableName + "' do not exist", "datatableName", datatableName);
+            throw new PlatformDataIntegrityException("error.msg.entityDatatableCheck.foreign.key.constraint",
+                    "datatable with name '" + datatableName + "' do not exist", "datatableName", datatableName);
         }
 
         if (realCause.getMessage().contains("unique_entity_check")) {
@@ -288,7 +268,7 @@ public class EntityDatatableChecksWritePlatformServiceImpl implements EntityData
             throw new EntityDatatableCheckAlreadyExistsException(entity, status, datatableName, productId);
         }
 
-        logger.error(dae.getMessage(), dae);
+        log.error("Error occured.", dae);
         throw new PlatformDataIntegrityException("error.msg.report.unknown.data.integrity.issue",
                 "Unknown data integrity issue with resource: " + realCause.getMessage());
     }

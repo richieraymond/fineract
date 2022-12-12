@@ -21,9 +21,7 @@ package org.apache.fineract.portfolio.group.service;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
-
 import org.apache.fineract.infrastructure.core.domain.JdbcSupport;
-import org.apache.fineract.infrastructure.core.service.RoutingDataSource;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
 import org.apache.fineract.portfolio.group.data.GroupLevelData;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,9 +36,9 @@ public class GroupLevelReadPlatformServiceImpl implements GroupLevelReadPlatform
     private final JdbcTemplate jdbcTemplate;
 
     @Autowired
-    public GroupLevelReadPlatformServiceImpl(final PlatformSecurityContext context, final RoutingDataSource dataSource) {
+    public GroupLevelReadPlatformServiceImpl(final PlatformSecurityContext context, final JdbcTemplate jdbcTemplate) {
         this.context = context;
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
@@ -49,7 +47,7 @@ public class GroupLevelReadPlatformServiceImpl implements GroupLevelReadPlatform
 
         final GroupLevelDataMapper rm = new GroupLevelDataMapper();
         final String sql = "select " + rm.groupLevelSchema();
-        return this.jdbcTemplate.query(sql, rm);
+        return this.jdbcTemplate.query(sql, rm); // NOSONAR
 
     }
 

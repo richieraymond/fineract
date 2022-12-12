@@ -18,22 +18,19 @@
  */
 package org.apache.fineract.accounting.glaccount.data;
 
-public class GLAccountDataForLookup {
+import java.io.Serializable;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 
-    private final Long id;
-    @SuppressWarnings("unused")
-    private final String name;
-    @SuppressWarnings("unused")
-    private final String glCode;
+@Data
+@NoArgsConstructor
+@Accessors(chain = true)
+public class GLAccountDataForLookup implements Serializable {
 
-    public GLAccountDataForLookup(final Long id, final String name, final String glCode) {
-        this.id = id;
-        this.name = name;
-        this.glCode = glCode;
-    }
+    private static final long serialVersionUID = 1L;
 
-    public Long getId() {
-        return this.id;
-    }
-
+    private Long id;
+    private String name;
+    private String glCode;
 }

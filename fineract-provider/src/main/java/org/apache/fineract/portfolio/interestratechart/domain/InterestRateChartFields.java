@@ -22,23 +22,18 @@ import static org.apache.fineract.portfolio.interestratechart.InterestRateChartA
 import static org.apache.fineract.portfolio.interestratechart.InterestRateChartApiConstants.descriptionParamName;
 import static org.apache.fineract.portfolio.interestratechart.InterestRateChartApiConstants.endDateParamName;
 import static org.apache.fineract.portfolio.interestratechart.InterestRateChartApiConstants.fromDateParamName;
+import static org.apache.fineract.portfolio.interestratechart.InterestRateChartApiConstants.isPrimaryGroupingByAmountParamName;
 import static org.apache.fineract.portfolio.interestratechart.InterestRateChartApiConstants.localeParamName;
 import static org.apache.fineract.portfolio.interestratechart.InterestRateChartApiConstants.nameParamName;
-import static org.apache.fineract.portfolio.interestratechart.InterestRateChartApiConstants.isPrimaryGroupingByAmountParamName;
 
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.Map;
-
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
-
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
 import org.apache.fineract.infrastructure.core.domain.LocalDateInterval;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
-import org.joda.time.LocalDate;
 
 @Embeddable
 public class InterestRateChartFields {
@@ -49,13 +44,11 @@ public class InterestRateChartFields {
     @Column(name = "description", nullable = true)
     private String description;
 
-    @Temporal(TemporalType.DATE)
     @Column(name = "from_date", nullable = false)
-    private Date fromDate;
+    private LocalDate fromDate;
 
-    @Temporal(TemporalType.DATE)
     @Column(name = "end_date", nullable = true)
-    private Date endDate;
+    private LocalDate endDate;
 
     @Column(name = "is_primary_grouping_by_amount", nullable = false)
     private boolean isPrimaryGroupingByAmount;
@@ -69,11 +62,12 @@ public class InterestRateChartFields {
         return new InterestRateChartFields(name, description, fromDate, toDate, isPrimaryGroupingByAmount);
     }
 
-    private InterestRateChartFields(String name, String description, LocalDate fromDate, LocalDate toDate, boolean isPrimaryGroupingByAmount) {
+    private InterestRateChartFields(String name, String description, LocalDate fromDate, LocalDate toDate,
+            boolean isPrimaryGroupingByAmount) {
         this.name = name;
         this.description = description;
-        this.fromDate = fromDate.toDate();
-        this.endDate = (toDate == null) ? null : toDate.toDate();
+        this.fromDate = fromDate;
+        this.endDate = toDate;
         this.isPrimaryGroupingByAmount = isPrimaryGroupingByAmount;
     }
 
@@ -95,21 +89,19 @@ public class InterestRateChartFields {
         final String dateFormat = command.dateFormat();
 
         if (command.isChangeInLocalDateParameterNamed(fromDateParamName, getFromDateAsLocalDate())) {
-            final LocalDate newValue = command.localDateValueOfParameterNamed(fromDateParamName);
             final String newValueAsString = command.stringValueOfParameterNamed(fromDateParamName);
             actualChanges.put(fromDateParamName, newValueAsString);
             actualChanges.put(localeParamName, localeAsInput);
             actualChanges.put(dateFormatParamName, dateFormat);
-            this.fromDate = newValue.toDate();
+            this.fromDate = command.localDateValueOfParameterNamed(fromDateParamName);
         }
 
         if (command.isChangeInLocalDateParameterNamed(endDateParamName, getEndDateAsLocalDate())) {
-            final LocalDate newValue = command.localDateValueOfParameterNamed(endDateParamName);
             final String newValueAsString = command.stringValueOfParameterNamed(endDateParamName);
             actualChanges.put(endDateParamName, newValueAsString);
             actualChanges.put(localeParamName, localeAsInput);
             actualChanges.put(dateFormatParamName, dateFormat);
-            this.endDate = newValue.toDate();
+            this.endDate = command.localDateValueOfParameterNamed(endDateParamName);
         }
 
         if (command.isChangeInBooleanParameterNamed(isPrimaryGroupingByAmountParamName, this.isPrimaryGroupingByAmount)) {
@@ -129,43 +121,39 @@ public class InterestRateChartFields {
 
     public boolean isFromDateAfter(LocalDate compare) {
         final LocalDate fromDate = getFromDateAsLocalDate();
-        if (fromDate != null && compare != null) { return fromDate.isAfter(compare); }
+        if (fromDate != null && compare != null) {
+            return fromDate.isAfter(compare);
+        }
         return false;
     }
 
     public LocalDate getFromDateAsLocalDate() {
-        LocalDate fromDate = null;
-        if (this.fromDate != null) {
-            fromDate = new LocalDate(this.fromDate);
-        }
-        return fromDate;
+        return this.fromDate;
     }
 
     public LocalDate getEndDateAsLocalDate() {
-        LocalDate endDate = null;
-        if (this.endDate != null) {
-            endDate = new LocalDate(this.endDate);
-        }
-        return endDate;
+        return this.endDate;
     }
 
     public boolean isOverlapping(InterestRateChartFields that) {
         final LocalDate thisFromDate = this.getFromDateAsLocalDate();
         LocalDate thisEndDate = this.getEndDateAsLocalDate();
-        thisEndDate = thisEndDate == null ? DateUtils.getLocalDateOfTenant() : thisEndDate;
+        thisEndDate = thisEndDate == null ? DateUtils.getBusinessLocalDate() : thisEndDate;
         final LocalDate thatFromDate = that.getFromDateAsLocalDate();
         LocalDate thatEndDate = that.getEndDateAsLocalDate();
-        thatEndDate = thatEndDate == null ? DateUtils.getLocalDateOfTenant() : thatEndDate;
+        thatEndDate = thatEndDate == null ? DateUtils.getBusinessLocalDate() : thatEndDate;
 
         final LocalDateInterval thisInterval = LocalDateInterval.create(thisFromDate, thisEndDate);
         final LocalDateInterval thatInterval = LocalDateInterval.create(thatFromDate, thatEndDate);
 
-        if (thisInterval.containsPortionOf(thatInterval) || thatInterval.containsPortionOf(thisInterval)) { return true; }
+        if (thisInterval.containsPortionOf(thatInterval) || thatInterval.containsPortionOf(thisInterval)) {
+            return true;
+        }
         return false;// no overlapping
     }
 
     public boolean isApplicableChartFor(final LocalDate target) {
-        final LocalDate endDate = this.endDate == null ? DateUtils.getLocalDateOfTenant() : this.getEndDateAsLocalDate();
+        final LocalDate endDate = this.endDate == null ? DateUtils.getBusinessLocalDate() : this.getEndDateAsLocalDate();
         final LocalDateInterval interval = LocalDateInterval.create(getFromDateAsLocalDate(), endDate);
         return interval.contains(target);
     }

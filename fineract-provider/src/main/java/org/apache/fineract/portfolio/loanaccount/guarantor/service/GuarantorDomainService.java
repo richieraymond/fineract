@@ -18,9 +18,9 @@
  */
 package org.apache.fineract.portfolio.loanaccount.guarantor.service;
 
+import java.time.LocalDate;
 import org.apache.fineract.portfolio.loanaccount.domain.Loan;
 import org.apache.fineract.portfolio.loanaccount.guarantor.domain.GuarantorFundingDetails;
-import org.joda.time.LocalDate;
 
 public interface GuarantorDomainService {
 
@@ -30,6 +30,6 @@ public interface GuarantorDomainService {
 
     void assignGuarantor(GuarantorFundingDetails guarantorFundingDetails, LocalDate transactionDate);
 
-    void transaferFundsFromGuarantor(Loan loan);
+    void transferFundsFromGuarantor(Loan loan);
 
 }

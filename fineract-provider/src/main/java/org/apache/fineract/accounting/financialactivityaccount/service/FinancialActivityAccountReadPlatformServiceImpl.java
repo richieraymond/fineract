@@ -22,40 +22,31 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
-
+import lombok.RequiredArgsConstructor;
+import org.apache.fineract.accounting.common.AccountingConstants.FinancialActivity;
 import org.apache.fineract.accounting.common.AccountingDropdownReadPlatformService;
-import org.apache.fineract.accounting.common.AccountingConstants.FINANCIAL_ACTIVITY;
 import org.apache.fineract.accounting.financialactivityaccount.data.FinancialActivityAccountData;
 import org.apache.fineract.accounting.financialactivityaccount.data.FinancialActivityData;
 import org.apache.fineract.accounting.financialactivityaccount.exception.FinancialActivityAccountNotFoundException;
 import org.apache.fineract.accounting.glaccount.data.GLAccountData;
 import org.apache.fineract.infrastructure.core.domain.JdbcSupport;
-import org.apache.fineract.infrastructure.core.service.RoutingDataSource;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class FinancialActivityAccountReadPlatformServiceImpl implements FinancialActivityAccountReadPlatformService {
 
     private final JdbcTemplate jdbcTemplate;
-    private final FinancialActivityAccountMapper financialActivityAccountMapper;
     private final AccountingDropdownReadPlatformService accountingDropdownReadPlatformService;
-
-    @Autowired
-    public FinancialActivityAccountReadPlatformServiceImpl(final RoutingDataSource dataSource,
-            final AccountingDropdownReadPlatformService accountingDropdownReadPlatformService) {
-        financialActivityAccountMapper = new FinancialActivityAccountMapper();
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
-        this.accountingDropdownReadPlatformService = accountingDropdownReadPlatformService;
-    }
+    private final FinancialActivityAccountMapper financialActivityAccountMapper = new FinancialActivityAccountMapper();
 
     @Override
     public List<FinancialActivityAccountData> retrieveAll() {
         String sql = "select " + financialActivityAccountMapper.schema();
-        return this.jdbcTemplate.query(sql, financialActivityAccountMapper, new Object[] {});
+        return this.jdbcTemplate.query(sql, financialActivityAccountMapper, new Object[] {}); // NOSONAR
     }
 
     @Override
@@ -68,15 +59,15 @@ public class FinancialActivityAccountReadPlatformServiceImpl implements Financia
             return this.jdbcTemplate.queryForObject(sqlBuilder.toString(), this.financialActivityAccountMapper,
                     new Object[] { financialActivityAccountId });
         } catch (final EmptyResultDataAccessException e) {
-            throw new FinancialActivityAccountNotFoundException(financialActivityAccountId);
+            throw new FinancialActivityAccountNotFoundException(financialActivityAccountId, e);
         }
     }
 
     @Override
     public FinancialActivityAccountData addTemplateDetails(FinancialActivityAccountData financialActivityAccountData) {
         final Map<String, List<GLAccountData>> accountOptions = this.accountingDropdownReadPlatformService.retrieveAccountMappingOptions();
-        financialActivityAccountData.setAccountingMappingOptions(accountOptions);
-        financialActivityAccountData.setFinancialActivityOptions(FINANCIAL_ACTIVITY.getAllFinancialActivities());
+        financialActivityAccountData.setGlAccountOptions(accountOptions);
+        financialActivityAccountData.setFinancialActivityOptions(FinancialActivity.getAllFinancialActivities());
         return financialActivityAccountData;
     }
 
@@ -90,9 +81,10 @@ public class FinancialActivityAccountReadPlatformServiceImpl implements Financia
 
         private final String sql;
 
-        public FinancialActivityAccountMapper() {
+        FinancialActivityAccountMapper() {
             StringBuilder sb = new StringBuilder(300);
-            sb.append(" faa.id as id, faa.financial_activity_type as financialActivityId, glaccount.id as glAccountId,glaccount.name as glAccountName,glaccount.gl_code as glCode  ");
+            sb.append(
+                    " faa.id as id, faa.financial_activity_type as financialActivityId, glaccount.id as glAccountId,glaccount.name as glAccountName,glaccount.gl_code as glCode  ");
             sb.append(" from acc_gl_financial_activity_account faa ");
             sb.append(" join acc_gl_account glaccount on glaccount.id = faa.gl_account_id");
             sql = sb.toString();
@@ -110,8 +102,9 @@ public class FinancialActivityAccountReadPlatformServiceImpl implements Financia
             final String glAccountName = rs.getString("glAccountName");
             final String glCode = rs.getString("glCode");
 
-            final GLAccountData glAccountData = new GLAccountData(glAccountId, glAccountName, glCode);
-            final FinancialActivityData financialActivityData = FINANCIAL_ACTIVITY.toFinancialActivityData(financialActivityId);
+            final GLAccountData glAccountData = new GLAccountData().setId(glAccountId).setName(glAccountName).setGlCode(glCode);
+
+            final FinancialActivityData financialActivityData = FinancialActivity.toFinancialActivityData(financialActivityId);
 
             final FinancialActivityAccountData financialActivityAccountData = new FinancialActivityAccountData(id, financialActivityData,
                     glAccountData);

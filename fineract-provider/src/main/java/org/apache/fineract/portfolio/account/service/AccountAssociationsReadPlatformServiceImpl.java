@@ -23,9 +23,8 @@ import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-
+import lombok.RequiredArgsConstructor;
 import org.apache.fineract.infrastructure.core.domain.JdbcSupport;
-import org.apache.fineract.infrastructure.core.service.RoutingDataSource;
 import org.apache.fineract.portfolio.account.data.AccountAssociationsData;
 import org.apache.fineract.portfolio.account.data.PortfolioAccountData;
 import org.apache.fineract.portfolio.account.domain.AccountAssociationType;
@@ -33,22 +32,17 @@ import org.apache.fineract.portfolio.loanaccount.domain.LoanStatus;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountStatusType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class AccountAssociationsReadPlatformServiceImpl implements AccountAssociationsReadPlatformService {
 
-    private final static Logger logger = LoggerFactory.getLogger(AccountAssociationsReadPlatformServiceImpl.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AccountAssociationsReadPlatformServiceImpl.class);
     private final JdbcTemplate jdbcTemplate;
-
-    @Autowired
-    public AccountAssociationsReadPlatformServiceImpl(final RoutingDataSource dataSource) {
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
-    }
 
     @Override
     public PortfolioAccountData retriveLoanLinkedAssociation(final Long loanId) {
@@ -56,13 +50,13 @@ public class AccountAssociationsReadPlatformServiceImpl implements AccountAssoci
         final AccountAssociationsMapper mapper = new AccountAssociationsMapper();
         final String sql = "select " + mapper.schema() + " where aa.loan_account_id = ? and aa.association_type_enum = ?";
         try {
-            final AccountAssociationsData accountAssociationsData = this.jdbcTemplate.queryForObject(sql, mapper, loanId,
+            final AccountAssociationsData accountAssociationsData = this.jdbcTemplate.queryForObject(sql, mapper, loanId, // NOSONAR
                     AccountAssociationType.LINKED_ACCOUNT_ASSOCIATION.getValue());
             if (accountAssociationsData != null) {
                 linkedAccount = accountAssociationsData.linkedAccount();
             }
         } catch (final EmptyResultDataAccessException e) {
-            logger.debug("Linking account is not configured");
+            LOG.debug("Linking account is not configured");
         }
         return linkedAccount;
     }
@@ -72,7 +66,7 @@ public class AccountAssociationsReadPlatformServiceImpl implements AccountAssoci
         final AccountAssociationsMapper mapper = new AccountAssociationsMapper();
         final String sql = "select " + mapper.schema() + " where aa.loan_account_id = ? and aa.association_type_enum = ?";
         try {
-            return this.jdbcTemplate.query(sql, mapper, loanId, associationType);
+            return this.jdbcTemplate.query(sql, mapper, new Object[] { loanId, associationType }); // NOSONAR
         } catch (final EmptyResultDataAccessException e) {
             return null;
         }
@@ -85,13 +79,13 @@ public class AccountAssociationsReadPlatformServiceImpl implements AccountAssoci
         final AccountAssociationsMapper mapper = new AccountAssociationsMapper();
         final String sql = "select " + mapper.schema() + " where aa.savings_account_id = ? and aa.association_type_enum = ?";
         try {
-            final AccountAssociationsData accountAssociationsData = this.jdbcTemplate.queryForObject(sql, mapper, savingsId,
-                    AccountAssociationType.LINKED_ACCOUNT_ASSOCIATION.getValue());
+            final AccountAssociationsData accountAssociationsData = this.jdbcTemplate.queryForObject(sql, mapper, // NOSONAR
+                    new Object[] { savingsId, AccountAssociationType.LINKED_ACCOUNT_ASSOCIATION.getValue() });
             if (accountAssociationsData != null) {
                 linkedAccount = accountAssociationsData.linkedAccount();
             }
         } catch (final EmptyResultDataAccessException e) {
-            logger.debug("Linking account is not configured");
+            LOG.debug("Linking account is not configured");
         }
         return linkedAccount;
     }
@@ -138,18 +132,22 @@ public class AccountAssociationsReadPlatformServiceImpl implements AccountAssoci
 
         private final String schemaSql;
 
-        public AccountAssociationsMapper() {
+        AccountAssociationsMapper() {
             final StringBuilder sqlBuilder = new StringBuilder();
             sqlBuilder.append("aa.id as id,");
-            // sqlBuilder.append("savingsAccount.id as savingsAccountId, savingsAccount.account_no as savingsAccountNo,");
+            // sqlBuilder.append("savingsAccount.id as savingsAccountId,
+            // savingsAccount.account_no as savingsAccountNo,");
             sqlBuilder.append("loanAccount.id as loanAccountId, loanAccount.account_no as loanAccountNo,");
-            // sqlBuilder.append("linkLoanAccount.id as linkLoanAccountId, linkLoanAccount.account_no as linkLoanAccountNo, ");
+            // sqlBuilder.append("linkLoanAccount.id as linkLoanAccountId,
+            // linkLoanAccount.account_no as linkLoanAccountNo, ");
             sqlBuilder.append("linkSavingsAccount.id as linkSavingsAccountId, linkSavingsAccount.account_no as linkSavingsAccountNo ");
             sqlBuilder.append("from m_portfolio_account_associations aa ");
-            // sqlBuilder.append("left join m_savings_account savingsAccount on savingsAccount.id = aa.savings_account_id ");
+            // sqlBuilder.append("left join m_savings_account savingsAccount on
+            // savingsAccount.id = aa.savings_account_id ");
             sqlBuilder.append("left join m_loan loanAccount on loanAccount.id = aa.loan_account_id ");
             sqlBuilder.append("left join m_savings_account linkSavingsAccount on linkSavingsAccount.id = aa.linked_savings_account_id ");
-            // sqlBuilder.append("left join m_loan linkLoanAccount on linkLoanAccount.id = aa.linked_loan_account_id ");
+            // sqlBuilder.append("left join m_loan linkLoanAccount on
+            // linkLoanAccount.id = aa.linked_loan_account_id ");
             this.schemaSql = sqlBuilder.toString();
         }
 
@@ -168,9 +166,8 @@ public class AccountAssociationsReadPlatformServiceImpl implements AccountAssoci
             final String loanAccountNo = rs.getString("loanAccountNo");
             final PortfolioAccountData account = PortfolioAccountData.lookup(loanAccountId, loanAccountNo);
             /*
-             * if (savingsAccountId != null) { account =
-             * PortfolioAccountData.lookup(savingsAccountId, savingsAccountNo);
-             * } else if (loanAccountId != null) { account =
+             * if (savingsAccountId != null) { account = PortfolioAccountData.lookup(savingsAccountId,
+             * savingsAccountNo); } else if (loanAccountId != null) { account =
              * PortfolioAccountData.lookup(loanAccountId, loanAccountNo); }
              */
             final Long linkSavingsAccountId = JdbcSupport.getLong(rs, "linkSavingsAccountId");
@@ -181,15 +178,19 @@ public class AccountAssociationsReadPlatformServiceImpl implements AccountAssoci
             // rs.getString("linkLoanAccountNo");
             final PortfolioAccountData linkedAccount = PortfolioAccountData.lookup(linkSavingsAccountId, linkSavingsAccountNo);
             /*
-             * if (linkSavingsAccountId != null) { linkedAccount =
-             * PortfolioAccountData.lookup(linkSavingsAccountId,
-             * linkSavingsAccountNo); } else if (linkLoanAccountId != null) {
-             * linkedAccount = PortfolioAccountData.lookup(linkLoanAccountId,
-             * linkLoanAccountNo); }
+             * if (linkSavingsAccountId != null) { linkedAccount = PortfolioAccountData.lookup(linkSavingsAccountId,
+             * linkSavingsAccountNo); } else if (linkLoanAccountId != null) { linkedAccount =
+             * PortfolioAccountData.lookup(linkLoanAccountId, linkLoanAccountNo); }
              */
 
             return new AccountAssociationsData(id, account, linkedAccount);
         }
 
+    }
+
+    @Override
+    public PortfolioAccountData retriveSavingsAccount(final Long savingsId) {
+        String accountNo = jdbcTemplate.queryForObject("select account_no from m_savings_account where id = ?", String.class, savingsId);
+        return PortfolioAccountData.lookup(savingsId, accountNo);
     }
 }

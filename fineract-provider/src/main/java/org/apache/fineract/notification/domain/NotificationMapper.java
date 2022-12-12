@@ -18,15 +18,26 @@
  */
 package org.apache.fineract.notification.domain;
 
-
+import java.time.LocalDateTime;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.Table;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
 import org.apache.fineract.useradministration.domain.AppUser;
 
-import javax.persistence.*;
-
 @Entity
 @Table(name = "notification_mapper")
-public class NotificationMapper extends AbstractPersistableCustom<Long> {
+@Getter
+@Setter
+@NoArgsConstructor
+@Accessors(chain = true)
+public class NotificationMapper extends AbstractPersistableCustom {
 
     @ManyToOne
     @JoinColumn(name = "notification_id")
@@ -40,39 +51,5 @@ public class NotificationMapper extends AbstractPersistableCustom<Long> {
     private boolean isRead;
 
     @Column(name = "created_at")
-    private String createdAt;
-
-    public NotificationMapper() {}
-
-    public NotificationMapper(Notification notification, AppUser userId, boolean isRead, String createdAt) {
-        this.notification = notification;
-        this.userId = userId;
-        this.isRead = isRead;
-        this.createdAt = createdAt;
-    }
-
-    public Notification getNotification() {
-        return notification;
-    }
-
-    public void setNotification(Notification notification) {
-        this.notification = notification;
-    }
-
-    public AppUser getUserId() {
-        return userId;
-    }
-
-    public void setUserId(AppUser userId) {
-        this.userId = userId;
-    }
-
-    public boolean isRead() {
-        return isRead;
-    }
-
-    public void setRead(boolean read) {
-        isRead = read;
-    }
-
+    private LocalDateTime createdAt;
 }

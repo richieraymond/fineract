@@ -18,6 +18,8 @@
  */
 package org.apache.fineract.portfolio.loanaccount.exception;
 
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.fineract.infrastructure.core.domain.ExternalId;
 import org.apache.fineract.infrastructure.core.exception.AbstractPlatformResourceNotFoundException;
 
 /**
@@ -27,5 +29,25 @@ public class LoanNotFoundException extends AbstractPlatformResourceNotFoundExcep
 
     public LoanNotFoundException(final Long id) {
         super("error.msg.loan.id.invalid", "Loan with identifier " + id + " does not exist", id);
+    }
+
+    public LoanNotFoundException(Long id, Exception e) {
+        super("error.msg.loan.id.invalid", "Loan with identifier " + id + " does not exist", id, e);
+    }
+
+    public LoanNotFoundException(String accountId) {
+        super("error.msg.loan.account.id.invalid", "Loan with account ID " + accountId + " does not exist", accountId);
+    }
+
+    public LoanNotFoundException(ExternalId externalId) {
+        super("error.msg.loan.external.id.invalid",
+                "Loan with external identifier " + ObjectUtils.defaultIfNull(externalId, ExternalId.empty()).getValue() + " does not exist",
+                externalId);
+    }
+
+    public LoanNotFoundException(ExternalId externalId, Exception e) {
+        super("error.msg.loan.external.id.invalid",
+                "Loan with external identifier " + ObjectUtils.defaultIfNull(externalId, ExternalId.empty()).getValue() + " does not exist",
+                externalId, e);
     }
 }

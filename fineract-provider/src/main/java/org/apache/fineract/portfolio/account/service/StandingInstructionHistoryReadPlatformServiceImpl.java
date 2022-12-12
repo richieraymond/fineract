@@ -23,17 +23,16 @@ import static org.apache.fineract.portfolio.account.service.AccountTransferEnume
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.fineract.infrastructure.core.data.EnumOptionData;
 import org.apache.fineract.infrastructure.core.domain.JdbcSupport;
+import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.infrastructure.core.service.Page;
 import org.apache.fineract.infrastructure.core.service.PaginationHelper;
-import org.apache.fineract.infrastructure.core.service.RoutingDataSource;
 import org.apache.fineract.infrastructure.core.service.SearchParameters;
+import org.apache.fineract.infrastructure.core.service.database.DatabaseSpecificSQLGenerator;
 import org.apache.fineract.infrastructure.security.utils.ColumnValidator;
 import org.apache.fineract.organisation.office.data.OfficeData;
 import org.apache.fineract.portfolio.account.PortfolioAccountType;
@@ -41,7 +40,6 @@ import org.apache.fineract.portfolio.account.data.PortfolioAccountData;
 import org.apache.fineract.portfolio.account.data.StandingInstructionDTO;
 import org.apache.fineract.portfolio.account.data.StandingInstructionHistoryData;
 import org.apache.fineract.portfolio.client.data.ClientData;
-import org.joda.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -51,27 +49,30 @@ import org.springframework.stereotype.Service;
 public class StandingInstructionHistoryReadPlatformServiceImpl implements StandingInstructionHistoryReadPlatformService {
 
     private final JdbcTemplate jdbcTemplate;
+    private final DatabaseSpecificSQLGenerator sqlGenerator;
     private final ColumnValidator columnValidator;
 
     // mapper
     private final StandingInstructionHistoryMapper standingInstructionHistoryMapper;
 
     // pagination
-    private final PaginationHelper<StandingInstructionHistoryData> paginationHelper = new PaginationHelper<>();
+    private final PaginationHelper paginationHelper;
 
     @Autowired
-    public StandingInstructionHistoryReadPlatformServiceImpl(final RoutingDataSource dataSource,
-    		final ColumnValidator columnValidator) {
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
+    public StandingInstructionHistoryReadPlatformServiceImpl(final JdbcTemplate jdbcTemplate, final ColumnValidator columnValidator,
+            DatabaseSpecificSQLGenerator sqlGenerator, PaginationHelper paginationHelper) {
+        this.jdbcTemplate = jdbcTemplate;
+        this.sqlGenerator = sqlGenerator;
         this.standingInstructionHistoryMapper = new StandingInstructionHistoryMapper();
         this.columnValidator = columnValidator;
+        this.paginationHelper = paginationHelper;
     }
 
     @Override
     public Page<StandingInstructionHistoryData> retrieveAll(StandingInstructionDTO standingInstructionDTO) {
 
         final StringBuilder sqlBuilder = new StringBuilder(200);
-        sqlBuilder.append("select SQL_CALC_FOUND_ROWS ");
+        sqlBuilder.append("select " + sqlGenerator.calcFoundRows() + " ");
         sqlBuilder.append(this.standingInstructionHistoryMapper.schema());
         if (standingInstructionDTO.transferType() != null || standingInstructionDTO.clientId() != null
                 || standingInstructionDTO.clientName() != null
@@ -124,19 +125,17 @@ public class StandingInstructionHistoryReadPlatformServiceImpl implements Standi
             if (addAndCaluse) {
                 sqlBuilder.append(" and ");
             }
-            final DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
             sqlBuilder.append(" atsih.execution_time >= ? ");
-            paramObj.add(df.format(standingInstructionDTO.startDateRange()));
+            paramObj.add(DateUtils.DEFAULT_DATE_FORMATTER.format(standingInstructionDTO.startDateRange()));
             addAndCaluse = true;
         }
-        
+
         if (standingInstructionDTO.endDateRange() != null) {
             if (addAndCaluse) {
                 sqlBuilder.append(" and ");
             }
-            final DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
             sqlBuilder.append(" atsih.execution_time < ? ");
-            paramObj.add(df.format(standingInstructionDTO.endDateRange()));
+            paramObj.add(DateUtils.DEFAULT_DATE_FORMATTER.format(standingInstructionDTO.endDateRange()));
             addAndCaluse = true;
         }
 
@@ -151,15 +150,16 @@ public class StandingInstructionHistoryReadPlatformServiceImpl implements Standi
         }
 
         if (searchParameters.isLimited()) {
-            sqlBuilder.append(" limit ").append(searchParameters.getLimit());
+            sqlBuilder.append(" ");
             if (searchParameters.isOffset()) {
-                sqlBuilder.append(" offset ").append(searchParameters.getOffset());
+                sqlBuilder.append(sqlGenerator.limit(searchParameters.getLimit(), searchParameters.getOffset()));
+            } else {
+                sqlBuilder.append(sqlGenerator.limit(searchParameters.getLimit()));
             }
         }
 
         final Object[] finalObjectArray = paramObj.toArray();
-        final String sqlCountRows = "SELECT FOUND_ROWS()";
-        return this.paginationHelper.fetchPage(this.jdbcTemplate, sqlCountRows, sqlBuilder.toString(), finalObjectArray,
+        return this.paginationHelper.fetchPage(this.jdbcTemplate, sqlBuilder.toString(), finalObjectArray,
                 this.standingInstructionHistoryMapper);
     }
 
@@ -167,7 +167,7 @@ public class StandingInstructionHistoryReadPlatformServiceImpl implements Standi
 
         private final String schemaSql;
 
-        public StandingInstructionHistoryMapper() {
+        StandingInstructionHistoryMapper() {
             final StringBuilder sqlBuilder = new StringBuilder(400);
             sqlBuilder.append("atsi.id as id,atsi.name as name, ");
             sqlBuilder.append("atsih.status as status, atsih.execution_time as executionTime, ");

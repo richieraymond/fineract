@@ -21,7 +21,6 @@ package org.apache.fineract.portfolio.loanaccount.loanschedule.domain;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
-
 import org.apache.fineract.organisation.monetary.data.CurrencyData;
 import org.apache.fineract.organisation.monetary.domain.ApplicationCurrency;
 import org.apache.fineract.organisation.monetary.domain.Money;
@@ -96,6 +95,8 @@ public final class LoanScheduleModel {
         final Integer inMultiplesOf = this.totalPrincipalDisbursed.getCurrencyInMultiplesOf();
         final CurrencyData currency = this.applicationCurrency.toData(decimalPlaces, inMultiplesOf);
 
+        final BigDecimal totalCredits = BigDecimal.ZERO;
+
         final Collection<LoanSchedulePeriodData> periodsData = new ArrayList<>();
         for (final LoanScheduleModelPeriod modelPeriod : this.periods) {
             periodsData.add(modelPeriod.toData());
@@ -110,7 +111,7 @@ public final class LoanScheduleModel {
         return new LoanScheduleData(currency, periodsData, this.loanTermInDays, this.totalPrincipalDisbursed.getAmount(),
                 this.totalPrincipalExpected, this.totalPrincipalPaid, this.totalInterestCharged, this.totalFeeChargesCharged,
                 this.totalPenaltyChargesCharged, totalWaived, totalWrittenOff, this.totalRepaymentExpected, totalRepayment,
-                totalPaidInAdvance, totalPaidLate, this.totalOutstanding);
+                totalPaidInAdvance, totalPaidLate, this.totalOutstanding, totalCredits);
     }
 
     public Collection<LoanScheduleModelPeriod> getPeriods() {
@@ -121,10 +122,8 @@ public final class LoanScheduleModel {
         return this.totalPenaltyChargesCharged;
     }
 
-    
     public BigDecimal getTotalInterestCharged() {
         return this.totalInterestCharged;
     }
-    
-    
+
 }

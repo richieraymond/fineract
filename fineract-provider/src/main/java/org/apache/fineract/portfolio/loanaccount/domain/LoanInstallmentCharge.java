@@ -19,20 +19,19 @@
 package org.apache.fineract.portfolio.loanaccount.domain;
 
 import java.math.BigDecimal;
-
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
-
 import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
 import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
 import org.apache.fineract.organisation.monetary.domain.Money;
+import org.apache.fineract.portfolio.loanaccount.data.LoanInstallmentChargeData;
 
 @Entity
 @Table(name = "m_loan_installment_charge")
-public class LoanInstallmentCharge extends AbstractPersistableCustom<Long> implements Comparable<LoanInstallmentCharge> {
+public class LoanInstallmentCharge extends AbstractPersistableCustom implements Comparable<LoanInstallmentCharge> {
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "loan_charge_id", referencedColumnName = "id", nullable = false)
@@ -74,9 +73,9 @@ public class LoanInstallmentCharge extends AbstractPersistableCustom<Long> imple
     public int compareTo(LoanInstallmentCharge o) {
         return this.installment.getInstallmentNumber().compareTo(o.installment.getInstallmentNumber());
     }
-    
-    public LoanInstallmentCharge(final BigDecimal amount, final LoanCharge loanCharge, final LoanRepaymentScheduleInstallment installment) {
-        this.loancharge = loanCharge;
+
+    public LoanInstallmentCharge(final BigDecimal amount, final LoanCharge loancharge, final LoanRepaymentScheduleInstallment installment) {
+        this.loancharge = loancharge;
         this.installment = installment;
         this.amount = amount;
         this.amountOutstanding = amount;
@@ -105,12 +104,21 @@ public class LoanInstallmentCharge extends AbstractPersistableCustom<Long> imple
     }
 
     private boolean determineIfFullyPaid() {
-        if (this.amount == null) { return true; }
+        if (this.amount == null) {
+            return true;
+        }
         return BigDecimal.ZERO.compareTo(calculateOutstanding()) == 0;
     }
 
+    public void undoWaive(final BigDecimal amountOutstanding, final BigDecimal amountWaived) {
+        this.amountOutstanding = amountOutstanding;
+        this.amountWaived = amountWaived;
+    }
+
     private BigDecimal calculateOutstanding() {
-        if (this.amount == null) { return null; }
+        if (this.amount == null) {
+            return null;
+        }
         BigDecimal amountPaidLocal = BigDecimal.ZERO;
         if (this.amountPaid != null) {
             amountPaidLocal = this.amountPaid;
@@ -178,7 +186,7 @@ public class LoanInstallmentCharge extends AbstractPersistableCustom<Long> imple
         Money amountPaidToDate = Money.of(incrementBy.getCurrency(), this.amountPaid);
         final Money amountOutstanding = Money.of(incrementBy.getCurrency(), this.amountOutstanding);
         Money amountPaidPreviously = amountPaidToDate;
-        Money amountPaidOnThisCharge = Money.zero(incrementBy.getCurrency());
+        Money amountPaidOnThisCharge;
         if (incrementBy.isGreaterThanOrEqualTo(amountOutstanding)) {
             amountPaidOnThisCharge = amountOutstanding;
             amountPaidToDate = amountPaidToDate.plus(amountOutstanding);
@@ -217,6 +225,18 @@ public class LoanInstallmentCharge extends AbstractPersistableCustom<Long> imple
         this.amountPaid = BigDecimal.ZERO;
         this.amountOutstanding = calculateAmountOutstanding(currency);
         this.paid = false;
+    }
+
+    public void setAmountWaived(final BigDecimal amountWaived) {
+        this.amountWaived = amountWaived;
+    }
+
+    public void undoWaiveFlag() {
+        this.waived = false;
+    }
+
+    public void setOutstandingAmount(final BigDecimal amountOutstanding) {
+        this.amountOutstanding = amountOutstanding;
     }
 
     public void resetToOriginal(final MonetaryCurrency currency) {
@@ -266,23 +286,22 @@ public class LoanInstallmentCharge extends AbstractPersistableCustom<Long> imple
         }
     }
 
-    
     public void updateInstallment(LoanRepaymentScheduleInstallment installment) {
         this.installment = installment;
     }
-    
+
     public Money undoPaidAmountBy(final Money incrementBy, final Money feeAmount) {
 
         Money amountPaidToDate = Money.of(incrementBy.getCurrency(), this.amountPaid);
-       
-        Money amountToDeductOnThisCharge = Money.zero(incrementBy.getCurrency());
+
+        Money amountToDeductOnThisCharge;
         if (incrementBy.isGreaterThanOrEqualTo(amountPaidToDate)) {
-                amountToDeductOnThisCharge = amountPaidToDate;
+            amountToDeductOnThisCharge = amountPaidToDate;
             amountPaidToDate = Money.zero(incrementBy.getCurrency());
             this.amountPaid = amountPaidToDate.getAmount();
             this.amountOutstanding = this.amount;
         } else {
-                amountToDeductOnThisCharge = incrementBy;
+            amountToDeductOnThisCharge = incrementBy;
             amountPaidToDate = amountPaidToDate.minus(incrementBy);
             this.amountPaid = amountPaidToDate.getAmount();
             this.amountOutstanding = calculateAmountOutstanding(incrementBy.getCurrency());
@@ -293,12 +312,20 @@ public class LoanInstallmentCharge extends AbstractPersistableCustom<Long> imple
         return amountToDeductOnThisCharge;
     }
 
-	public LoanCharge getLoancharge() {
-		return this.loancharge;
-	}
-	public LoanRepaymentScheduleInstallment getInstallment() {
-		return this.installment;
-	}
+    public LoanCharge getLoancharge() {
+        return this.loancharge;
+    }
 
-    
+    public LoanRepaymentScheduleInstallment getInstallment() {
+        return this.installment;
+    }
+
+    public void setInstallment(LoanRepaymentScheduleInstallment installment) {
+        this.installment = installment;
+    }
+
+    public LoanInstallmentChargeData toData() {
+        return LoanInstallmentChargeData.builder().installmentNumber(installment.getInstallmentNumber()).dueDate(installment.getDueDate())
+                .amount(amount).amountOutstanding(amountOutstanding).amountWaived(amountWaived).paid(paid).waived(waived).build();
+    }
 }

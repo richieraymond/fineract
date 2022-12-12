@@ -18,20 +18,19 @@
  */
 package org.apache.fineract.infrastructure.configuration.service;
 
+import java.sql.Date;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.LocalDate;
+import java.util.List;
 import org.apache.fineract.infrastructure.configuration.data.GlobalConfigurationData;
 import org.apache.fineract.infrastructure.configuration.data.GlobalConfigurationPropertyData;
-import org.apache.fineract.infrastructure.core.service.RoutingDataSource;
 import org.apache.fineract.infrastructure.dataqueries.api.DataTableApiConstant;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
-
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.Date;
-import java.util.List;
 
 @Service
 public class ConfigurationReadPlatformServiceImpl implements ConfigurationReadPlatformService {
@@ -41,9 +40,9 @@ public class ConfigurationReadPlatformServiceImpl implements ConfigurationReadPl
     private final RowMapper<GlobalConfigurationPropertyData> rm;
 
     @Autowired
-    public ConfigurationReadPlatformServiceImpl(final PlatformSecurityContext context, final RoutingDataSource dataSource) {
+    public ConfigurationReadPlatformServiceImpl(final PlatformSecurityContext context, final JdbcTemplate jdbcTemplate) {
         this.context = context;
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
+        this.jdbcTemplate = jdbcTemplate;
 
         this.rm = new GlobalConfigurationRowMapper();
     }
@@ -53,31 +52,29 @@ public class ConfigurationReadPlatformServiceImpl implements ConfigurationReadPl
 
         this.context.authenticatedUser();
 
-        String sql = "SELECT c.id, c.name, c.enabled, c.value, c.date_value, c.description, c.is_trap_door FROM c_configuration c ";
+        String sql = "SELECT c.id, c.name, c.enabled, c.value, c.date_value, c.description,c.string_value, c.is_trap_door FROM c_configuration c ";
 
         if (survey) {
             sql += " JOIN x_registered_table on x_registered_table.registered_table_name = c.name ";
-            sql += " WHERE x_registered_table.category =" + DataTableApiConstant.CATEGORY_PPI;
+            sql += " WHERE x_registered_table.category = ?";
 
-        } 
+        }
 
         sql += "  order by c.id";
-        final List<GlobalConfigurationPropertyData> globalConfiguration = this.jdbcTemplate.query(sql, this.rm, new Object[] {});
+        final List<GlobalConfigurationPropertyData> globalConfiguration = this.jdbcTemplate.query(sql, this.rm,
+                survey ? new Object[] { DataTableApiConstant.CATEGORY_PPI } : new Object[] {});
 
-        return new GlobalConfigurationData(globalConfiguration);
+        return new GlobalConfigurationData().setGlobalConfiguration(globalConfiguration);
     }
-    
-  
-    
+
     @Override
-    public GlobalConfigurationPropertyData retrieveGlobalConfiguration(String name) {
+    public GlobalConfigurationPropertyData retrieveGlobalConfiguration(final String name) {
 
         this.context.authenticatedUser();
 
-        final String sql = "SELECT c.id, c.name, c.enabled, c.value, c.date_value, c.description, c.is_trap_door FROM "
+        final String sql = "SELECT c.id, c.name, c.enabled, c.value, c.date_value, c.string_value, c.description, c.is_trap_door FROM "
                 + "c_configuration c where c.name=? order by c.id";
-        final GlobalConfigurationPropertyData globalConfiguration = this.jdbcTemplate.queryForObject(sql, this.rm,
-                new Object[] { name });
+        final GlobalConfigurationPropertyData globalConfiguration = this.jdbcTemplate.queryForObject(sql, this.rm, new Object[] { name });
 
         return globalConfiguration;
     }
@@ -87,7 +84,7 @@ public class ConfigurationReadPlatformServiceImpl implements ConfigurationReadPl
 
         this.context.authenticatedUser();
 
-        final String sql = "SELECT c.id, c.name, c.enabled, c.value, c.date_value, c.description, c.is_trap_door FROM "
+        final String sql = "SELECT c.id, c.name, c.enabled, c.value, c.date_value, c.string_value ,c.description, c.is_trap_door FROM "
                 + "c_configuration c where c.id=? order by c.id";
         final GlobalConfigurationPropertyData globalConfiguration = this.jdbcTemplate.queryForObject(sql, this.rm,
                 new Object[] { configId });
@@ -95,7 +92,6 @@ public class ConfigurationReadPlatformServiceImpl implements ConfigurationReadPl
         return globalConfiguration;
     }
 
-  
     private static final class GlobalConfigurationRowMapper implements RowMapper<GlobalConfigurationPropertyData> {
 
         @Override
@@ -106,10 +102,13 @@ public class ConfigurationReadPlatformServiceImpl implements ConfigurationReadPl
             final boolean enabled = rs.getBoolean("enabled");
             final Long value = rs.getLong("value");
             final Date dateValue = rs.getDate("date_value");
+            final String stringValue = rs.getString("string_value");
             final String description = rs.getString("description");
             final Long id = rs.getLong("id");
             final boolean isTrapDoor = rs.getBoolean("is_trap_door");
-            return new GlobalConfigurationPropertyData(name, enabled, value, dateValue, id, description, isTrapDoor);
+            final LocalDate localDate = dateValue != null ? dateValue.toLocalDate() : null;
+            return new GlobalConfigurationPropertyData().setName(name).setEnabled(enabled).setValue(value).setDateValue(localDate)
+                    .setStringValue(stringValue).setId(id).setDescription(description).setTrapDoor(isTrapDoor);
         }
     }
 

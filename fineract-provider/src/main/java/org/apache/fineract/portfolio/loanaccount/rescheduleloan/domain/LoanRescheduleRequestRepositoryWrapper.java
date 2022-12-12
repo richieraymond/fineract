@@ -33,14 +33,15 @@ public class LoanRescheduleRequestRepositoryWrapper {
         this.loanRescheduleRequestRepository = loanRescheduleRequestRepository;
     }
 
+    @Transactional(readOnly = true)
     public LoanRescheduleRequest findOneWithNotFoundDetection(final Long id) {
         return this.findOneWithNotFoundDetection(id, false);
     }
 
     @Transactional(readOnly = true)
     public LoanRescheduleRequest findOneWithNotFoundDetection(final Long id, boolean loadLazyCollections) {
-        final LoanRescheduleRequest loanRescheduleRequest = this.loanRescheduleRequestRepository.findOne(id);
-        if (loanRescheduleRequest == null) { throw new LoanRescheduleRequestNotFoundException(id); }
+        final LoanRescheduleRequest loanRescheduleRequest = this.loanRescheduleRequestRepository.findById(id)
+                .orElseThrow(() -> new LoanRescheduleRequestNotFoundException(id));
         if (loadLazyCollections) {
             loanRescheduleRequest.getLoan().initializeLazyCollections();
         }

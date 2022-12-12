@@ -19,7 +19,8 @@
 package org.apache.fineract.portfolio.accountdetails.data;
 
 import java.math.BigDecimal;
-
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.apache.fineract.infrastructure.core.data.EnumOptionData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanApplicationTimelineData;
 import org.apache.fineract.portfolio.loanaccount.data.LoanStatusEnumData;
@@ -27,11 +28,13 @@ import org.apache.fineract.portfolio.loanaccount.data.LoanStatusEnumData;
 /**
  * Immutable data object for loan accounts.
  */
-@SuppressWarnings("unused")
+@Getter
+@RequiredArgsConstructor
 public class LoanAccountSummaryData {
 
     private final Long id;
     private final String accountNo;
+    private final String parentAccountNumber;
     private final String externalId;
     private final Long productId;
     private final String productName;
@@ -44,12 +47,14 @@ public class LoanAccountSummaryData {
     private final BigDecimal originalLoan;
     private final BigDecimal loanBalance;
     private final BigDecimal amountPaid;
-    
+
     public LoanAccountSummaryData(final Long id, final String accountNo, final String externalId, final Long productId,
-            final String loanProductName, final String shortLoanProductName, final LoanStatusEnumData loanStatus, final EnumOptionData loanType, final Integer loanCycle,
-            final LoanApplicationTimelineData timeline, final Boolean inArrears,final BigDecimal originalLoan,final BigDecimal loanBalance,final BigDecimal amountPaid) {
+            final String loanProductName, final String shortLoanProductName, final LoanStatusEnumData loanStatus,
+            final EnumOptionData loanType, final Integer loanCycle, final LoanApplicationTimelineData timeline, final Boolean inArrears,
+            final BigDecimal originalLoan, final BigDecimal loanBalance, final BigDecimal amountPaid) {
         this.id = id;
         this.accountNo = accountNo;
+        this.parentAccountNumber = null;
         this.externalId = externalId;
         this.productId = productId;
         this.productName = loanProductName;
@@ -63,4 +68,5 @@ public class LoanAccountSummaryData {
         this.originalLoan = originalLoan;
         this.amountPaid = amountPaid;
     }
+
 }

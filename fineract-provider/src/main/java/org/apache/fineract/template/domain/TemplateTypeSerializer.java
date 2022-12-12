@@ -18,18 +18,17 @@
  */
 package org.apache.fineract.template.domain;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
 import java.io.IOException;
-
-import org.codehaus.jackson.JsonGenerator;
-import org.codehaus.jackson.JsonProcessingException;
-import org.codehaus.jackson.map.JsonSerializer;
-import org.codehaus.jackson.map.SerializerProvider;
 
 public class TemplateTypeSerializer extends JsonSerializer<TemplateType> {
 
     @Override
-    public void serialize(final TemplateType value, final JsonGenerator generator, @SuppressWarnings("unused") final SerializerProvider provider)
-            throws IOException, JsonProcessingException {
+    public void serialize(final TemplateType value, final JsonGenerator generator,
+            @SuppressWarnings("unused") final SerializerProvider provider) throws IOException, JsonProcessingException {
 
         generator.writeStartObject();
         generator.writeFieldName("id");

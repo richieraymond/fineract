@@ -18,6 +18,8 @@
  */
 package org.apache.fineract.portfolio.fund.serialization;
 
+import com.google.gson.JsonElement;
+import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,8 +27,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.infrastructure.core.data.ApiParameterError;
 import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
 import org.apache.fineract.infrastructure.core.exception.InvalidJsonException;
@@ -35,16 +36,16 @@ import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.google.gson.JsonElement;
-import com.google.gson.reflect.TypeToken;
-
 @Component
 public final class FundCommandFromApiJsonDeserializer {
 
+    public static final String NAME = "name";
+    public static final String EXTERNAL_ID = "externalId";
     /**
      * The parameters supported for this command.
      */
-    private final Set<String> supportedParameters = new HashSet<>(Arrays.asList("name", "externalId"));
+    private static final Set<String> SUPPORTED_PARAMETERS = new HashSet<>(Arrays.asList(NAME, EXTERNAL_ID));
+    public static final String FUND = "fund";
 
     private final FromJsonHelper fromApiJsonHelper;
 
@@ -54,50 +55,56 @@ public final class FundCommandFromApiJsonDeserializer {
     }
 
     public void validateForCreate(final String json) {
-        if (StringUtils.isBlank(json)) { throw new InvalidJsonException(); }
+        if (StringUtils.isBlank(json)) {
+            throw new InvalidJsonException();
+        }
 
         final Type typeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
-        this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, this.supportedParameters);
+        this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, SUPPORTED_PARAMETERS);
 
         final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
-        final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors).resource("fund");
+        final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors).resource(FUND);
 
         final JsonElement element = this.fromApiJsonHelper.parse(json);
 
-        final String name = this.fromApiJsonHelper.extractStringNamed("name", element);
-        baseDataValidator.reset().parameter("name").value(name).notBlank().notExceedingLengthOf(100);
+        final String name = this.fromApiJsonHelper.extractStringNamed(NAME, element);
+        baseDataValidator.reset().parameter(NAME).value(name).notBlank().notExceedingLengthOf(100);
 
-        final String externalId = this.fromApiJsonHelper.extractStringNamed("externalId", element);
-        baseDataValidator.reset().parameter("externalId").value(externalId).notExceedingLengthOf(100);
+        final String externalId = this.fromApiJsonHelper.extractStringNamed(EXTERNAL_ID, element);
+        baseDataValidator.reset().parameter(EXTERNAL_ID).value(externalId).notExceedingLengthOf(100);
 
         throwExceptionIfValidationWarningsExist(dataValidationErrors);
     }
 
     public void validateForUpdate(final String json) {
-        if (StringUtils.isBlank(json)) { throw new InvalidJsonException(); }
-
-        final Type typeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
-        this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, this.supportedParameters);
-
-        final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
-        final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors).resource("fund");
-
-        final JsonElement element = this.fromApiJsonHelper.parse(json);
-        if (this.fromApiJsonHelper.parameterExists("name", element)) {
-            final String name = this.fromApiJsonHelper.extractStringNamed("name", element);
-            baseDataValidator.reset().parameter("name").value(name).notBlank().notExceedingLengthOf(100);
+        if (StringUtils.isBlank(json)) {
+            throw new InvalidJsonException();
         }
 
-        if (this.fromApiJsonHelper.parameterExists("externalId", element)) {
-            final String externalId = this.fromApiJsonHelper.extractStringNamed("externalId", element);
-            baseDataValidator.reset().parameter("externalId").value(externalId).notExceedingLengthOf(100);
+        final Type typeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
+        this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, SUPPORTED_PARAMETERS);
+
+        final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
+        final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors).resource(FUND);
+
+        final JsonElement element = this.fromApiJsonHelper.parse(json);
+        if (this.fromApiJsonHelper.parameterExists(NAME, element)) {
+            final String name = this.fromApiJsonHelper.extractStringNamed(NAME, element);
+            baseDataValidator.reset().parameter(NAME).value(name).notBlank().notExceedingLengthOf(100);
+        }
+
+        if (this.fromApiJsonHelper.parameterExists(EXTERNAL_ID, element)) {
+            final String externalId = this.fromApiJsonHelper.extractStringNamed(EXTERNAL_ID, element);
+            baseDataValidator.reset().parameter(EXTERNAL_ID).value(externalId).notExceedingLengthOf(100);
         }
 
         throwExceptionIfValidationWarningsExist(dataValidationErrors);
     }
 
     private void throwExceptionIfValidationWarningsExist(final List<ApiParameterError> dataValidationErrors) {
-        if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException("validation.msg.validation.errors.exist",
-                "Validation errors exist.", dataValidationErrors); }
+        if (!dataValidationErrors.isEmpty()) {
+            throw new PlatformApiDataValidationException("validation.msg.validation.errors.exist", "Validation errors exist.",
+                    dataValidationErrors);
+        }
     }
 }

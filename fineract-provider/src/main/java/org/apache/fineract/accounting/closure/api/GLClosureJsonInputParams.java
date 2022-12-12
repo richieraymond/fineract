@@ -25,15 +25,17 @@ import java.util.Set;
  * Enum of all parameters passed in while creating/updating a loan product
  ***/
 public enum GLClosureJsonInputParams {
+
     ID("id"), OFFICE_ID("officeId"), CLOSING_DATE("closingDate"), COMMENTS("comments"), LOCALE("locale"), DATE_FORMAT("dateFormat");
 
     private final String value;
 
-    private GLClosureJsonInputParams(final String value) {
+    GLClosureJsonInputParams(final String value) {
         this.value = value;
     }
 
     private static final Set<String> values = new HashSet<>();
+
     static {
         for (final GLClosureJsonInputParams type : GLClosureJsonInputParams.values()) {
             values.add(type.value);

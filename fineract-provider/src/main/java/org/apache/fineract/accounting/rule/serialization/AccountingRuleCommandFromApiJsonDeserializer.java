@@ -18,27 +18,26 @@
  */
 package org.apache.fineract.accounting.rule.serialization;
 
+import com.google.gson.JsonElement;
+import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.commons.lang.StringUtils;
+import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.accounting.rule.api.AccountingRuleJsonInputParams;
 import org.apache.fineract.infrastructure.core.data.ApiParameterError;
 import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
 import org.apache.fineract.infrastructure.core.exception.InvalidJsonException;
 import org.apache.fineract.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ObjectUtils;
 
-import com.google.gson.JsonElement;
-import com.google.gson.reflect.TypeToken;
-
 @Component
+@RequiredArgsConstructor
 public class AccountingRuleCommandFromApiJsonDeserializer {
 
     /**
@@ -48,14 +47,11 @@ public class AccountingRuleCommandFromApiJsonDeserializer {
 
     private final FromJsonHelper fromApiJsonHelper;
 
-    @Autowired
-    public AccountingRuleCommandFromApiJsonDeserializer(final FromJsonHelper fromApiJsonHelper) {
-        this.fromApiJsonHelper = fromApiJsonHelper;
-    }
-
     public void validateForCreate(final String json) {
 
-        if (StringUtils.isBlank(json)) { throw new InvalidJsonException(); }
+        if (StringUtils.isBlank(json)) {
+            throw new InvalidJsonException();
+        }
 
         final Type typeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
         this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, this.supportedParameters);
@@ -115,27 +111,27 @@ public class AccountingRuleCommandFromApiJsonDeserializer {
             final String debitAccount = AccountingRuleJsonInputParams.ACCOUNT_TO_DEBIT.getValue();
             final StringBuilder validationErrorCode = new StringBuilder("validation.msg.").append(debitAccount).append(".or.")
                     .append(debitTag).append(".required");
-            final StringBuilder defaultUserMessage = new StringBuilder("The parameter ").append(debitAccount).append(" or")
-                    .append(debitTag).append(" required");
+            final StringBuilder defaultUserMessage = new StringBuilder("The parameter ").append(debitAccount).append(" or").append(debitTag)
+                    .append(" required");
             final ApiParameterError error = ApiParameterError.parameterError(validationErrorCode.toString(), defaultUserMessage.toString(),
                     debitAccount + "," + debitTag, new Object[] { debitAccount, debitTag });
             dataValidationErrors.add(error);
         }
 
-        final String allowMultipleCredits = this.fromApiJsonHelper.extractStringNamed(
-                AccountingRuleJsonInputParams.ALLOW_MULTIPLE_CREDIT_ENTRIES.getValue(), element);
+        final String allowMultipleCredits = this.fromApiJsonHelper
+                .extractStringNamed(AccountingRuleJsonInputParams.ALLOW_MULTIPLE_CREDIT_ENTRIES.getValue(), element);
         baseDataValidator.reset().parameter(AccountingRuleJsonInputParams.ALLOW_MULTIPLE_CREDIT_ENTRIES.getValue())
                 .value(allowMultipleCredits).ignoreIfNull().notBlank();
-        final Boolean allowMultipleCreditEntries = this.fromApiJsonHelper.extractBooleanNamed(
-                AccountingRuleJsonInputParams.ALLOW_MULTIPLE_CREDIT_ENTRIES.getValue(), element);
+        final Boolean allowMultipleCreditEntries = this.fromApiJsonHelper
+                .extractBooleanNamed(AccountingRuleJsonInputParams.ALLOW_MULTIPLE_CREDIT_ENTRIES.getValue(), element);
         baseDataValidator.reset().parameter(AccountingRuleJsonInputParams.ALLOW_MULTIPLE_CREDIT_ENTRIES.getValue())
                 .value(allowMultipleCreditEntries).ignoreIfNull();
-        final String allowMultipleDebits = this.fromApiJsonHelper.extractStringNamed(
-                AccountingRuleJsonInputParams.ALLOW_MULTIPLE_DEBIT_ENTRIES.getValue(), element);
+        final String allowMultipleDebits = this.fromApiJsonHelper
+                .extractStringNamed(AccountingRuleJsonInputParams.ALLOW_MULTIPLE_DEBIT_ENTRIES.getValue(), element);
         baseDataValidator.reset().parameter(AccountingRuleJsonInputParams.ALLOW_MULTIPLE_DEBIT_ENTRIES.getValue())
                 .value(allowMultipleDebits).ignoreIfNull().notBlank();
-        final Boolean allowMultipleDebitEntries = this.fromApiJsonHelper.extractBooleanNamed(
-                AccountingRuleJsonInputParams.ALLOW_MULTIPLE_DEBIT_ENTRIES.getValue(), element);
+        final Boolean allowMultipleDebitEntries = this.fromApiJsonHelper
+                .extractBooleanNamed(AccountingRuleJsonInputParams.ALLOW_MULTIPLE_DEBIT_ENTRIES.getValue(), element);
         baseDataValidator.reset().parameter(AccountingRuleJsonInputParams.ALLOW_MULTIPLE_DEBIT_ENTRIES.getValue())
                 .value(allowMultipleDebitEntries).ignoreIfNull();
 
@@ -143,7 +139,9 @@ public class AccountingRuleCommandFromApiJsonDeserializer {
     }
 
     private void throwExceptionIfValidationWarningsExist(final List<ApiParameterError> dataValidationErrors) {
-        if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException(dataValidationErrors); }
+        if (!dataValidationErrors.isEmpty()) {
+            throw new PlatformApiDataValidationException(dataValidationErrors);
+        }
     }
 
     public void validateCreditOrDebitTagArray(final String[] creditOrDebitTagArray, final DataValidatorBuilder baseDataValidator,
@@ -157,7 +155,9 @@ public class AccountingRuleCommandFromApiJsonDeserializer {
 
     public void validateForUpdate(final String json) {
 
-        if (StringUtils.isBlank(json)) { throw new InvalidJsonException(); }
+        if (StringUtils.isBlank(json)) {
+            throw new InvalidJsonException();
+        }
 
         final Type typeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
         this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, this.supportedParameters);
@@ -202,20 +202,20 @@ public class AccountingRuleCommandFromApiJsonDeserializer {
                 .arrayNotEmpty();
         validateCreditOrDebitTagArray(debitTags, baseDataValidator, AccountingRuleJsonInputParams.DEBIT_ACCOUNT_TAGS.getValue());
 
-        final String allowMultipleCredits = this.fromApiJsonHelper.extractStringNamed(
-                AccountingRuleJsonInputParams.ALLOW_MULTIPLE_CREDIT_ENTRIES.getValue(), element);
+        final String allowMultipleCredits = this.fromApiJsonHelper
+                .extractStringNamed(AccountingRuleJsonInputParams.ALLOW_MULTIPLE_CREDIT_ENTRIES.getValue(), element);
         baseDataValidator.reset().parameter(AccountingRuleJsonInputParams.ALLOW_MULTIPLE_CREDIT_ENTRIES.getValue())
                 .value(allowMultipleCredits).ignoreIfNull().notBlank();
-        final Boolean allowMultipleCreditEntries = this.fromApiJsonHelper.extractBooleanNamed(
-                AccountingRuleJsonInputParams.ALLOW_MULTIPLE_CREDIT_ENTRIES.getValue(), element);
+        final Boolean allowMultipleCreditEntries = this.fromApiJsonHelper
+                .extractBooleanNamed(AccountingRuleJsonInputParams.ALLOW_MULTIPLE_CREDIT_ENTRIES.getValue(), element);
         baseDataValidator.reset().parameter(AccountingRuleJsonInputParams.ALLOW_MULTIPLE_CREDIT_ENTRIES.getValue())
                 .value(allowMultipleCreditEntries).ignoreIfNull();
-        final String allowMultipleDebits = this.fromApiJsonHelper.extractStringNamed(
-                AccountingRuleJsonInputParams.ALLOW_MULTIPLE_DEBIT_ENTRIES.getValue(), element);
+        final String allowMultipleDebits = this.fromApiJsonHelper
+                .extractStringNamed(AccountingRuleJsonInputParams.ALLOW_MULTIPLE_DEBIT_ENTRIES.getValue(), element);
         baseDataValidator.reset().parameter(AccountingRuleJsonInputParams.ALLOW_MULTIPLE_DEBIT_ENTRIES.getValue())
                 .value(allowMultipleDebits).ignoreIfNull().notBlank();
-        final Boolean allowMultipleDebitEntries = this.fromApiJsonHelper.extractBooleanNamed(
-                AccountingRuleJsonInputParams.ALLOW_MULTIPLE_DEBIT_ENTRIES.getValue(), element);
+        final Boolean allowMultipleDebitEntries = this.fromApiJsonHelper
+                .extractBooleanNamed(AccountingRuleJsonInputParams.ALLOW_MULTIPLE_DEBIT_ENTRIES.getValue(), element);
         baseDataValidator.reset().parameter(AccountingRuleJsonInputParams.ALLOW_MULTIPLE_DEBIT_ENTRIES.getValue())
                 .value(allowMultipleDebitEntries).ignoreIfNull();
 

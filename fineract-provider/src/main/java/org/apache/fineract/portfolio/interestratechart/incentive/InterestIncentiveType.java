@@ -33,6 +33,7 @@ public enum InterestIncentiveType {
     private final String code;
 
     private static final Map<Integer, InterestIncentiveType> intToEnumMap = new HashMap<>();
+
     static {
         for (final InterestIncentiveType type : InterestIncentiveType.values()) {
             intToEnumMap.put(type.value, type);
@@ -44,7 +45,7 @@ public enum InterestIncentiveType {
         return type;
     }
 
-    private InterestIncentiveType(final Integer value, final String code) {
+    InterestIncentiveType(final Integer value, final String code) {
         this.value = value;
         this.code = code;
     }

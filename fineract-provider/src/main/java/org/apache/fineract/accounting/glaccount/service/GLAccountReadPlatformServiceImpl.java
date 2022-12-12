@@ -22,8 +22,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
-
-import org.apache.commons.lang.StringUtils;
+import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.accounting.common.AccountingEnumerations;
 import org.apache.fineract.accounting.glaccount.data.GLAccountData;
 import org.apache.fineract.accounting.glaccount.data.GLAccountDataForLookup;
@@ -35,29 +35,24 @@ import org.apache.fineract.accounting.journalentry.data.JournalEntryAssociationP
 import org.apache.fineract.infrastructure.codes.data.CodeValueData;
 import org.apache.fineract.infrastructure.core.data.EnumOptionData;
 import org.apache.fineract.infrastructure.core.domain.JdbcSupport;
-import org.apache.fineract.infrastructure.core.service.RoutingDataSource;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class GLAccountReadPlatformServiceImpl implements GLAccountReadPlatformService {
 
-    private final JdbcTemplate jdbcTemplate;
-    private final static String nameDecoratedBaseOnHierarchy = "concat(substring('........................................', 1, ((LENGTH(hierarchy) - LENGTH(REPLACE(hierarchy, '.', '')) - 1) * 4)), name)";
+    private static final String nameDecoratedBaseOnHierarchy = "concat(substring('........................................', 1, ((LENGTH(hierarchy) - LENGTH(REPLACE(hierarchy, '.', '')) - 1) * 4)), name)";
 
-    @Autowired
-    public GLAccountReadPlatformServiceImpl(final RoutingDataSource dataSource) {
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
-    }
+    private final JdbcTemplate jdbcTemplate;
 
     private static final class GLAccountMapper implements RowMapper<GLAccountData> {
 
         private final JournalEntryAssociationParametersData associationParametersData;
 
-        public GLAccountMapper(final JournalEntryAssociationParametersData associationParametersData) {
+        GLAccountMapper(final JournalEntryAssociationParametersData associationParametersData) {
             if (associationParametersData == null) {
                 this.associationParametersData = new JournalEntryAssociationParametersData();
             } else {
@@ -104,38 +99,44 @@ public class GLAccountReadPlatformServiceImpl implements GLAccountReadPlatformSe
             if (associationParametersData.isRunningBalanceRequired()) {
                 organizationRunningBalance = rs.getLong("organizationRunningBalance");
             }
-            return new GLAccountData(id, name, parentId, glCode, disabled, manualEntriesAllowed, accountType, usage, description,
-                    nameDecorated, tagId, organizationRunningBalance);
+            return new GLAccountData().setId(id).setName(name).setParentId(parentId).setGlCode(glCode).setDisabled(disabled)
+                    .setManualEntriesAllowed(manualEntriesAllowed).setType(accountType).setUsage(usage).setDescription(description)
+                    .setNameDecorated(nameDecorated).setTagId(tagId).setOrganizationRunningBalance(organizationRunningBalance);
         }
     }
 
     @Override
     public List<GLAccountData> retrieveAllGLAccounts(final Integer accountClassification, final String searchParam, final Integer usage,
-            final Boolean manualTransactionsAllowed, final Boolean disabled, JournalEntryAssociationParametersData associationParametersData) {
+            final Boolean manualTransactionsAllowed, final Boolean disabled,
+            JournalEntryAssociationParametersData associationParametersData) {
         if (accountClassification != null) {
-            if (!checkValidGLAccountType(accountClassification)) { throw new GLAccountInvalidClassificationException(accountClassification); }
+            if (!checkValidGLAccountType(accountClassification)) {
+                throw new GLAccountInvalidClassificationException(accountClassification);
+            }
         }
 
         if (usage != null) {
-            if (!checkValidGLAccountUsage(usage)) { throw new GLAccountInvalidClassificationException(accountClassification); }
+            if (!checkValidGLAccountUsage(usage)) {
+                throw new GLAccountInvalidClassificationException(accountClassification);
+            }
         }
 
         final GLAccountMapper rm = new GLAccountMapper(associationParametersData);
         String sql = "select " + rm.schema();
         // append SQL statement for fetching account totals
-        if (associationParametersData!=null) {
+        if (associationParametersData != null) {
             if (associationParametersData.isRunningBalanceRequired()) {
                 sql = sql + " and gl_j.id in (select t1.id from (select t2.account_id, max(t2.id) as id from "
-                        + "(select id, max(entry_date) as entry_date, account_id from acc_gl_journal_entry where is_running_balance_calculated = 1 "
+                        + "(select id, max(entry_date) as entry_date, account_id from acc_gl_journal_entry where is_running_balance_calculated = true "
                         + "group by account_id desc, id) t3 inner join acc_gl_journal_entry t2 on t2.account_id = t3.account_id and t2.entry_date = t3.entry_date "
                         + "group by t2.account_id desc) t1)";
             }
         }
-        final Object[] paramaterArray = new Object[3];
+        final Object[] parameterArray = new Object[3];
         int arrayPos = 0;
         boolean filtersPresent = false;
-        if ((accountClassification != null) || StringUtils.isNotBlank(searchParam) || (usage != null)
-                || (manualTransactionsAllowed != null) || (disabled != null)) {
+        if ((accountClassification != null) || StringUtils.isNotBlank(searchParam) || (usage != null) || (manualTransactionsAllowed != null)
+                || (disabled != null)) {
             filtersPresent = true;
             sql += " where";
         }
@@ -143,8 +144,8 @@ public class GLAccountReadPlatformServiceImpl implements GLAccountReadPlatformSe
         if (filtersPresent) {
             boolean firstWhereConditionAdded = false;
             if (accountClassification != null) {
-                sql += " classification_enum like ?";
-                paramaterArray[arrayPos] = accountClassification;
+                sql += " classification_enum = ?";
+                parameterArray[arrayPos] = accountClassification.shortValue();
                 arrayPos = arrayPos + 1;
                 firstWhereConditionAdded = true;
             }
@@ -153,9 +154,9 @@ public class GLAccountReadPlatformServiceImpl implements GLAccountReadPlatformSe
                     sql += " and ";
                 }
                 sql += " ( name like %?% or gl_code like %?% )";
-                paramaterArray[arrayPos] = searchParam;
+                parameterArray[arrayPos] = searchParam;
                 arrayPos = arrayPos + 1;
-                paramaterArray[arrayPos] = searchParam;
+                parameterArray[arrayPos] = searchParam;
                 arrayPos = arrayPos + 1;
                 firstWhereConditionAdded = true;
             }
@@ -175,11 +176,7 @@ public class GLAccountReadPlatformServiceImpl implements GLAccountReadPlatformSe
                     sql += " and ";
                 }
 
-                if (manualTransactionsAllowed) {
-                    sql += " manual_journal_entries_allowed = 1";
-                } else {
-                    sql += " manual_journal_entries_allowed = 0";
-                }
+                sql += " manual_journal_entries_allowed = " + manualTransactionsAllowed;
                 firstWhereConditionAdded = true;
             }
             if (disabled != null) {
@@ -187,19 +184,15 @@ public class GLAccountReadPlatformServiceImpl implements GLAccountReadPlatformSe
                     sql += " and ";
                 }
 
-                if (disabled) {
-                    sql += " disabled = 1";
-                } else {
-                    sql += " disabled = 0";
-                }
+                sql += " disabled = " + disabled;
                 firstWhereConditionAdded = true;
             }
         }
 
-        sql+=" ORDER BY gl_code ASC";
+        sql += " ORDER BY gl_code ASC";
 
-        final Object[] finalObjectArray = Arrays.copyOf(paramaterArray, arrayPos);
-        return this.jdbcTemplate.query(sql, rm, finalObjectArray);
+        final Object[] finalObjectArray = Arrays.copyOf(parameterArray, arrayPos);
+        return this.jdbcTemplate.query(sql, rm, finalObjectArray); // NOSONAR
     }
 
     @Override
@@ -210,7 +203,7 @@ public class GLAccountReadPlatformServiceImpl implements GLAccountReadPlatformSe
             final StringBuilder sql = new StringBuilder();
             sql.append("select ").append(rm.schema());
             if (associationParametersData.isRunningBalanceRequired()) {
-                sql.append(" and gl_j.is_running_balance_calculated = 1 ");
+                sql.append(" and gl_j.is_running_balance_calculated = true ");
             }
             sql.append("where gl.id = ?");
             if (associationParametersData.isRunningBalanceRequired()) {
@@ -220,7 +213,7 @@ public class GLAccountReadPlatformServiceImpl implements GLAccountReadPlatformSe
 
             return glAccountData;
         } catch (final EmptyResultDataAccessException e) {
-            throw new GLAccountNotFoundException(glAccountId);
+            throw new GLAccountNotFoundException(glAccountId, e);
         }
     }
 
@@ -232,19 +225,24 @@ public class GLAccountReadPlatformServiceImpl implements GLAccountReadPlatformSe
 
     @Override
     public List<GLAccountData> retrieveAllEnabledDetailGLAccounts() {
-        return retrieveAllGLAccounts(null, null, GLAccountUsage.DETAIL.getValue(), null, false, new JournalEntryAssociationParametersData());
+        return retrieveAllGLAccounts(null, null, GLAccountUsage.DETAIL.getValue(), null, false,
+                new JournalEntryAssociationParametersData());
     }
 
     private static boolean checkValidGLAccountType(final int type) {
         for (final GLAccountType accountType : GLAccountType.values()) {
-            if (accountType.getValue().equals(type)) { return true; }
+            if (accountType.getValue().equals(type)) {
+                return true;
+            }
         }
         return false;
     }
 
     private static boolean checkValidGLAccountUsage(final int type) {
         for (final GLAccountUsage accountUsage : GLAccountUsage.values()) {
-            if (accountUsage.getValue().equals(type)) { return true; }
+            if (accountUsage.getValue().equals(type)) {
+                return true;
+            }
         }
         return false;
     }
@@ -264,7 +262,7 @@ public class GLAccountReadPlatformServiceImpl implements GLAccountReadPlatformSe
     public List<GLAccountDataForLookup> retrieveAccountsByTagId(final Long ruleId, final Integer transactionType) {
         final GLAccountDataLookUpMapper mapper = new GLAccountDataLookUpMapper();
         final String sql = "Select " + mapper.schema() + " where rule.id=? and tags.acc_type_enum=?";
-        return this.jdbcTemplate.query(sql, mapper, new Object[] { ruleId, transactionType });
+        return this.jdbcTemplate.query(sql, mapper, new Object[] { ruleId, transactionType }); // NOSONAR
     }
 
     private static final class GLAccountDataLookUpMapper implements RowMapper<GLAccountDataForLookup> {
@@ -278,8 +276,8 @@ public class GLAccountReadPlatformServiceImpl implements GLAccountReadPlatformSe
             final Long id = JdbcSupport.getLong(rs, "id");
             final String name = rs.getString("name");
             final String glCode = rs.getString("glCode");
-            return new GLAccountDataForLookup(id, name, glCode);
-        }
 
+            return new GLAccountDataForLookup().setId(id).setName(name).setGlCode(glCode);
+        }
     }
 }

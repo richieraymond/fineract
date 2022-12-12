@@ -18,44 +18,41 @@
  */
 package org.apache.fineract.portfolio.paymenttype.data;
 
-public class PaymentTypeData {
+import java.io.Serializable;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
-    @SuppressWarnings("unused")
+@ToString
+@Getter
+@Setter
+@EqualsAndHashCode
+@AllArgsConstructor
+public class PaymentTypeData implements Serializable {
+
     private Long id;
-    @SuppressWarnings("unused")
     private String name;
-    @SuppressWarnings("unused")
     private String description;
-    @SuppressWarnings("unused")
     private Boolean isCashPayment;
-    @SuppressWarnings("unused")
     private Long position;
-
-    public PaymentTypeData(final Long id, final String name, final String description, final Boolean isCashPayment, final Long position) {
-        this.id = id;
-        this.name = name;
-        this.description = description;
-        this.isCashPayment = isCashPayment;
-        this.position = position;
-    }
+    private String codeName;
+    private Boolean isSystemDefined;
 
     public static PaymentTypeData instance(final Long id, final String name, final String description, final Boolean isCashPayment,
             final Long position) {
-        return new PaymentTypeData(id, name, description, isCashPayment, position);
+        String codeName = null;
+        Boolean isSystemDefined = false;
+        return new PaymentTypeData(id, name, description, isCashPayment, position, codeName, isSystemDefined);
     }
 
     public static PaymentTypeData instance(final Long id, final String name) {
         String description = null;
         Boolean isCashPayment = null;
         Long position = null;
-        return new PaymentTypeData(id, name, description, isCashPayment, position);
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getName() {
-        return name;
+        String codeName = null;
+        Boolean isSystemDefined = false;
+        return new PaymentTypeData(id, name, description, isCashPayment, position, codeName, isSystemDefined);
     }
 }

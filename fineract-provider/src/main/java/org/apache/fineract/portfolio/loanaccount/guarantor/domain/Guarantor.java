@@ -18,12 +18,11 @@
  */
 package org.apache.fineract.portfolio.loanaccount.guarantor.domain;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -32,19 +31,16 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
-
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.infrastructure.codes.domain.CodeValue;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
-import org.apache.fineract.portfolio.loanaccount.domain.Loan;
-import org.apache.fineract.portfolio.loanaccount.guarantor.GuarantorConstants.GUARANTOR_JSON_INPUT_PARAMS;
 import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
+import org.apache.fineract.portfolio.loanaccount.domain.Loan;
+import org.apache.fineract.portfolio.loanaccount.guarantor.GuarantorConstants.GuarantorJSONinputParams;
 
 @Entity
 @Table(name = "m_guarantor")
-public class Guarantor extends AbstractPersistableCustom<Long> {
+public class Guarantor extends AbstractPersistableCustom {
 
     @ManyToOne
     @JoinColumn(name = "loan_id", nullable = false)
@@ -67,8 +63,7 @@ public class Guarantor extends AbstractPersistableCustom<Long> {
     private String lastname;
 
     @Column(name = "dob")
-    @Temporal(TemporalType.DATE)
-    private Date dateOfBirth;
+    private LocalDate dateOfBirth;
 
     @Column(name = "address_line_1", length = 500)
     private String addressLine1;
@@ -100,7 +95,7 @@ public class Guarantor extends AbstractPersistableCustom<Long> {
     @Column(name = "is_active", nullable = false)
     private boolean active;
 
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "guarantor", orphanRemoval = true, fetch=FetchType.EAGER)
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "guarantor", orphanRemoval = true, fetch = FetchType.EAGER)
     private List<GuarantorFundingDetails> guarantorFundDetails = new ArrayList<>();
 
     protected Guarantor() {
@@ -108,9 +103,9 @@ public class Guarantor extends AbstractPersistableCustom<Long> {
     }
 
     private Guarantor(final Loan loan, final CodeValue clientRelationshipType, final Integer gurantorType, final Long entityId,
-            final String firstname, final String lastname, final Date dateOfBirth, final String addressLine1, final String addressLine2,
-            final String city, final String state, final String country, final String zip, final String housePhoneNumber,
-            final String mobilePhoneNumber, final String comment, final boolean active,
+            final String firstname, final String lastname, final LocalDate dateOfBirth, final String addressLine1,
+            final String addressLine2, final String city, final String state, final String country, final String zip,
+            final String housePhoneNumber, final String mobilePhoneNumber, final String comment, final boolean active,
             final List<GuarantorFundingDetails> guarantorFundDetails) {
         this.loan = loan;
         this.clientRelationshipType = clientRelationshipType;
@@ -134,23 +129,22 @@ public class Guarantor extends AbstractPersistableCustom<Long> {
 
     public static Guarantor fromJson(final Loan loan, final CodeValue clientRelationshipType, final JsonCommand command,
             final List<GuarantorFundingDetails> fundingDetails) {
-        final Integer gurantorType = command.integerValueSansLocaleOfParameterNamed(GUARANTOR_JSON_INPUT_PARAMS.GUARANTOR_TYPE_ID
-                .getValue());
-        final Long entityId = command.longValueOfParameterNamed(GUARANTOR_JSON_INPUT_PARAMS.ENTITY_ID.getValue());
+        final Integer gurantorType = command.integerValueSansLocaleOfParameterNamed(GuarantorJSONinputParams.GUARANTOR_TYPE_ID.getValue());
+        final Long entityId = command.longValueOfParameterNamed(GuarantorJSONinputParams.ENTITY_ID.getValue());
         final boolean active = true;
         if (GuarantorType.EXTERNAL.getValue().equals(gurantorType)) {
-            final String firstname = command.stringValueOfParameterNamed(GUARANTOR_JSON_INPUT_PARAMS.FIRSTNAME.getValue());
-            final String lastname = command.stringValueOfParameterNamed(GUARANTOR_JSON_INPUT_PARAMS.LASTNAME.getValue());
-            final Date dateOfBirth = command.DateValueOfParameterNamed(GUARANTOR_JSON_INPUT_PARAMS.DATE_OF_BIRTH.getValue());
-            final String addressLine1 = command.stringValueOfParameterNamed(GUARANTOR_JSON_INPUT_PARAMS.ADDRESS_LINE_1.getValue());
-            final String addressLine2 = command.stringValueOfParameterNamed(GUARANTOR_JSON_INPUT_PARAMS.ADDRESS_LINE_2.getValue());
-            final String city = command.stringValueOfParameterNamed(GUARANTOR_JSON_INPUT_PARAMS.CITY.getValue());
-            final String state = command.stringValueOfParameterNamed(GUARANTOR_JSON_INPUT_PARAMS.STATE.getValue());
-            final String country = command.stringValueOfParameterNamed(GUARANTOR_JSON_INPUT_PARAMS.COUNTRY.getValue());
-            final String zip = command.stringValueOfParameterNamed(GUARANTOR_JSON_INPUT_PARAMS.ZIP.getValue());
-            final String housePhoneNumber = command.stringValueOfParameterNamed(GUARANTOR_JSON_INPUT_PARAMS.PHONE_NUMBER.getValue());
-            final String mobilePhoneNumber = command.stringValueOfParameterNamed(GUARANTOR_JSON_INPUT_PARAMS.MOBILE_NUMBER.getValue());
-            final String comment = command.stringValueOfParameterNamed(GUARANTOR_JSON_INPUT_PARAMS.COMMENT.getValue());
+            final String firstname = command.stringValueOfParameterNamed(GuarantorJSONinputParams.FIRSTNAME.getValue());
+            final String lastname = command.stringValueOfParameterNamed(GuarantorJSONinputParams.LASTNAME.getValue());
+            final LocalDate dateOfBirth = command.localDateValueOfParameterNamed(GuarantorJSONinputParams.DATE_OF_BIRTH.getValue());
+            final String addressLine1 = command.stringValueOfParameterNamed(GuarantorJSONinputParams.ADDRESS_LINE_1.getValue());
+            final String addressLine2 = command.stringValueOfParameterNamed(GuarantorJSONinputParams.ADDRESS_LINE_2.getValue());
+            final String city = command.stringValueOfParameterNamed(GuarantorJSONinputParams.CITY.getValue());
+            final String state = command.stringValueOfParameterNamed(GuarantorJSONinputParams.STATE.getValue());
+            final String country = command.stringValueOfParameterNamed(GuarantorJSONinputParams.COUNTRY.getValue());
+            final String zip = command.stringValueOfParameterNamed(GuarantorJSONinputParams.ZIP.getValue());
+            final String housePhoneNumber = command.stringValueOfParameterNamed(GuarantorJSONinputParams.PHONE_NUMBER.getValue());
+            final String mobilePhoneNumber = command.stringValueOfParameterNamed(GuarantorJSONinputParams.MOBILE_NUMBER.getValue());
+            final String comment = command.stringValueOfParameterNamed(GuarantorJSONinputParams.COMMENT.getValue());
 
             return new Guarantor(loan, clientRelationshipType, gurantorType, entityId, firstname, lastname, dateOfBirth, addressLine1,
                     addressLine2, city, state, country, zip, housePhoneNumber, mobilePhoneNumber, comment, active, fundingDetails);
@@ -165,21 +159,21 @@ public class Guarantor extends AbstractPersistableCustom<Long> {
 
         final Map<String, Object> actualChanges = new LinkedHashMap<>();
 
-        handlePropertyUpdate(command, actualChanges, GUARANTOR_JSON_INPUT_PARAMS.CLIENT_RELATIONSHIP_TYPE_ID.getValue(), 0, true);
+        handlePropertyUpdate(command, actualChanges, GuarantorJSONinputParams.CLIENT_RELATIONSHIP_TYPE_ID.getValue(), 0, true);
 
         if (isExternalGuarantor()) {
-            handlePropertyUpdate(command, actualChanges, GUARANTOR_JSON_INPUT_PARAMS.FIRSTNAME.getValue(), this.firstname);
-            handlePropertyUpdate(command, actualChanges, GUARANTOR_JSON_INPUT_PARAMS.LASTNAME.getValue(), this.lastname);
-            handlePropertyUpdate(command, actualChanges, GUARANTOR_JSON_INPUT_PARAMS.DATE_OF_BIRTH.getValue(), this.dateOfBirth);
-            handlePropertyUpdate(command, actualChanges, GUARANTOR_JSON_INPUT_PARAMS.ADDRESS_LINE_1.getValue(), this.addressLine1);
-            handlePropertyUpdate(command, actualChanges, GUARANTOR_JSON_INPUT_PARAMS.ADDRESS_LINE_2.getValue(), this.addressLine2);
-            handlePropertyUpdate(command, actualChanges, GUARANTOR_JSON_INPUT_PARAMS.CITY.getValue(), this.city);
-            handlePropertyUpdate(command, actualChanges, GUARANTOR_JSON_INPUT_PARAMS.STATE.getValue(), this.state);
-            handlePropertyUpdate(command, actualChanges, GUARANTOR_JSON_INPUT_PARAMS.COUNTRY.getValue(), this.country);
-            handlePropertyUpdate(command, actualChanges, GUARANTOR_JSON_INPUT_PARAMS.ZIP.getValue(), this.zip);
-            handlePropertyUpdate(command, actualChanges, GUARANTOR_JSON_INPUT_PARAMS.PHONE_NUMBER.getValue(), this.housePhoneNumber);
-            handlePropertyUpdate(command, actualChanges, GUARANTOR_JSON_INPUT_PARAMS.MOBILE_NUMBER.getValue(), this.mobilePhoneNumber);
-            handlePropertyUpdate(command, actualChanges, GUARANTOR_JSON_INPUT_PARAMS.COMMENT.getValue(), this.comment);
+            handlePropertyUpdate(command, actualChanges, GuarantorJSONinputParams.FIRSTNAME.getValue(), this.firstname);
+            handlePropertyUpdate(command, actualChanges, GuarantorJSONinputParams.LASTNAME.getValue(), this.lastname);
+            handlePropertyUpdate(command, actualChanges, GuarantorJSONinputParams.DATE_OF_BIRTH.getValue(), this.dateOfBirth);
+            handlePropertyUpdate(command, actualChanges, GuarantorJSONinputParams.ADDRESS_LINE_1.getValue(), this.addressLine1);
+            handlePropertyUpdate(command, actualChanges, GuarantorJSONinputParams.ADDRESS_LINE_2.getValue(), this.addressLine2);
+            handlePropertyUpdate(command, actualChanges, GuarantorJSONinputParams.CITY.getValue(), this.city);
+            handlePropertyUpdate(command, actualChanges, GuarantorJSONinputParams.STATE.getValue(), this.state);
+            handlePropertyUpdate(command, actualChanges, GuarantorJSONinputParams.COUNTRY.getValue(), this.country);
+            handlePropertyUpdate(command, actualChanges, GuarantorJSONinputParams.ZIP.getValue(), this.zip);
+            handlePropertyUpdate(command, actualChanges, GuarantorJSONinputParams.PHONE_NUMBER.getValue(), this.housePhoneNumber);
+            handlePropertyUpdate(command, actualChanges, GuarantorJSONinputParams.MOBILE_NUMBER.getValue(), this.mobilePhoneNumber);
+            handlePropertyUpdate(command, actualChanges, GuarantorJSONinputParams.COMMENT.getValue(), this.comment);
             updateExistingEntityToNull();
         }
 
@@ -208,10 +202,10 @@ public class Guarantor extends AbstractPersistableCustom<Long> {
                 newValue = command.integerValueOfParameterNamed(paramName);
             }
             actualChanges.put(paramName, newValue);
-            propertyToBeUpdated = newValue;
+            // propertyToBeUpdated = newValue;
 
             // now update actual property
-            if (paramName.equals(GUARANTOR_JSON_INPUT_PARAMS.GUARANTOR_TYPE_ID.getValue())) {
+            if (paramName.equals(GuarantorJSONinputParams.GUARANTOR_TYPE_ID.getValue())) {
                 this.gurantorType = newValue;
             }
         }
@@ -222,44 +216,44 @@ public class Guarantor extends AbstractPersistableCustom<Long> {
         if (command.isChangeInStringParameterNamed(paramName, propertyToBeUpdated)) {
             final String newValue = command.stringValueOfParameterNamed(paramName);
             actualChanges.put(paramName, newValue);
-            propertyToBeUpdated = newValue;
+            // propertyToBeUpdated = newValue;
 
             // now update actual property
-            if (paramName.equals(GUARANTOR_JSON_INPUT_PARAMS.FIRSTNAME.getValue())) {
+            if (paramName.equals(GuarantorJSONinputParams.FIRSTNAME.getValue())) {
                 this.firstname = newValue;
-            } else if (paramName.equals(GUARANTOR_JSON_INPUT_PARAMS.LASTNAME.getValue())) {
+            } else if (paramName.equals(GuarantorJSONinputParams.LASTNAME.getValue())) {
                 this.lastname = newValue;
-            } else if (paramName.equals(GUARANTOR_JSON_INPUT_PARAMS.ADDRESS_LINE_1.getValue())) {
+            } else if (paramName.equals(GuarantorJSONinputParams.ADDRESS_LINE_1.getValue())) {
                 this.addressLine1 = newValue;
-            } else if (paramName.equals(GUARANTOR_JSON_INPUT_PARAMS.ADDRESS_LINE_2.getValue())) {
+            } else if (paramName.equals(GuarantorJSONinputParams.ADDRESS_LINE_2.getValue())) {
                 this.addressLine2 = newValue;
-            } else if (paramName.equals(GUARANTOR_JSON_INPUT_PARAMS.CITY.getValue())) {
+            } else if (paramName.equals(GuarantorJSONinputParams.CITY.getValue())) {
                 this.city = newValue;
-            } else if (paramName.equals(GUARANTOR_JSON_INPUT_PARAMS.STATE.getValue())) {
+            } else if (paramName.equals(GuarantorJSONinputParams.STATE.getValue())) {
                 this.state = newValue;
-            } else if (paramName.equals(GUARANTOR_JSON_INPUT_PARAMS.COUNTRY.getValue())) {
+            } else if (paramName.equals(GuarantorJSONinputParams.COUNTRY.getValue())) {
                 this.country = newValue;
-            } else if (paramName.equals(GUARANTOR_JSON_INPUT_PARAMS.ZIP.getValue())) {
+            } else if (paramName.equals(GuarantorJSONinputParams.ZIP.getValue())) {
                 this.zip = newValue;
-            } else if (paramName.equals(GUARANTOR_JSON_INPUT_PARAMS.PHONE_NUMBER.getValue())) {
+            } else if (paramName.equals(GuarantorJSONinputParams.PHONE_NUMBER.getValue())) {
                 this.housePhoneNumber = newValue;
-            } else if (paramName.equals(GUARANTOR_JSON_INPUT_PARAMS.MOBILE_NUMBER.getValue())) {
+            } else if (paramName.equals(GuarantorJSONinputParams.MOBILE_NUMBER.getValue())) {
                 this.mobilePhoneNumber = newValue;
-            } else if (paramName.equals(GUARANTOR_JSON_INPUT_PARAMS.COMMENT.getValue())) {
+            } else if (paramName.equals(GuarantorJSONinputParams.COMMENT.getValue())) {
                 this.comment = newValue;
             }
         }
     }
 
     private void handlePropertyUpdate(final JsonCommand command, final Map<String, Object> actualChanges, final String paramName,
-            Date propertyToBeUpdated) {
+            LocalDate propertyToBeUpdated) {
         if (command.isChangeInDateParameterNamed(paramName, propertyToBeUpdated)) {
-            final Date newValue = command.DateValueOfParameterNamed(paramName);
+            final LocalDate newValue = command.localDateValueOfParameterNamed(paramName);
             actualChanges.put(paramName, newValue);
-            propertyToBeUpdated = newValue;
+            // propertyToBeUpdated = newValue;
 
             // now update actual property
-            if (paramName.equals(GUARANTOR_JSON_INPUT_PARAMS.DATE_OF_BIRTH.getValue())) {
+            if (paramName.equals(GuarantorJSONinputParams.DATE_OF_BIRTH.getValue())) {
                 this.dateOfBirth = newValue;
             }
         }
@@ -345,7 +339,9 @@ public class Guarantor extends AbstractPersistableCustom<Long> {
     }
 
     public boolean hasGuarantor(Long savingsId) {
-        if (savingsId == null) { return false; }
+        if (savingsId == null) {
+            return false;
+        }
         boolean hasGuarantee = false;
         for (GuarantorFundingDetails guarantorFundingDetails : this.guarantorFundDetails) {
             if (guarantorFundingDetails.getStatus().isActive()

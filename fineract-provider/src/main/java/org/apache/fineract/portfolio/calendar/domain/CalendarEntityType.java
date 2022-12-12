@@ -35,7 +35,7 @@ public enum CalendarEntityType {
     private final Integer value;
     private final String code;
 
-    private CalendarEntityType(final Integer value, final String code) {
+    CalendarEntityType(final Integer value, final String code) {
         this.value = value;
         this.code = code;
     }
@@ -51,6 +51,7 @@ public enum CalendarEntityType {
     private static final Map<Integer, CalendarEntityType> intToEnumMap = new HashMap<>();
     private static int minValue;
     private static int maxValue;
+
     static {
         int i = 0;
         for (final CalendarEntityType entityType : CalendarEntityType.values()) {

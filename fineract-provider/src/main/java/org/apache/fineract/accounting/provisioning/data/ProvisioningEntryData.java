@@ -19,56 +19,34 @@
 package org.apache.fineract.accounting.provisioning.data;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Collection;
-import java.util.Date;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 
+@Data
+@NoArgsConstructor
+@Accessors(chain = true)
 @SuppressWarnings("unused")
 public class ProvisioningEntryData {
 
-    private Long id ;
-    
-    private Boolean journalEntry ;
-    
-    private Long createdById ;
-    
-    private String createdUser ;
+    private Long id;
 
-    Date createdDate ;
-    
-    Long modifiedById ;
-    
-    private String modifiedUser ;
+    private Boolean journalEntry;
 
-    private BigDecimal reservedAmount ;
-    
-    private Collection<LoanProductProvisioningEntryData> provisioningEntries ;
-    
-    public ProvisioningEntryData(final Long id, final Collection<LoanProductProvisioningEntryData> provisioningEntries) {
-        this.provisioningEntries = provisioningEntries ;
-        this.id = id ;
-    }
+    private Long createdById;
 
-    public ProvisioningEntryData(Long id, Boolean journalEntry, Long createdById,
-            String createdUser, Date createdDate, Long modifiedById, String modifiedUser, BigDecimal totalReservedAmount) {
-        this.id = id ;
-        this.journalEntry = journalEntry ;
-        this.createdById = createdById ;
-        this.createdUser = createdUser ;
-        this.modifiedById = modifiedById ;
-        this.modifiedUser = modifiedUser ;
-        this.createdDate = createdDate ;
-        this.reservedAmount = totalReservedAmount ;
-    }
-    
-    public void setEntries(Collection<LoanProductProvisioningEntryData> provisioningEntries) {
-        this.provisioningEntries = provisioningEntries ;
-    }
+    private String createdUser;
 
-    public Long getId() {
-        return this.id ;
-    }
-    
-    public Date getCreatedDate() {
-        return this.createdDate ;
-    }
+    LocalDate createdDate;
+
+    Long modifiedById;
+
+    private String modifiedUser;
+
+    private BigDecimal reservedAmount;
+
+    private Collection<LoanProductProvisioningEntryData> provisioningEntries;
+
 }

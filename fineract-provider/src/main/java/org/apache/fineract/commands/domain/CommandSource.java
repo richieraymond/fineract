@@ -18,25 +18,22 @@
  */
 package org.apache.fineract.commands.domain;
 
-import java.util.Date;
-
+import java.time.OffsetDateTime;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
-
-import org.apache.commons.lang.StringUtils;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
-import org.apache.fineract.useradministration.domain.AppUser;
-import org.joda.time.DateTime;
+import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
 import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
+import org.apache.fineract.infrastructure.core.domain.ExternalId;
+import org.apache.fineract.infrastructure.core.service.DateUtils;
+import org.apache.fineract.useradministration.domain.AppUser;
 
 @Entity
 @Table(name = "m_portfolio_command_source")
-public class CommandSource extends AbstractPersistableCustom<Long> {
+public class CommandSource extends AbstractPersistableCustom {
 
     @Column(name = "action_name", nullable = true, length = 100)
     private String actionName;
@@ -66,7 +63,7 @@ public class CommandSource extends AbstractPersistableCustom<Long> {
     private Long resourceId;
 
     @Column(name = "subresource_id")
-    private Long subresourceId;
+    private Long subResourceId;
 
     @Column(name = "command_as_json", length = 1000)
     private String commandAsJson;
@@ -75,36 +72,61 @@ public class CommandSource extends AbstractPersistableCustom<Long> {
     @JoinColumn(name = "maker_id", nullable = false)
     private AppUser maker;
 
-    @Column(name = "made_on_date", nullable = false)
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date madeOnDate;
+    /*
+     * Deprecated: Columns and data left untouched to help migration.
+     *
+     * @Column(name = "made_on_date", nullable = false) private LocalDateTime madeOnDate;
+     *
+     * @Column(name = "checked_on_date", nullable = true) private LocalDateTime checkedOnDate;
+     */
+
+    @Column(name = "made_on_date_utc", nullable = false)
+    private OffsetDateTime madeOnDate;
+
+    @Column(name = "checked_on_date_utc")
+    private OffsetDateTime checkedOnDate;
 
     @ManyToOne
     @JoinColumn(name = "checker_id", nullable = true)
     private AppUser checker;
 
-    @Column(name = "checked_on_date", nullable = true)
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date checkedOnDate;
-
-    @Column(name = "processing_result_enum", nullable = false)
-    private Integer processingResult;
+    @Column(name = "status", nullable = false)
+    private Integer status;
 
     @Column(name = "product_id")
     private Long productId;
-    
+
     @Column(name = "transaction_id", length = 100)
     private String transactionId;
-    
-    @Column(name="creditbureau_id")
+
+    @Column(name = "creditbureau_id")
     private Long creditBureauId;
-    
-    @Column(name="organisation_creditbureau_id")
+
+    @Column(name = "organisation_creditbureau_id")
     private Long organisationCreditBureauId;
 
-    public static CommandSource fullEntryFrom(final CommandWrapper wrapper, final JsonCommand command, final AppUser maker) {
+    @Column(name = "job_name")
+    private String jobName;
+
+    @Column(name = "idempotency_key", length = 50)
+    private String idempotencyKey;
+
+    @Column(name = "resource_external_id")
+    private ExternalId resourceExternalId;
+
+    @Column(name = "subresource_external_id")
+    private ExternalId subResourceExternalId;
+
+    @Column(name = "result")
+    private String result;
+
+    @Column(name = "result_status_code")
+    private Integer resultStatusCode;
+
+    public static CommandSource fullEntryFrom(final CommandWrapper wrapper, final JsonCommand command, final AppUser maker,
+            String idempotencyKey, Integer status) {
         return new CommandSource(wrapper.actionName(), wrapper.entityName(), wrapper.getHref(), command.entityId(), command.subentityId(),
-                command.json(), maker, DateTime.now());
+                command.json(), maker, idempotencyKey, status);
     }
 
     protected CommandSource() {
@@ -112,56 +134,65 @@ public class CommandSource extends AbstractPersistableCustom<Long> {
     }
 
     private CommandSource(final String actionName, final String entityName, final String href, final Long resourceId,
-            final Long subresourceId, final String commandSerializedAsJson, final AppUser maker, final DateTime madeOnDateTime) {
+            final Long subResourceId, final String commandSerializedAsJson, final AppUser maker, final String idempotencyKey,
+            final Integer status) {
         this.actionName = actionName;
         this.entityName = entityName;
         this.resourceGetUrl = href;
         this.resourceId = resourceId;
-        this.subresourceId = subresourceId;
+        this.subResourceId = subResourceId;
         this.commandAsJson = commandSerializedAsJson;
         this.maker = maker;
-        this.madeOnDate = madeOnDateTime.toDate();
-        this.processingResult = CommandProcessingResultType.PROCESSED.getValue();
-    } public Long getCreditBureauId() {
+        this.madeOnDate = DateUtils.getOffsetDateTimeOfTenant();
+        this.status = status;
+        this.idempotencyKey = idempotencyKey;
+    }
+
+    public Long getCreditBureauId() {
         return this.creditBureauId;
     }
 
-    
     public void setCreditBureauId(Long creditBureauId) {
         this.creditBureauId = creditBureauId;
     }
 
-    
     public Long getOrganisationCreditBureauId() {
         return this.organisationCreditBureauId;
     }
 
-    
-    public void setOrganisationCreditBureauId(Long OrganisationCreditBureauId) {
-        this.organisationCreditBureauId = OrganisationCreditBureauId;
-    }
-    
-    public void markAsChecked(final AppUser checker, final DateTime checkedOnDate) {
-        this.checker = checker;
-        this.checkedOnDate = checkedOnDate.toDate();
-        this.processingResult = CommandProcessingResultType.PROCESSED.getValue();
+    public String getJobName() {
+        return this.jobName;
     }
 
-    public void markAsRejected(final AppUser checker, final DateTime checkedOnDate){
+    public void setOrganisationCreditBureauId(Long organisationCreditBureauId) {
+        this.organisationCreditBureauId = organisationCreditBureauId;
+    }
+
+    public void markAsChecked(final AppUser checker) {
         this.checker = checker;
-        this.checkedOnDate = checkedOnDate.toDate();
-        this.processingResult = CommandProcessingResultType.REJECTED.getValue();
+        this.checkedOnDate = DateUtils.getOffsetDateTimeOfTenant();
+        this.status = CommandProcessingResultType.PROCESSED.getValue();
+    }
+
+    public void markAsRejected(final AppUser checker) {
+        this.checker = checker;
+        this.checkedOnDate = DateUtils.getOffsetDateTimeOfTenant();
+        this.status = CommandProcessingResultType.REJECTED.getValue();
     }
 
     public void updateResourceId(final Long resourceId) {
         this.resourceId = resourceId;
     }
 
-    public void updateSubresourceId(final Long subresourceId) {
-        this.subresourceId = subresourceId;
+    public void updateSubResourceId(final Long subResourceId) {
+        this.subResourceId = subResourceId;
     }
 
-    public void updateJsonTo(final String json) {
+    public String getCommandJson() {
+        return this.commandAsJson;
+    }
+
+    public void setCommandJson(final String json) {
         this.commandAsJson = json;
     }
 
@@ -169,16 +200,8 @@ public class CommandSource extends AbstractPersistableCustom<Long> {
         return this.resourceId;
     }
 
-    public Long subresourceId() {
-        return this.subresourceId;
-    }
-
-    public boolean hasJson() {
-        return StringUtils.isNotBlank(this.commandAsJson);
-    }
-
-    public String json() {
-        return this.commandAsJson;
+    public Long subResourceId() {
+        return this.subResourceId;
     }
 
     public String getActionName() {
@@ -197,29 +220,30 @@ public class CommandSource extends AbstractPersistableCustom<Long> {
         return this.resourceId;
     }
 
-    public Long getSubresourceId() {
-        return this.subresourceId;
+    public Long getSubResourceId() {
+        return this.subResourceId;
     }
 
     public void markAsAwaitingApproval() {
-        this.processingResult = CommandProcessingResultType.AWAITING_APPROVAL.getValue();
+        this.status = CommandProcessingResultType.AWAITING_APPROVAL.getValue();
     }
 
     public boolean isMarkedAsAwaitingApproval() {
-        if (this.processingResult.equals(CommandProcessingResultType.AWAITING_APPROVAL.getValue())) { return true; }
-
-        return false;
+        return this.status.equals(CommandProcessingResultType.AWAITING_APPROVAL.getValue());
     }
 
-    public void updateForAudit(final Long officeId, final Long groupId, final Long clientId, final Long loanId, final Long savingsId,
-            final Long productId, final String transactionId) {
-        this.officeId = officeId;
-        this.groupId = groupId;
-        this.clientId = clientId;
-        this.loanId = loanId;
-        this.savingsId = savingsId;
-        this.productId = productId;
-        this.transactionId = transactionId;
+    public void updateForAudit(final CommandProcessingResult result) {
+        this.officeId = result.getOfficeId();
+        this.groupId = result.getGroupId();
+        this.clientId = result.getClientId();
+        this.loanId = result.getLoanId();
+        this.savingsId = result.getSavingsId();
+        this.productId = result.getProductId();
+        this.transactionId = result.getTransactionId();
+        this.resourceId = result.getResourceId();
+        this.resourceExternalId = result.getResourceExternalId();
+        this.subResourceId = result.getSubResourceId();
+        this.subResourceExternalId = result.getSubResourceExternalId();
     }
 
     public String getResourceGetUrl() {
@@ -276,4 +300,35 @@ public class CommandSource extends AbstractPersistableCustom<Long> {
         this.transactionId = transactionId;
     }
 
+    public String getIdempotencyKey() {
+        return idempotencyKey;
+    }
+
+    public void setIdempotencyKey(String idempotencyKey) {
+        this.idempotencyKey = idempotencyKey;
+    }
+
+    public String getResult() {
+        return result;
+    }
+
+    public void setResult(String result) {
+        this.result = result;
+    }
+
+    public Integer getStatus() {
+        return status;
+    }
+
+    public void setStatus(Integer status) {
+        this.status = status;
+    }
+
+    public Integer getResultStatusCode() {
+        return resultStatusCode;
+    }
+
+    public void setResultStatusCode(Integer resultStatusCode) {
+        this.resultStatusCode = resultStatusCode;
+    }
 }

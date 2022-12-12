@@ -18,34 +18,22 @@
  */
 package org.apache.fineract.infrastructure.core.data;
 
+import java.io.Serializable;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+
 /**
  * <p>
  * Immutable data object representing generic enumeration value.
  * </p>
  */
-public class EnumOptionData {
+@Getter
+@EqualsAndHashCode
+@AllArgsConstructor
+public class EnumOptionData implements Serializable {
 
     private final Long id;
     private final String code;
     private final String value;
-
-    public EnumOptionData(final Long id, final String code, final String value) {
-        this.id = id;
-        this.code = code;
-        this.value = value;
-    }
-
-    public Long getId() {
-        return this.id;
-    }
-
-    public String getCode() {
-        return this.code;
-    }
-    
-    public String getValue() {
-        return this.value;
-    }
-    
-    
 }

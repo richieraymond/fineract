@@ -21,15 +21,13 @@ package org.apache.fineract.infrastructure.configuration.service;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
-
+import lombok.RequiredArgsConstructor;
 import org.apache.fineract.infrastructure.campaigns.sms.data.MessageGatewayConfigurationData;
 import org.apache.fineract.infrastructure.configuration.data.ExternalServicesPropertiesData;
 import org.apache.fineract.infrastructure.configuration.data.S3CredentialsData;
 import org.apache.fineract.infrastructure.configuration.data.SMTPCredentialsData;
 import org.apache.fineract.infrastructure.configuration.exception.ExternalServiceConfigurationNotFoundException;
-import org.apache.fineract.infrastructure.core.service.RoutingDataSource;
 import org.apache.fineract.infrastructure.gcm.domain.NotificationConfigurationData;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.ResultSetExtractor;
@@ -37,14 +35,10 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class ExternalServicesPropertiesReadPlatformServiceImpl implements ExternalServicesPropertiesReadPlatformService {
 
     private final JdbcTemplate jdbcTemplate;
-
-    @Autowired
-    public ExternalServicesPropertiesReadPlatformServiceImpl(final RoutingDataSource dataSource) {
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
-    }
 
     private static final class S3CredentialsDataExtractor implements ResultSetExtractor<S3CredentialsData> {
 
@@ -62,7 +56,7 @@ public class ExternalServicesPropertiesReadPlatformServiceImpl implements Extern
                     secretKey = rs.getString("value");
                 }
             }
-            return new S3CredentialsData(bucketName, accessKey, secretKey);
+            return new S3CredentialsData().setBucketName(bucketName).setAccessKey(accessKey).setSecretKey(secretKey);
         }
     }
 
@@ -73,7 +67,7 @@ public class ExternalServicesPropertiesReadPlatformServiceImpl implements Extern
             String username = null;
             String password = null;
             String host = null;
-            String port = "25";
+            String port = "587";
             boolean useTLS = false;
             String fromEmail = null;
             String fromName = null;
@@ -84,12 +78,12 @@ public class ExternalServicesPropertiesReadPlatformServiceImpl implements Extern
 
                 if (ExternalServicesConstants.SMTP_USERNAME.equalsIgnoreCase(name)) {
                     username = value;
+                } else if (ExternalServicesConstants.SMTP_PORT.equalsIgnoreCase(name)) {
+                    port = value;
                 } else if (ExternalServicesConstants.SMTP_PASSWORD.equalsIgnoreCase(name)) {
                     password = value;
                 } else if (ExternalServicesConstants.SMTP_HOST.equalsIgnoreCase(name)) {
                     host = value;
-                } else if (ExternalServicesConstants.SMTP_PORT.equalsIgnoreCase(name)) {
-                    port = value;
                 } else if (ExternalServicesConstants.SMTP_USE_TLS.equalsIgnoreCase(name)) {
                     useTLS = Boolean.parseBoolean(value);
                 } else if (ExternalServicesConstants.SMTP_FROM_EMAIL.equalsIgnoreCase(name)) {
@@ -98,7 +92,8 @@ public class ExternalServicesPropertiesReadPlatformServiceImpl implements Extern
                     fromName = value;
                 }
             }
-            return new SMTPCredentialsData(username, password, host, port, useTLS, fromEmail, fromName);
+            return new SMTPCredentialsData().setUsername(username).setPassword(password).setHost(host).setPort(port).setUseTLS(useTLS)
+                    .setFromEmail(fromEmail).setFromName(fromName);
         }
     }
 
@@ -113,7 +108,7 @@ public class ExternalServicesPropertiesReadPlatformServiceImpl implements Extern
             if (name != null && "password".equalsIgnoreCase(name)) {
                 value = "XXXX";
             }
-            return new ExternalServicesPropertiesData(name, value);
+            return new ExternalServicesPropertiesData().setName(name).setValue(value);
         }
 
     }
@@ -166,7 +161,8 @@ public class ExternalServicesPropertiesReadPlatformServiceImpl implements Extern
         final ResultSetExtractor<MessageGatewayConfigurationData> resultSetExtractor = new MessageGatewayDataExtractor();
         final String sql = "SELECT esp.name, esp.value FROM c_external_service_properties esp inner join c_external_service es on esp.external_service_id = es.id where es.name = '"
                 + ExternalServicesConstants.SMS_SERVICE_NAME + "'";
-        final MessageGatewayConfigurationData messageGatewayConfigurationData = this.jdbcTemplate.query(sql, resultSetExtractor, new Object[] {});
+        final MessageGatewayConfigurationData messageGatewayConfigurationData = this.jdbcTemplate.query(sql, resultSetExtractor,
+                new Object[] {});
         return messageGatewayConfigurationData;
     }
 
@@ -196,10 +192,10 @@ public class ExternalServicesPropertiesReadPlatformServiceImpl implements Extern
         final ExternalServiceMapper mapper = new ExternalServiceMapper();
         final String sql = "SELECT esp.name, esp.value FROM c_external_service_properties esp inner join c_external_service es on esp.external_service_id = es.id where es.name = '"
                 + serviceNameToUse + "'";
-        return this.jdbcTemplate.query(sql, mapper, new Object[] {});
+        return this.jdbcTemplate.query(sql, mapper); // NOSONAR
 
     }
-    
+
     private static final class NotificationDataExtractor implements ResultSetExtractor<NotificationConfigurationData> {
 
         @Override
@@ -208,26 +204,26 @@ public class ExternalServicesPropertiesReadPlatformServiceImpl implements Extern
             String gcmEndPoint = null;
             String fcmEndPoint = null;
             while (rs.next()) {
-                if (rs.getString("name").equalsIgnoreCase(ExternalServicesConstants.NOTIFICATION_SERVER_KEY )) {
-                	serverKey = rs.getString("value");
-                } else if (rs.getString("name").equalsIgnoreCase(ExternalServicesConstants.NOTIFICATION_GCM_END_POINT )) {
-                	gcmEndPoint = rs.getString("value");
-                } else if (rs.getString("name").equalsIgnoreCase(ExternalServicesConstants.NOTIFICATION_FCM_END_POINT )) {
-                	fcmEndPoint = rs.getString("value");
+                if (rs.getString("name").equalsIgnoreCase(ExternalServicesConstants.NOTIFICATION_SERVER_KEY)) {
+                    serverKey = rs.getString("value");
+                } else if (rs.getString("name").equalsIgnoreCase(ExternalServicesConstants.NOTIFICATION_GCM_END_POINT)) {
+                    gcmEndPoint = rs.getString("value");
+                } else if (rs.getString("name").equalsIgnoreCase(ExternalServicesConstants.NOTIFICATION_FCM_END_POINT)) {
+                    fcmEndPoint = rs.getString("value");
                 }
             }
-            return new NotificationConfigurationData(null, serverKey, gcmEndPoint, fcmEndPoint);
+            return new NotificationConfigurationData().setServerKey(serverKey).setGcmEndPoint(gcmEndPoint).setFcmEndPoint(fcmEndPoint);
         }
     }
 
-
-	@Override
-	public NotificationConfigurationData getNotificationConfiguration() {
-		final ResultSetExtractor<NotificationConfigurationData> resultSetExtractor = new NotificationDataExtractor();
+    @Override
+    public NotificationConfigurationData getNotificationConfiguration() {
+        final ResultSetExtractor<NotificationConfigurationData> resultSetExtractor = new NotificationDataExtractor();
         final String sql = "SELECT esp.name, esp.value FROM c_external_service_properties esp inner join c_external_service es on esp.external_service_id = es.id where es.name = '"
                 + ExternalServicesConstants.NOTIFICATION_SERVICE_NAME + "'";
-        final NotificationConfigurationData notificationConfigurationData = this.jdbcTemplate.query(sql, resultSetExtractor, new Object[] {});
+        final NotificationConfigurationData notificationConfigurationData = this.jdbcTemplate.query(sql, resultSetExtractor,
+                new Object[] {});
         return notificationConfigurationData;
-	}
+    }
 
 }

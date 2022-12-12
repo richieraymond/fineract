@@ -18,26 +18,24 @@
  */
 package org.apache.fineract.organisation.office.serialization;
 
+import com.google.gson.JsonElement;
+import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.infrastructure.core.data.ApiParameterError;
 import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
 import org.apache.fineract.infrastructure.core.exception.InvalidJsonException;
 import org.apache.fineract.infrastructure.core.exception.PlatformApiDataValidationException;
 import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
-import org.joda.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import com.google.gson.JsonElement;
-import com.google.gson.reflect.TypeToken;
 
 /**
  * Deserializer of JSON for office API.
@@ -45,11 +43,17 @@ import com.google.gson.reflect.TypeToken;
 @Component
 public final class OfficeCommandFromApiJsonDeserializer {
 
+    public static final String PARENT_ID = "parentId";
+    public static final String NAME = "name";
+    public static final String OPENING_DATE = "openingDate";
+    public static final String EXTERNAL_ID = "externalId";
+    public static final String LOCALE = "locale";
+    public static final String DATE_FORMAT = "dateFormat";
     /**
      * The parameters supported for this command.
      */
-    private final Set<String> supportedParameters = new HashSet<>(Arrays.asList("name", "parentId", "openingDate", "externalId",
-            "locale", "dateFormat"));
+    private static final Set<String> SUPPORTED_PARAMETERS = new HashSet<>(
+            Arrays.asList(NAME, PARENT_ID, OPENING_DATE, EXTERNAL_ID, LOCALE, DATE_FORMAT));
 
     private final FromJsonHelper fromApiJsonHelper;
 
@@ -59,69 +63,75 @@ public final class OfficeCommandFromApiJsonDeserializer {
     }
 
     public void validateForCreate(final String json) {
-        if (StringUtils.isBlank(json)) { throw new InvalidJsonException(); }
+        if (StringUtils.isBlank(json)) {
+            throw new InvalidJsonException();
+        }
 
         final Type typeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
-        this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, this.supportedParameters);
+        this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, SUPPORTED_PARAMETERS);
 
         final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
         final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors).resource("office");
 
         final JsonElement element = this.fromApiJsonHelper.parse(json);
 
-        final String name = this.fromApiJsonHelper.extractStringNamed("name", element);
-        baseDataValidator.reset().parameter("name").value(name).notBlank().notExceedingLengthOf(100);
+        final String name = this.fromApiJsonHelper.extractStringNamed(NAME, element);
+        baseDataValidator.reset().parameter(NAME).value(name).notBlank().notExceedingLengthOf(100);
 
-        final LocalDate openingDate = this.fromApiJsonHelper.extractLocalDateNamed("openingDate", element);
-        baseDataValidator.reset().parameter("openingDate").value(openingDate).notNull();
+        final LocalDate openingDate = this.fromApiJsonHelper.extractLocalDateNamed(OPENING_DATE, element);
+        baseDataValidator.reset().parameter(OPENING_DATE).value(openingDate).notNull();
 
-        if (this.fromApiJsonHelper.parameterExists("externalId", element)) {
-            final String externalId = this.fromApiJsonHelper.extractStringNamed("externalId", element);
-            baseDataValidator.reset().parameter("externalId").value(externalId).notExceedingLengthOf(100);
+        if (this.fromApiJsonHelper.parameterExists(EXTERNAL_ID, element)) {
+            final String externalId = this.fromApiJsonHelper.extractStringNamed(EXTERNAL_ID, element);
+            baseDataValidator.reset().parameter(EXTERNAL_ID).value(externalId).notExceedingLengthOf(100);
         }
 
-        if (this.fromApiJsonHelper.parameterExists("parentId", element)) {
-            final Long parentId = this.fromApiJsonHelper.extractLongNamed("parentId", element);
-            baseDataValidator.reset().parameter("parentId").value(parentId).notNull().integerGreaterThanZero();
+        if (this.fromApiJsonHelper.parameterExists(PARENT_ID, element)) {
+            final Long parentId = this.fromApiJsonHelper.extractLongNamed(PARENT_ID, element);
+            baseDataValidator.reset().parameter(PARENT_ID).value(parentId).notNull().integerGreaterThanZero();
         }
 
         throwExceptionIfValidationWarningsExist(dataValidationErrors);
     }
 
     private void throwExceptionIfValidationWarningsExist(final List<ApiParameterError> dataValidationErrors) {
-        if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException("validation.msg.validation.errors.exist",
-                "Validation errors exist.", dataValidationErrors); }
+        if (!dataValidationErrors.isEmpty()) {
+            throw new PlatformApiDataValidationException("validation.msg.validation.errors.exist", "Validation errors exist.",
+                    dataValidationErrors);
+        }
     }
 
     public void validateForUpdate(final String json) {
-        if (StringUtils.isBlank(json)) { throw new InvalidJsonException(); }
+        if (StringUtils.isBlank(json)) {
+            throw new InvalidJsonException();
+        }
 
         final Type typeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
-        this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, this.supportedParameters);
+        this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, SUPPORTED_PARAMETERS);
 
         final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
         final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors).resource("office");
 
         final JsonElement element = this.fromApiJsonHelper.parse(json);
 
-        if (this.fromApiJsonHelper.parameterExists("name", element)) {
-            final String name = this.fromApiJsonHelper.extractStringNamed("name", element);
-            baseDataValidator.reset().parameter("name").value(name).notBlank().notExceedingLengthOf(100);
+        if (this.fromApiJsonHelper.parameterExists(NAME, element)) {
+            final String name = this.fromApiJsonHelper.extractStringNamed(NAME, element);
+            baseDataValidator.reset().parameter(NAME).value(name).notBlank().notExceedingLengthOf(100);
         }
 
-        if (this.fromApiJsonHelper.parameterExists("openingDate", element)) {
-            final LocalDate openingDate = this.fromApiJsonHelper.extractLocalDateNamed("openingDate", element);
-            baseDataValidator.reset().parameter("openingDate").value(openingDate).notNull();
+        if (this.fromApiJsonHelper.parameterExists(OPENING_DATE, element)) {
+            final LocalDate openingDate = this.fromApiJsonHelper.extractLocalDateNamed(OPENING_DATE, element);
+            baseDataValidator.reset().parameter(OPENING_DATE).value(openingDate).notNull();
         }
 
-        if (this.fromApiJsonHelper.parameterExists("externalId", element)) {
-            final String externalId = this.fromApiJsonHelper.extractStringNamed("externalId", element);
-            baseDataValidator.reset().parameter("externalId").value(externalId).notExceedingLengthOf(100);
+        if (this.fromApiJsonHelper.parameterExists(EXTERNAL_ID, element)) {
+            final String externalId = this.fromApiJsonHelper.extractStringNamed(EXTERNAL_ID, element);
+            baseDataValidator.reset().parameter(EXTERNAL_ID).value(externalId).notExceedingLengthOf(100);
         }
 
-        if (this.fromApiJsonHelper.parameterExists("parentId", element)) {
-            final Long parentId = this.fromApiJsonHelper.extractLongNamed("parentId", element);
-            baseDataValidator.reset().parameter("parentId").value(parentId).notNull().integerGreaterThanZero();
+        if (this.fromApiJsonHelper.parameterExists(PARENT_ID, element)) {
+            final Long parentId = this.fromApiJsonHelper.extractLongNamed(PARENT_ID, element);
+            baseDataValidator.reset().parameter(PARENT_ID).value(parentId).notNull().integerGreaterThanZero();
         }
 
         throwExceptionIfValidationWarningsExist(dataValidationErrors);

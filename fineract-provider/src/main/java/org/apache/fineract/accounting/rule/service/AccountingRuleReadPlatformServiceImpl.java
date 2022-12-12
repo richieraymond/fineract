@@ -25,7 +25,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+import lombok.RequiredArgsConstructor;
 import org.apache.fineract.accounting.common.AccountingEnumerations;
 import org.apache.fineract.accounting.glaccount.data.GLAccountDataForLookup;
 import org.apache.fineract.accounting.glaccount.service.GLAccountReadPlatformService;
@@ -36,8 +36,6 @@ import org.apache.fineract.accounting.rule.exception.AccountingRuleNotFoundExcep
 import org.apache.fineract.infrastructure.codes.data.CodeValueData;
 import org.apache.fineract.infrastructure.core.data.EnumOptionData;
 import org.apache.fineract.infrastructure.core.domain.JdbcSupport;
-import org.apache.fineract.infrastructure.core.service.RoutingDataSource;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -46,17 +44,11 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class AccountingRuleReadPlatformServiceImpl implements AccountingRuleReadPlatformService {
 
     private final JdbcTemplate jdbcTemplate;
     private final GLAccountReadPlatformService glAccountReadPlatformService;
-
-    @Autowired
-    public AccountingRuleReadPlatformServiceImpl(final RoutingDataSource dataSource,
-            final GLAccountReadPlatformService glAccountReadPlatformService) {
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
-        this.glAccountReadPlatformService = glAccountReadPlatformService;
-    }
 
     private static final class AccountingRuleDataExtractor implements ResultSetExtractor<Map<Long, AccountingRuleData>> {
 
@@ -65,15 +57,14 @@ public class AccountingRuleReadPlatformServiceImpl implements AccountingRuleRead
         private final GLAccountReadPlatformService glAccountReadPlatformService;
         private final boolean isAssociationParametersExists;
 
-        public AccountingRuleDataExtractor(final JdbcTemplate jdbcTemplate,
-                final GLAccountReadPlatformService glAccountReadPlatformService, final boolean isAssociationParametersExists) {
+        AccountingRuleDataExtractor(final JdbcTemplate jdbcTemplate, final GLAccountReadPlatformService glAccountReadPlatformService,
+                final boolean isAssociationParametersExists) {
             this.jdbcTemplate = jdbcTemplate;
             this.glAccountReadPlatformService = glAccountReadPlatformService;
             this.isAssociationParametersExists = isAssociationParametersExists;
             final StringBuilder sqlBuilder = new StringBuilder(400);
-            sqlBuilder
-                    .append(" rule.id as id,rule.name as name, rule.office_id as officeId,office.name as officeName,")
-                    .append(" rule.description as description, rule.system_defined as systemDefined, rule.allow_multiple_debits as allowMultipleDebitEntries, rule.allow_multiple_credits as allowMultipleCreditEntries, ")
+            sqlBuilder.append(" rule.id as id,rule.name as name, rule.office_id as officeId,office.name as officeName,").append(
+                    " rule.description as description, rule.system_defined as systemDefined, rule.allow_multiple_debits as allowMultipleDebitEntries, rule.allow_multiple_credits as allowMultipleCreditEntries, ")
                     .append("debitAccount.id AS debitAccountId, debitAccount.name as debitAccountName, debitAccount.gl_code as debitAccountGLCode, ")
                     .append("creditAccount.id AS creditAccountId, creditAccount.name as creditAccountName, creditAccount.gl_code as creditAccountGLCode")
                     .append(" from m_office AS office, acc_accounting_rule AS rule ")
@@ -117,27 +108,32 @@ public class AccountingRuleReadPlatformServiceImpl implements AccountingRuleRead
                     if (accountToCreditId == null) {
                         creditTags = !this.isAssociationParametersExists ? getCreditOrDebitTags(id, JournalEntryType.CREDIT.getValue())
                                 : null;
-                        creditAccounts = this.isAssociationParametersExists ? this.glAccountReadPlatformService.retrieveAccountsByTagId(id,
-                                JournalEntryType.CREDIT.getValue()) : null;
+                        creditAccounts = this.isAssociationParametersExists
+                                ? this.glAccountReadPlatformService.retrieveAccountsByTagId(id, JournalEntryType.CREDIT.getValue())
+                                : null;
                     } else {
                         creditTags = null;
-                        final GLAccountDataForLookup creditAccount = new GLAccountDataForLookup(accountToCreditId, creditAccountName,
-                                creditAccountGLCode);
+                        final GLAccountDataForLookup creditAccount = new GLAccountDataForLookup().setId(accountToCreditId)
+                                .setName(creditAccountName).setGlCode(creditAccountGLCode);
                         creditAccounts = new ArrayList<>(Arrays.asList(creditAccount));
                     }
                     if (accountToDebitId == null) {
                         debitTags = !this.isAssociationParametersExists ? getCreditOrDebitTags(id, JournalEntryType.DEBIT.getValue())
                                 : null;
-                        debitAccounts = this.isAssociationParametersExists ? this.glAccountReadPlatformService.retrieveAccountsByTagId(id,
-                                JournalEntryType.DEBIT.getValue()) : null;
+                        debitAccounts = this.isAssociationParametersExists
+                                ? this.glAccountReadPlatformService.retrieveAccountsByTagId(id, JournalEntryType.DEBIT.getValue())
+                                : null;
                     } else {
                         debitTags = null;
-                        final GLAccountDataForLookup debitAccount = new GLAccountDataForLookup(accountToDebitId, debitAccountName,
-                                debitAccountGLCode);
+                        final GLAccountDataForLookup debitAccount = new GLAccountDataForLookup().setId(accountToDebitId)
+                                .setName(debitAccountName).setGlCode(debitAccountGLCode);
                         debitAccounts = new ArrayList<>(Arrays.asList(debitAccount));
                     }
-                    accountingRuleData = new AccountingRuleData(id, officeId, officeName, name, description, systemDefined,
-                            allowMultipleDebitEntries, allowMultipleCreditEntries, creditTags, debitTags, creditAccounts, debitAccounts);
+                    accountingRuleData = new AccountingRuleData().setId(id).setOfficeId(officeId).setOfficeName(officeName).setName(name)
+                            .setDescription(description).setSystemDefined(systemDefined)
+                            .setAllowMultipleDebitEntries(allowMultipleDebitEntries)
+                            .setAllowMultipleCreditEntries(allowMultipleCreditEntries).setCreditTags(creditTags).setDebitTags(debitTags)
+                            .setCreditAccounts(creditAccounts).setDebitAccounts(debitAccounts);
                 }
 
                 extractedData.put(id, accountingRuleData);
@@ -148,7 +144,7 @@ public class AccountingRuleReadPlatformServiceImpl implements AccountingRuleRead
         private List<AccountingTagRuleData> getCreditOrDebitTags(final Long creditOrDebitAccount, final Integer transactionType) {
             final AccountingTagRuleDataMapper mapper = new AccountingTagRuleDataMapper();
             final String taggedAccountsSchema = "Select " + mapper.taggedAccountSchema() + " where rule.id = ? and tag.acc_type_enum=?";
-            return this.jdbcTemplate.query(taggedAccountsSchema, mapper, new Object[] { creditOrDebitAccount, transactionType });
+            return this.jdbcTemplate.query(taggedAccountsSchema, mapper, new Object[] { creditOrDebitAccount, transactionType }); // NOSONAR
         }
 
     }
@@ -159,13 +155,13 @@ public class AccountingRuleReadPlatformServiceImpl implements AccountingRuleRead
         final AccountingRuleDataExtractor resultSetExtractor = new AccountingRuleDataExtractor(this.jdbcTemplate,
                 this.glAccountReadPlatformService, isAssociationParametersExists);
         Object[] arguments = new Object[] {};
-        String sql = "select " + resultSetExtractor.schema() + " and system_defined=0 ";
+        String sql = "select " + resultSetExtractor.schema() + " and system_defined=false ";
         if (hierarchySearchString != null) {
             sql = sql + " and office.hierarchy like ?";
             arguments = new Object[] { hierarchySearchString };
         }
         sql = sql + " order by rule.id asc";
-        final Map<Long, AccountingRuleData> extractedData = this.jdbcTemplate.query(sql, resultSetExtractor, arguments);
+        final Map<Long, AccountingRuleData> extractedData = this.jdbcTemplate.query(sql, resultSetExtractor, arguments); // NOSONAR
         return new ArrayList<>(extractedData.values());
     }
 
@@ -176,13 +172,15 @@ public class AccountingRuleReadPlatformServiceImpl implements AccountingRuleRead
                     this.glAccountReadPlatformService, false);
             final String sql = "select " + resultSetExtractor.schema() + " and rule.id = ?";
 
-            final Map<Long, AccountingRuleData> extractedData = this.jdbcTemplate.query(sql, resultSetExtractor,
+            final Map<Long, AccountingRuleData> extractedData = this.jdbcTemplate.query(sql, resultSetExtractor, // NOSONAR
                     new Object[] { accountingRuleId });
             final AccountingRuleData accountingRuleData = extractedData.get(accountingRuleId);
-            if (accountingRuleData == null) { throw new AccountingRuleNotFoundException(accountingRuleId); }
+            if (accountingRuleData == null) {
+                throw new AccountingRuleNotFoundException(accountingRuleId);
+            }
             return accountingRuleData;
         } catch (final EmptyResultDataAccessException e) {
-            throw new AccountingRuleNotFoundException(accountingRuleId);
+            throw new AccountingRuleNotFoundException(accountingRuleId, e);
         }
     }
 
@@ -201,7 +199,7 @@ public class AccountingRuleReadPlatformServiceImpl implements AccountingRuleRead
             final String tagName = rs.getString("tagName");
             final CodeValueData tag = CodeValueData.instance(tagId, tagName);
             final EnumOptionData transactionTypeEnum = AccountingEnumerations.journalEntryType(transactionType);
-            return new AccountingTagRuleData(id, tag, transactionTypeEnum);
+            return new AccountingTagRuleData().setId(id).setTag(tag).setTransactionType(transactionTypeEnum);
         }
 
     }

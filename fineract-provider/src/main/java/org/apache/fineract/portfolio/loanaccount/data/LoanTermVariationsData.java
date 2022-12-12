@@ -19,14 +19,14 @@
 package org.apache.fineract.portfolio.loanaccount.data;
 
 import java.math.BigDecimal;
-
+import java.time.LocalDate;
+import lombok.Getter;
 import org.apache.fineract.infrastructure.core.data.EnumOptionData;
 import org.apache.fineract.portfolio.loanaccount.domain.LoanTermVariationType;
-import org.joda.time.LocalDate;
 
+@Getter
 public class LoanTermVariationsData implements Comparable<LoanTermVariationsData> {
 
-    @SuppressWarnings("unused")
     private final Long id;
     private final EnumOptionData termType;
     private LocalDate termVariationApplicableFrom;
@@ -45,8 +45,8 @@ public class LoanTermVariationsData implements Comparable<LoanTermVariationsData
         this.isSpecificToInstallment = isSpecificToInstallment;
     }
 
-    public LoanTermVariationsData(final EnumOptionData termType, final LocalDate termVariationApplicableFrom,
-            final BigDecimal decimalValue, LocalDate dateValue, final boolean isSpecificToInstallment) {
+    public LoanTermVariationsData(final EnumOptionData termType, final LocalDate termVariationApplicableFrom, final BigDecimal decimalValue,
+            LocalDate dateValue, final boolean isSpecificToInstallment) {
         this.id = null;
         this.termType = termType;
         this.termVariationApplicableFrom = termVariationApplicableFrom;
@@ -55,20 +55,8 @@ public class LoanTermVariationsData implements Comparable<LoanTermVariationsData
         this.isSpecificToInstallment = isSpecificToInstallment;
     }
 
-    public EnumOptionData getTermType() {
-        return this.termType;
-    }
-
     public LoanTermVariationType getTermVariationType() {
         return LoanTermVariationType.fromInt(this.termType.getId().intValue());
-    }
-
-    public LocalDate getTermApplicableFrom() {
-        return this.termVariationApplicableFrom;
-    }
-
-    public BigDecimal getDecimalValue() {
-        return this.decimalValue;
     }
 
     public boolean isApplicable(final LocalDate fromDate, final LocalDate dueDate) {
@@ -87,11 +75,11 @@ public class LoanTermVariationsData implements Comparable<LoanTermVariationsData
         return target != null && !target.isAfter(date);
     }
 
-    public LocalDate getDateValue() {
-        return this.dateValue;
+    public boolean isSpecificToInstallment() {
+        return this.isSpecificToInstallment;
     }
 
-    public boolean isSpecificToInstallment() {
+    public boolean isIsSpecificToInstallment() {
         return this.isSpecificToInstallment;
     }
 
@@ -105,7 +93,7 @@ public class LoanTermVariationsData implements Comparable<LoanTermVariationsData
 
     @Override
     public int compareTo(LoanTermVariationsData o) {
-        int comparsion = getTermApplicableFrom().compareTo(o.getTermApplicableFrom());
+        int comparsion = getTermVariationApplicableFrom().compareTo(o.getTermVariationApplicableFrom());
         if (comparsion == 0) {
             if (o.getTermVariationType().isDueDateVariation() || o.getTermVariationType().isInsertInstallment()) {
                 comparsion = 1;
@@ -113,7 +101,7 @@ public class LoanTermVariationsData implements Comparable<LoanTermVariationsData
         }
         return comparsion;
     }
-    
+
     public void setApplicableFromDate(final LocalDate applicableFromDate) {
         this.termVariationApplicableFrom = applicableFromDate;
     }

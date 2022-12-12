@@ -19,6 +19,7 @@
 package org.apache.fineract.portfolio.loanproduct.domain;
 
 public enum AmortizationMethod {
+
     EQUAL_PRINCIPAL(0, "amortizationType.equal.principal"), //
     EQUAL_INSTALLMENTS(1, "amortizationType.equal.installments"), //
     INVALID(2, "amortizationType.invalid");
@@ -26,7 +27,7 @@ public enum AmortizationMethod {
     private final Integer value;
     private final String code;
 
-    private AmortizationMethod(final Integer value, final String code) {
+    AmortizationMethod(final Integer value, final String code) {
         this.value = value;
         this.code = code;
     }
@@ -41,27 +42,21 @@ public enum AmortizationMethod {
 
     public static AmortizationMethod fromInt(final Integer selectedMethod) {
 
-        if (selectedMethod == null) { return null; }
-
-        AmortizationMethod repaymentMethod = null;
-        switch (selectedMethod) {
-            case 0:
-                repaymentMethod = AmortizationMethod.EQUAL_PRINCIPAL;
-            break;
-            case 1:
-                repaymentMethod = AmortizationMethod.EQUAL_INSTALLMENTS;
-            break;
-            default:
-                repaymentMethod = AmortizationMethod.INVALID;
-            break;
+        if (selectedMethod == null) {
+            return null;
         }
-        return repaymentMethod;
+
+        return switch (selectedMethod) {
+            case 0 -> AmortizationMethod.EQUAL_PRINCIPAL;
+            case 1 -> AmortizationMethod.EQUAL_INSTALLMENTS;
+            default -> AmortizationMethod.INVALID;
+        };
     }
 
     public boolean isEqualInstallment() {
         return this.value.equals(AmortizationMethod.EQUAL_INSTALLMENTS.getValue());
     }
-    
+
     public boolean isEqualPrincipal() {
         return this.value.equals(AmortizationMethod.EQUAL_PRINCIPAL.getValue());
     }

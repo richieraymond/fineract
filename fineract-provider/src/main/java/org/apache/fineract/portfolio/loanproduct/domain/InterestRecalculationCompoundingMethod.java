@@ -22,9 +22,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /***
- * 
- * People typically use either of the following settings when defining interest
- * recalculation method:
+ *
+ * People typically use either of the following settings when defining interest recalculation method:
  * <ul>
  * <li>NONE</li>
  * <li>INTEREST</li>
@@ -43,6 +42,7 @@ public enum InterestRecalculationCompoundingMethod {
     private final String code;
 
     private static final Map<Integer, InterestRecalculationCompoundingMethod> intToEnumMap = new HashMap<>();
+
     static {
         for (final InterestRecalculationCompoundingMethod type : InterestRecalculationCompoundingMethod.values()) {
             intToEnumMap.put(type.value, type);
@@ -50,11 +50,10 @@ public enum InterestRecalculationCompoundingMethod {
     }
 
     public static InterestRecalculationCompoundingMethod fromInt(final Integer ruleTypeValue) {
-        final InterestRecalculationCompoundingMethod type = intToEnumMap.get(ruleTypeValue);
-        return type;
+        return intToEnumMap.get(ruleTypeValue);
     }
 
-    private InterestRecalculationCompoundingMethod(final Integer value, final String code) {
+    InterestRecalculationCompoundingMethod(final Integer value, final String code) {
         this.value = value;
         this.code = code;
     }

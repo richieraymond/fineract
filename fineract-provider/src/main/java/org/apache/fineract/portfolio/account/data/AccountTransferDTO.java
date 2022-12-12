@@ -19,15 +19,15 @@
 package org.apache.fineract.portfolio.account.data;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Locale;
-
+import org.apache.fineract.infrastructure.core.domain.ExternalId;
 import org.apache.fineract.portfolio.account.PortfolioAccountType;
 import org.apache.fineract.portfolio.account.domain.AccountTransferDetails;
 import org.apache.fineract.portfolio.loanaccount.domain.Loan;
 import org.apache.fineract.portfolio.paymentdetail.domain.PaymentDetail;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccount;
-import org.joda.time.LocalDate;
-import org.joda.time.format.DateTimeFormatter;
 
 public class AccountTransferDTO {
 
@@ -48,7 +48,7 @@ public class AccountTransferDTO {
     private final Integer transferType;
     private final AccountTransferDetails accountTransferDetails;
     private final String noteText;
-    private final String txnExternalId;
+    private final ExternalId txnExternalId;
     private final Loan loan;
     private final Loan fromLoan;
     private final Loan toLoan;
@@ -61,9 +61,9 @@ public class AccountTransferDTO {
             final PortfolioAccountType fromAccountType, final PortfolioAccountType toAccountType, final Long fromAccountId,
             final Long toAccountId, final String description, final Locale locale, final DateTimeFormatter fmt,
             final PaymentDetail paymentDetail, final Integer fromTransferType, final Integer toTransferType, final Long chargeId,
-            Integer loanInstallmentNumber, Integer transferType, final AccountTransferDetails accountTransferDetails,
-            final String noteText, final String txnExternalId, final Loan loan, SavingsAccount toSavingsAccount,
-            final SavingsAccount fromSavingsAccount, final Boolean isRegularTransaction, Boolean isExceptionForBalanceCheck) {
+            Integer loanInstallmentNumber, Integer transferType, final AccountTransferDetails accountTransferDetails, final String noteText,
+            final ExternalId txnExternalId, final Loan loan, SavingsAccount toSavingsAccount, final SavingsAccount fromSavingsAccount,
+            final Boolean isRegularTransaction, Boolean isExceptionForBalanceCheck) {
         this.transactionDate = transactionDate;
         this.transactionAmount = transactionAmount;
         this.fromAccountType = fromAccountType;
@@ -94,8 +94,8 @@ public class AccountTransferDTO {
     public AccountTransferDTO(final LocalDate transactionDate, final BigDecimal transactionAmount,
             final PortfolioAccountType fromAccountType, final PortfolioAccountType toAccountType, final Long fromAccountId,
             final Long toAccountId, final String description, final Locale locale, final DateTimeFormatter fmt,
-            final Integer fromTransferType, final Integer toTransferType, final String txnExternalId,
-            final Loan fromLoan, final Loan toLoan) {
+            final Integer fromTransferType, final Integer toTransferType, final ExternalId txnExternalId, final Loan fromLoan,
+            final Loan toLoan) {
         this.transactionDate = transactionDate;
         this.transactionAmount = transactionAmount;
         this.fromAccountType = fromAccountType;
@@ -191,7 +191,7 @@ public class AccountTransferDTO {
         return this.noteText;
     }
 
-    public String getTxnExternalId() {
+    public ExternalId getTxnExternalId() {
         return this.txnExternalId;
     }
 

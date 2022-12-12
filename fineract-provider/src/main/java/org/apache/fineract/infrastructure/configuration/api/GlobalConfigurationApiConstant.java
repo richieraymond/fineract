@@ -18,11 +18,11 @@
  */
 package org.apache.fineract.infrastructure.configuration.api;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+public final class GlobalConfigurationApiConstant {
 
-public class GlobalConfigurationApiConstant {
+    private GlobalConfigurationApiConstant() {
+
+    }
 
     public static final String ENABLED = "enabled";
     public static final String VALUE = "value";
@@ -31,5 +31,6 @@ public class GlobalConfigurationApiConstant {
     public static final String CONFIGURATION_RESOURCE_NAME = "globalConfiguration";
     public static final String localeParamName = "locale";
     public static final String dateFormatParamName = "dateFormat";
+    public static final String STRING_VALUE = "stringValue";
 
 }

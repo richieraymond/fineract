@@ -18,11 +18,12 @@
  */
 package org.apache.fineract.portfolio.loanaccount.api;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -32,7 +33,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriInfo;
-
 import org.apache.fineract.commands.domain.CommandWrapper;
 import org.apache.fineract.commands.service.CommandWrapperBuilder;
 import org.apache.fineract.commands.service.PortfolioCommandSourceWritePlatformService;
@@ -40,6 +40,7 @@ import org.apache.fineract.infrastructure.core.api.ApiRequestParameterHelper;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
 import org.apache.fineract.infrastructure.core.serialization.ApiRequestJsonSerializationSettings;
 import org.apache.fineract.infrastructure.core.serialization.DefaultToApiJsonSerializer;
+import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
 import org.apache.fineract.organisation.office.data.OfficeData;
 import org.apache.fineract.organisation.office.service.OfficeReadPlatformService;
@@ -48,7 +49,6 @@ import org.apache.fineract.organisation.staff.data.StaffAccountSummaryCollection
 import org.apache.fineract.organisation.staff.data.StaffData;
 import org.apache.fineract.organisation.staff.service.StaffReadPlatformService;
 import org.apache.fineract.portfolio.loanaccount.service.BulkLoansReadPlatformService;
-import org.joda.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -56,12 +56,19 @@ import org.springframework.stereotype.Component;
 @Path("/loans/loanreassignment")
 @Component
 @Scope("singleton")
+@Tag(name = "Bulk Loans", description = "")
 public class BulkLoansApiResource {
 
-    private final Set<String> RESPONSE_DATA_PARAMETERS = new HashSet<>(Arrays.asList("officeId", "fromLoanOfficerId",
-            "assignmentDate", "officeOptions", "loanOfficerOptions", "accountSummaryCollection"));
+    public static final String OFFICE_ID = "officeId";
+    public static final String FROM_LOAN_OFFICER_ID = "fromLoanOfficerId";
+    public static final String ASSIGNMENT_DATE = "assignmentDate";
+    public static final String OFFICE_OPTIONS = "officeOptions";
+    public static final String LOAN_OFFICER_OPTIONS = "loanOfficerOptions";
+    public static final String ACCOUNT_SUMMARY_COLLECTION = "accountSummaryCollection";
+    private static final Set<String> RESPONSE_DATA_PARAMETERS = new HashSet<>(Arrays.asList(OFFICE_ID, FROM_LOAN_OFFICER_ID,
+            ASSIGNMENT_DATE, OFFICE_OPTIONS, LOAN_OFFICER_OPTIONS, ACCOUNT_SUMMARY_COLLECTION));
 
-    private final String resourceNameForPermissions = "LOAN";
+    private static final String RESOURCE_NAME_FOR_PERMISSIONS = "LOAN";
 
     private final PlatformSecurityContext context;
     private final StaffReadPlatformService staffReadPlatformService;
@@ -90,10 +97,10 @@ public class BulkLoansApiResource {
     @Path("template")
     @Consumes({ MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_JSON })
-    public String loanReassignmentTemplate(@QueryParam("officeId") final Long officeId,
-            @QueryParam("fromLoanOfficerId") final Long loanOfficerId, @Context final UriInfo uriInfo) {
+    public String loanReassignmentTemplate(@QueryParam(OFFICE_ID) final Long officeId,
+            @QueryParam(FROM_LOAN_OFFICER_ID) final Long loanOfficerId, @Context final UriInfo uriInfo) {
 
-        this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermissions);
+        this.context.authenticatedUser().validateHasReadPermission(RESOURCE_NAME_FOR_PERMISSIONS);
 
         final Collection<OfficeData> offices = this.officeReadPlatformService.retrieveAllOfficesForDropdown();
 
@@ -109,10 +116,10 @@ public class BulkLoansApiResource {
         }
 
         final BulkTransferLoanOfficerData loanReassignmentData = BulkTransferLoanOfficerData.templateForBulk(officeId, loanOfficerId,
-                new LocalDate(), offices, loanOfficers, staffAccountSummaryCollectionData);
+                LocalDate.now(DateUtils.getDateTimeZoneOfTenant()), offices, loanOfficers, staffAccountSummaryCollectionData);
 
         final ApiRequestJsonSerializationSettings settings = this.apiRequestParameterHelper.process(uriInfo.getQueryParameters());
-        return this.toApiJsonSerializer.serialize(settings, loanReassignmentData, this.RESPONSE_DATA_PARAMETERS);
+        return this.toApiJsonSerializer.serialize(settings, loanReassignmentData, RESPONSE_DATA_PARAMETERS);
     }
 
     @POST

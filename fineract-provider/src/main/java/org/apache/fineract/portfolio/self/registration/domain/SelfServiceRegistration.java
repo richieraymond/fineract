@@ -18,22 +18,19 @@
  */
 package org.apache.fineract.portfolio.self.registration.domain;
 
-import java.util.Date;
-
+import java.time.LocalDateTime;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
-
 import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
+import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.portfolio.client.domain.Client;
 
 @Entity
 @Table(name = "request_audit_table")
-public class SelfServiceRegistration extends AbstractPersistableCustom<Long> {
+public class SelfServiceRegistration extends AbstractPersistableCustom {
 
     @ManyToOne
     @JoinColumn(name = "client_id", nullable = false)
@@ -64,8 +61,9 @@ public class SelfServiceRegistration extends AbstractPersistableCustom<Long> {
     private String password;
 
     @Column(name = "created_date", nullable = false)
-    @Temporal(TemporalType.DATE)
-    private Date createdDate;
+    private LocalDateTime createdDate;
+
+    public SelfServiceRegistration() {}
 
     public SelfServiceRegistration(final Client client, String accountNumber, final String firstName, final String lastName,
             final String mobileNumber, final String email, final String authenticationToken, final String username, final String password) {
@@ -78,13 +76,13 @@ public class SelfServiceRegistration extends AbstractPersistableCustom<Long> {
         this.authenticationToken = authenticationToken;
         this.username = username;
         this.password = password;
-        this.createdDate = new Date();
+        this.createdDate = DateUtils.getLocalDateTimeOfSystem();
     }
 
-    public static SelfServiceRegistration instance(final Client client, final String accountNumber, final String firstname,
+    public static SelfServiceRegistration instance(final Client client, final String accountNumber, final String firstName,
             final String lastName, final String mobileNumber, final String email, final String authenticationToken, final String username,
             final String password) {
-        return new SelfServiceRegistration(client, accountNumber, firstname, lastName, mobileNumber, email, authenticationToken, username,
+        return new SelfServiceRegistration(client, accountNumber, firstName, lastName, mobileNumber, email, authenticationToken, username,
                 password);
     }
 
@@ -112,7 +110,7 @@ public class SelfServiceRegistration extends AbstractPersistableCustom<Long> {
         return this.authenticationToken;
     }
 
-    public Date getCreatedDate() {
+    public LocalDateTime getCreatedDate() {
         return this.createdDate;
     }
 

@@ -24,9 +24,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
-
 import org.apache.fineract.infrastructure.core.domain.JdbcSupport;
-import org.apache.fineract.infrastructure.core.service.RoutingDataSource;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
 import org.apache.fineract.organisation.office.data.OfficeData;
 import org.apache.fineract.organisation.office.service.OfficeReadPlatformService;
@@ -58,14 +56,14 @@ public class AppUserReadPlatformServiceImpl implements AppUserReadPlatformServic
     private final StaffReadPlatformService staffReadPlatformService;
 
     @Autowired
-    public AppUserReadPlatformServiceImpl(final PlatformSecurityContext context, final RoutingDataSource dataSource,
+    public AppUserReadPlatformServiceImpl(final PlatformSecurityContext context, final JdbcTemplate jdbcTemplate,
             final OfficeReadPlatformService officeReadPlatformService, final RoleReadPlatformService roleReadPlatformService,
             final AppUserRepository appUserRepository, final StaffReadPlatformService staffReadPlatformService) {
         this.context = context;
         this.officeReadPlatformService = officeReadPlatformService;
         this.roleReadPlatformService = roleReadPlatformService;
         this.appUserRepository = appUserRepository;
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
+        this.jdbcTemplate = jdbcTemplate;
         this.staffReadPlatformService = staffReadPlatformService;
     }
 
@@ -87,7 +85,7 @@ public class AppUserReadPlatformServiceImpl implements AppUserReadPlatformServic
         final AppUserMapper mapper = new AppUserMapper(this.roleReadPlatformService, this.staffReadPlatformService);
         final String sql = "select " + mapper.schema();
 
-        return this.jdbcTemplate.query(sql, mapper, new Object[] { hierarchySearchString });
+        return this.jdbcTemplate.query(sql, mapper, new Object[] { hierarchySearchString }); // NOSONAR
     }
 
     @Override
@@ -99,7 +97,7 @@ public class AppUserReadPlatformServiceImpl implements AppUserReadPlatformServic
         final AppUserLookupMapper mapper = new AppUserLookupMapper();
         final String sql = "select " + mapper.schema();
 
-        return this.jdbcTemplate.query(sql, mapper, new Object[] { hierarchySearchString });
+        return this.jdbcTemplate.query(sql, mapper, new Object[] { hierarchySearchString }); // NOSONAR
     }
 
     @Override
@@ -107,8 +105,9 @@ public class AppUserReadPlatformServiceImpl implements AppUserReadPlatformServic
 
         final Collection<OfficeData> offices = this.officeReadPlatformService.retrieveAllOfficesForDropdown();
         final Collection<RoleData> availableRoles = this.roleReadPlatformService.retrieveAllActiveRoles();
+        final Collection<RoleData> selfServiceRoles = this.roleReadPlatformService.retrieveAllSelfServiceRoles();
 
-        return AppUserData.template(offices, availableRoles);
+        return AppUserData.template(offices, availableRoles, selfServiceRoles);
     }
 
     @Override
@@ -116,8 +115,10 @@ public class AppUserReadPlatformServiceImpl implements AppUserReadPlatformServic
 
         this.context.authenticatedUser();
 
-        final AppUser user = this.appUserRepository.findOne(userId);
-        if (user == null || user.isDeleted()) { throw new UserNotFoundException(userId); }
+        final AppUser user = this.appUserRepository.findById(userId).orElseThrow(() -> new UserNotFoundException(userId));
+        if (user.isDeleted()) {
+            throw new UserNotFoundException(userId);
+        }
 
         final Collection<RoleData> availableRoles = this.roleReadPlatformService.retrieveAll();
 
@@ -137,20 +138,20 @@ public class AppUserReadPlatformServiceImpl implements AppUserReadPlatformServic
         }
 
         AppUserData retUser = AppUserData.instance(user.getId(), user.getUsername(), user.getEmail(), user.getOffice().getId(),
-                user.getOffice().getName(), user.getFirstname(), user.getLastname(), availableRoles, selectedUserRoles, linkedStaff,
+                user.getOffice().getName(), user.getFirstname(), user.getLastname(), availableRoles, null, selectedUserRoles, linkedStaff,
                 user.getPasswordNeverExpires(), user.isSelfServiceUser());
-        
-        if(retUser.isSelfServiceUser()){
-        	Set<ClientData> clients = new HashSet<>();
-        	for(AppUserClientMapping clientMap : user.getAppUserClientMappings()){
-        		Client client = clientMap.getClient();
-        		clients.add(ClientData.lookup(client.getId(), client.getDisplayName(), 
-        				client.getOffice().getId(), client.getOffice().getName()));
-        	}
-        	retUser.setClients(clients);
+
+        if (retUser.isSelfServiceUser()) {
+            Set<ClientData> clients = new HashSet<>();
+            for (AppUserClientMapping clientMap : user.getAppUserClientMappings()) {
+                Client client = clientMap.getClient();
+                clients.add(ClientData.lookup(client.getId(), client.getDisplayName(), client.getOffice().getId(),
+                        client.getOffice().getName()));
+            }
+            retUser.setClients(clients);
         }
-        
-        return retUser; 
+
+        return retUser;
     }
 
     private static final class AppUserMapper implements RowMapper<AppUserData> {
@@ -158,7 +159,7 @@ public class AppUserReadPlatformServiceImpl implements AppUserReadPlatformServic
         private final RoleReadPlatformService roleReadPlatformService;
         private final StaffReadPlatformService staffReadPlatformService;
 
-        public AppUserMapper(final RoleReadPlatformService roleReadPlatformService, final StaffReadPlatformService staffReadPlatformService) {
+        AppUserMapper(final RoleReadPlatformService roleReadPlatformService, final StaffReadPlatformService staffReadPlatformService) {
             this.roleReadPlatformService = roleReadPlatformService;
             this.staffReadPlatformService = staffReadPlatformService;
         }
@@ -184,14 +185,14 @@ public class AppUserReadPlatformServiceImpl implements AppUserReadPlatformServic
             } else {
                 linkedStaff = null;
             }
-            return AppUserData.instance(id, username, email, officeId, officeName, firstname, lastname, null, selectedRoles, linkedStaff,
-                    passwordNeverExpire, isSelfServiceUser);
+            return AppUserData.instance(id, username, email, officeId, officeName, firstname, lastname, null, null, selectedRoles,
+                    linkedStaff, passwordNeverExpire, isSelfServiceUser);
         }
 
         public String schema() {
             return " u.id as id, u.username as username, u.firstname as firstname, u.lastname as lastname, u.email as email, u.password_never_expires as passwordNeverExpires, "
                     + " u.office_id as officeId, o.name as officeName, u.staff_id as staffId, u.is_self_service_user as isSelfServiceUser from m_appuser u "
-                    + " join m_office o on o.id = u.office_id where o.hierarchy like ? and u.is_deleted=0 order by u.username";
+                    + " join m_office o on o.id = u.office_id where o.hierarchy like ? and u.is_deleted=false order by u.username";
         }
 
     }
@@ -209,7 +210,7 @@ public class AppUserReadPlatformServiceImpl implements AppUserReadPlatformServic
 
         public String schema() {
             return " u.id as id, u.username as username from m_appuser u "
-                    + " join m_office o on o.id = u.office_id where o.hierarchy like ? and u.is_deleted=0 order by u.username";
+                    + " join m_office o on o.id = u.office_id where o.hierarchy like ? and u.is_deleted=false order by u.username";
         }
     }
 
@@ -217,8 +218,10 @@ public class AppUserReadPlatformServiceImpl implements AppUserReadPlatformServic
     public boolean isUsernameExist(String username) {
         String sql = "select count(*) from m_appuser where username = ?";
         Object[] params = new Object[] { username };
-        Integer count = this.jdbcTemplate.queryForObject(sql, params, Integer.class);
-        if (count == 0) { return false; }
+        Integer count = this.jdbcTemplate.queryForObject(sql, Integer.class, params);
+        if (count == 0) {
+            return false;
+        }
         return true;
     }
 }

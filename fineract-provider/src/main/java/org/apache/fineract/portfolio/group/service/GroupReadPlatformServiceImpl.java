@@ -26,21 +26,18 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import org.apache.commons.lang.StringUtils;
 import org.apache.fineract.infrastructure.codes.data.CodeValueData;
 import org.apache.fineract.infrastructure.codes.service.CodeValueReadPlatformService;
-import org.apache.fineract.infrastructure.core.api.ApiParameterHelper;
 import org.apache.fineract.infrastructure.core.data.PaginationParameters;
 import org.apache.fineract.infrastructure.core.data.PaginationParametersDataValidator;
 import org.apache.fineract.infrastructure.core.domain.JdbcSupport;
 import org.apache.fineract.infrastructure.core.service.Page;
 import org.apache.fineract.infrastructure.core.service.PaginationHelper;
-import org.apache.fineract.infrastructure.core.service.RoutingDataSource;
 import org.apache.fineract.infrastructure.core.service.SearchParameters;
+import org.apache.fineract.infrastructure.core.service.database.DatabaseSpecificSQLGenerator;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
 import org.apache.fineract.infrastructure.security.utils.ColumnValidator;
-import org.apache.fineract.infrastructure.security.utils.SQLInjectionValidator;
+import org.apache.fineract.infrastructure.security.utils.SQLBuilder;
 import org.apache.fineract.organisation.office.data.OfficeData;
 import org.apache.fineract.organisation.office.service.OfficeReadPlatformService;
 import org.apache.fineract.organisation.staff.data.StaffData;
@@ -62,35 +59,39 @@ import org.springframework.util.CollectionUtils;
 @Service
 public class GroupReadPlatformServiceImpl implements GroupReadPlatformService {
 
+    public static final String ID = "id";
+    public static final String NAME = "name";
+    public static final String OFFICE_ID = "officeId";
+    public static final String OFFICE_NAME = "officeName";
+    private static final AllGroupTypesDataMapper ALL_GROUP_TYPES_DATA_MAPPER = new AllGroupTypesDataMapper();
+    private static final Set<String> SUPPORTED_ORDER_BY_VALUES = new HashSet<>(Arrays.asList(ID, NAME, OFFICE_ID, OFFICE_NAME));
     private final JdbcTemplate jdbcTemplate;
     private final PlatformSecurityContext context;
     private final OfficeReadPlatformService officeReadPlatformService;
     private final StaffReadPlatformService staffReadPlatformService;
     private final CenterReadPlatformService centerReadPlatformService;
     private final CodeValueReadPlatformService codeValueReadPlatformService;
-
-    private final AllGroupTypesDataMapper allGroupTypesDataMapper = new AllGroupTypesDataMapper();
-    private final PaginationHelper<GroupGeneralData> paginationHelper = new PaginationHelper<>();
+    private final PaginationHelper paginationHelper;
+    private final DatabaseSpecificSQLGenerator sqlGenerator;
     private final PaginationParametersDataValidator paginationParametersDataValidator;
     private final ColumnValidator columnValidator;
 
-    private final static Set<String> supportedOrderByValues = new HashSet<>(Arrays.asList("id", "name", "officeId", "officeName"));
-
     @Autowired
-    public GroupReadPlatformServiceImpl(final PlatformSecurityContext context, final RoutingDataSource dataSource,
-            final CenterReadPlatformService centerReadPlatformService,
-            final OfficeReadPlatformService officeReadPlatformService, final StaffReadPlatformService staffReadPlatformService,
-            final CodeValueReadPlatformService codeValueReadPlatformService,
-            final PaginationParametersDataValidator paginationParametersDataValidator,
-            final ColumnValidator columnValidator) {
+    public GroupReadPlatformServiceImpl(final PlatformSecurityContext context, final JdbcTemplate jdbcTemplate,
+            final CenterReadPlatformService centerReadPlatformService, final OfficeReadPlatformService officeReadPlatformService,
+            final StaffReadPlatformService staffReadPlatformService, final CodeValueReadPlatformService codeValueReadPlatformService,
+            final PaginationParametersDataValidator paginationParametersDataValidator, final ColumnValidator columnValidator,
+            DatabaseSpecificSQLGenerator sqlGenerator, PaginationHelper paginationHelper) {
         this.context = context;
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
+        this.jdbcTemplate = jdbcTemplate;
         this.centerReadPlatformService = centerReadPlatformService;
         this.officeReadPlatformService = officeReadPlatformService;
         this.staffReadPlatformService = staffReadPlatformService;
         this.codeValueReadPlatformService = codeValueReadPlatformService;
         this.paginationParametersDataValidator = paginationParametersDataValidator;
         this.columnValidator = columnValidator;
+        this.paginationHelper = paginationHelper;
+        this.sqlGenerator = sqlGenerator;
     }
 
     @Override
@@ -127,7 +128,7 @@ public class GroupReadPlatformServiceImpl implements GroupReadPlatformService {
         final Long staffId = null;
         final String staffName = null;
         final Collection<ClientData> clientOptions = null;
-        
+
         return GroupGeneralData.template(defaultOfficeId, centerId, accountNo, centerName, staffId, staffName, centerOptions, officeOptions,
                 staffOptions, clientOptions, availableRoles);
     }
@@ -143,27 +144,22 @@ public class GroupReadPlatformServiceImpl implements GroupReadPlatformService {
     @Override
     public Page<GroupGeneralData> retrievePagedAll(final SearchParameters searchParameters, final PaginationParameters parameters) {
 
-        this.paginationParametersDataValidator.validateParameterValues(parameters, supportedOrderByValues, "audits");
+        this.paginationParametersDataValidator.validateParameterValues(parameters, SUPPORTED_ORDER_BY_VALUES, "audits");
         final AppUser currentUser = this.context.authenticatedUser();
         final String hierarchy = currentUser.getOffice().getHierarchy();
         final String hierarchySearchString = hierarchy + "%";
 
         final StringBuilder sqlBuilder = new StringBuilder(200);
-        sqlBuilder.append("select SQL_CALC_FOUND_ROWS ");
-        sqlBuilder.append(this.allGroupTypesDataMapper.schema());
-        sqlBuilder.append(" where o.hierarchy like ?");
-        List<Object> paramList = new ArrayList<>(
-                Arrays.asList(hierarchySearchString));
-        final String extraCriteria = getGroupExtraCriteria(this.allGroupTypesDataMapper.schema(), paramList, searchParameters);
-        this.columnValidator.validateSqlInjection(sqlBuilder.toString(), extraCriteria);
-        if (StringUtils.isNotBlank(extraCriteria)) {
-            sqlBuilder.append(" and (").append(extraCriteria).append(")");
-        }
+        sqlBuilder.append("select " + sqlGenerator.calcFoundRows() + " ");
+        sqlBuilder.append(ALL_GROUP_TYPES_DATA_MAPPER.schema());
 
+        final SQLBuilder extraCriteria = getGroupExtraCriteria(searchParameters);
+        extraCriteria.addCriteria(" o.hierarchy like ", hierarchySearchString);
+        sqlBuilder.append(" ").append(extraCriteria.getSQLTemplate());
         if (parameters.isOrderByRequested()) {
             sqlBuilder.append(" order by ").append(searchParameters.getOrderBy()).append(' ').append(searchParameters.getSortOrder());
             this.columnValidator.validateSqlInjection(sqlBuilder.toString(), searchParameters.getOrderBy(),
-            		searchParameters.getSortOrder());
+                    searchParameters.getSortOrder());
         }
 
         if (parameters.isLimited()) {
@@ -173,9 +169,8 @@ public class GroupReadPlatformServiceImpl implements GroupReadPlatformService {
             }
         }
 
-        final String sqlCountRows = "SELECT FOUND_ROWS()";
-        return this.paginationHelper.fetchPage(this.jdbcTemplate, sqlCountRows, sqlBuilder.toString(),
-        		paramList.toArray(), this.allGroupTypesDataMapper);
+        return this.paginationHelper.fetchPage(this.jdbcTemplate, sqlBuilder.toString(), extraCriteria.getArguments(),
+                ALL_GROUP_TYPES_DATA_MAPPER);
     }
 
     @Override
@@ -186,18 +181,17 @@ public class GroupReadPlatformServiceImpl implements GroupReadPlatformService {
 
         final StringBuilder sqlBuilder = new StringBuilder(200);
         sqlBuilder.append("select ");
-        sqlBuilder.append(this.allGroupTypesDataMapper.schema());
-        sqlBuilder.append(" where o.hierarchy like ?");
-        List<Object> paramList = new ArrayList<>(
-                Arrays.asList(hierarchySearchString));
-        if (searchParameters!=null) {
-            final String extraCriteria = getGroupExtraCriteria(this.allGroupTypesDataMapper.schema(), paramList, searchParameters);
+        sqlBuilder.append(ALL_GROUP_TYPES_DATA_MAPPER.schema());
+        final SQLBuilder extraCriteria = getGroupExtraCriteria(searchParameters);
+        extraCriteria.addCriteria("o.hierarchy like ", hierarchySearchString);
 
-            if (StringUtils.isNotBlank(extraCriteria)) {
-                sqlBuilder.append(" and (").append(extraCriteria).append(")");
-            }
+        sqlBuilder.append(" ").append(extraCriteria.getSQLTemplate());
+
+        if (searchParameters != null && searchParameters.isOrphansOnly()) {
+            sqlBuilder.append(" and g.parent_id is NULL");
         }
-        if (parameters!=null) {
+
+        if (parameters != null) {
             if (parameters.isOrderByRequested()) {
                 sqlBuilder.append(parameters.orderBySql());
                 this.columnValidator.validateSqlInjection(sqlBuilder.toString(), parameters.orderBySql());
@@ -208,68 +202,37 @@ public class GroupReadPlatformServiceImpl implements GroupReadPlatformService {
                 this.columnValidator.validateSqlInjection(sqlBuilder.toString(), parameters.limitSql());
             }
         }
-        return this.jdbcTemplate.query(sqlBuilder.toString(), this.allGroupTypesDataMapper, paramList.toArray());
+
+        return this.jdbcTemplate.query(sqlBuilder.toString(), ALL_GROUP_TYPES_DATA_MAPPER, extraCriteria.getArguments()); // NOSONAR
     }
 
     // 'g.' preffix because of ERROR 1052 (23000): Column 'column_name' in where
     // clause is ambiguous
     // caused by the same name of columns in m_office and m_group tables
-    private String getGroupExtraCriteria(String schemaSql, List<Object> paramList, final SearchParameters searchCriteria) {
+    private SQLBuilder getGroupExtraCriteria(final SearchParameters searchCriteria) {
 
-        StringBuffer extraCriteria = new StringBuffer(200);
-        extraCriteria.append(" and g.level_Id = ").append(GroupTypes.GROUP.getId());
-            String sqlSearch = searchCriteria.getSqlSearch();
-            if (sqlSearch != null) {
-                SQLInjectionValidator.validateSQLInput(sqlSearch);
-                sqlSearch = sqlSearch.replace(" display_name ", " g.display_name ");
-                sqlSearch = sqlSearch.replace("display_name ", "g.display_name ");
-                extraCriteria.append(" and ( ").append(sqlSearch).append(") ");
-                this.columnValidator.validateSqlInjection(schemaSql, sqlSearch);
-            }
+        SQLBuilder extraCriteria = new SQLBuilder();
+        if (searchCriteria == null) {
+            return extraCriteria;
+        }
+        extraCriteria.addCriteria("g.level_Id = ", GroupTypes.GROUP.getId());
 
-            final Long officeId = searchCriteria.getOfficeId();
-            if (officeId != null) {
-                paramList.add(officeId);
-                extraCriteria.append(" and g.office_id = ? ");
-            }
+        extraCriteria.addNonNullCriteria(" g.office_id = ", searchCriteria.getOfficeId());
 
-            final String externalId = searchCriteria.getExternalId();
-            if (externalId != null) {
-                paramList.add(ApiParameterHelper.sqlEncodeString(externalId));
-                extraCriteria.append(" and g.external_id = ? ");
-            }
+        extraCriteria.addNonNullCriteria(" g.external_id =", searchCriteria.getExternalId());
 
         final String name = searchCriteria.getName();
         if (name != null) {
-        	paramList.add("%" + name + "%");
-            extraCriteria.append(" and g.display_name like ? ");
+            extraCriteria.addNonNullCriteria("g.display_name like", "%" + name + "%");
         }
 
-            final String hierarchy = searchCriteria.getHierarchy();
-            if (hierarchy != null) {
-                paramList.add(ApiParameterHelper.sqlEncodeString(hierarchy + "%"));
-                extraCriteria.append(" and o.hierarchy like ? ");
-            }
+        final String hierarchy = searchCriteria.getHierarchy();
+        if (hierarchy != null) {
+            extraCriteria.addNonNullCriteria("o.hierarchy like ", hierarchy + "%");
+        }
+        extraCriteria.addNonNullCriteria("g.staff_id =", searchCriteria.getStaffId());
 
-            if (searchCriteria.isStaffIdPassed()) {
-                paramList.add(searchCriteria.getStaffId());
-                extraCriteria.append(" and g.staff_id = ? ");
-            }
-
-            if (StringUtils.isNotBlank(extraCriteria.toString())) {
-                extraCriteria.delete(0, 4);
-            }
-
-            final Long staffId = searchCriteria.getStaffId();
-            if (staffId != null) {
-                paramList.add(staffId);
-                extraCriteria.append(" and g.staff_id = ? ");
-            }
-
-            if (searchCriteria.isOrphansOnly()) {
-                extraCriteria.append(" and g.parent_id IS NULL");
-            }
-        return extraCriteria.toString();
+        return extraCriteria;
     }
 
     @Override
@@ -280,10 +243,10 @@ public class GroupReadPlatformServiceImpl implements GroupReadPlatformService {
             final String hierarchy = currentUser.getOffice().getHierarchy();
             final String hierarchySearchString = hierarchy + "%";
 
-            final String sql = "select " + this.allGroupTypesDataMapper.schema() + " where g.id = ? and o.hierarchy like ?";
-            return this.jdbcTemplate.queryForObject(sql, this.allGroupTypesDataMapper, new Object[] { groupId, hierarchySearchString });
+            final String sql = "select " + ALL_GROUP_TYPES_DATA_MAPPER.schema() + " where g.id = ? and o.hierarchy like ?";
+            return this.jdbcTemplate.queryForObject(sql, ALL_GROUP_TYPES_DATA_MAPPER, groupId, hierarchySearchString); // NOSONAR
         } catch (final EmptyResultDataAccessException e) {
-            throw new GroupNotFoundException(groupId);
+            throw new GroupNotFoundException(groupId, e);
         }
     }
 
@@ -292,22 +255,7 @@ public class GroupReadPlatformServiceImpl implements GroupReadPlatformService {
         this.context.authenticatedUser();
         final GroupLookupDataMapper rm = new GroupLookupDataMapper();
         final String sql = "Select " + rm.schema() + " and g.office_id=?";
-        return this.jdbcTemplate.query(sql, rm, new Object[] { officeId });
-    }
-
-    private static final class GroupLookupDataMapper implements RowMapper<GroupGeneralData> {
-
-        public final String schema() {
-            return "g.id as id, g.account_no as accountNo, g.display_name as displayName from m_group g where g.level_id = 2 ";
-        }
-
-        @Override
-        public GroupGeneralData mapRow(final ResultSet rs, @SuppressWarnings("unused") final int rowNum) throws SQLException {
-            final Long id = JdbcSupport.getLong(rs, "id");
-            final String accountNo = rs.getString("accountNo");
-            final String displayName = rs.getString("displayName");
-            return GroupGeneralData.lookup(id, accountNo, displayName);
-        }
+        return this.jdbcTemplate.query(sql, rm, officeId); // NOSONAR
     }
 
     @Override
@@ -315,6 +263,23 @@ public class GroupReadPlatformServiceImpl implements GroupReadPlatformService {
         final List<CodeValueData> closureReasons = new ArrayList<>(
                 this.codeValueReadPlatformService.retrieveCodeValuesByCode(GroupingTypesApiConstants.GROUP_CLOSURE_REASON));
         return GroupGeneralData.withClosureReasons(closureReasons);
+    }
+
+    private static final class GroupLookupDataMapper implements RowMapper<GroupGeneralData> {
+
+        public static final String G_ID_AS_ID_G_ACCOUNT_NO_AS_ACCOUNT_NO_G_DISPLAY_NAME_AS_DISPLAY_NAME_FROM_M_GROUP_G_WHERE_G_LEVEL_ID_2 = "g.id as id, g.account_no as accountNo, g.display_name as displayName from m_group g where g.level_id = 2 ";
+
+        public String schema() {
+            return G_ID_AS_ID_G_ACCOUNT_NO_AS_ACCOUNT_NO_G_DISPLAY_NAME_AS_DISPLAY_NAME_FROM_M_GROUP_G_WHERE_G_LEVEL_ID_2;
+        }
+
+        @Override
+        public GroupGeneralData mapRow(final ResultSet rs, @SuppressWarnings("unused") final int rowNum) throws SQLException {
+            final Long id = JdbcSupport.getLong(rs, ID);
+            final String accountNo = rs.getString("accountNo");
+            final String displayName = rs.getString("displayName");
+            return GroupGeneralData.lookup(id, accountNo, displayName);
+        }
     }
 
 }

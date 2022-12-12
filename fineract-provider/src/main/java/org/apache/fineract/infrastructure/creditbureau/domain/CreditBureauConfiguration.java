@@ -18,84 +18,79 @@
  */
 package org.apache.fineract.infrastructure.creditbureau.domain;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
-import javax.persistence.OneToOne;
 import javax.persistence.Table;
-
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.Accessors;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
 
 @Entity
 @Table(name = "m_creditbureau_configuration")
-public class CreditBureauConfiguration extends AbstractPersistableCustom<Long> {
-	@Column(name = "configkey")
-	private String configurationKey;
+@Getter
+@Setter
+@NoArgsConstructor
+@Accessors(chain = true)
+public class CreditBureauConfiguration extends AbstractPersistableCustom {
 
-	@Column(name = "value")
-	private String value;
+    @Column(name = "configkey")
+    private String configurationKey;
 
-	@Column(name = "description")
-	private String description;
+    @Column(name = "value")
+    private String value;
 
-	@ManyToOne
-	@JoinColumn(name = "organisation_creditbureau_id")
-	private OrganisationCreditBureau organisationCreditbureau;
+    @Column(name = "description")
+    private String description;
 
-	public CreditBureauConfiguration() {
+    @ManyToOne
+    @JoinColumn(name = "organisation_creditbureau_id")
+    private OrganisationCreditBureau organisationCreditbureau;
 
-	}
+    public static CreditBureauConfiguration fromJson(JsonCommand command, OrganisationCreditBureau organisation_creditbureau) {
+        final String configkey = command.stringValueOfParameterNamed("configkey");
+        final String value = command.stringValueOfParameterNamed("value");
+        final String description = command.stringValueOfParameterNamed("description");
 
-	public CreditBureauConfiguration(String configkey, String value, String description,
-			OrganisationCreditBureau organisationCreditbureau) {
-		this.configurationKey = configkey;
-		this.value = value;
-		this.description = description;
-		this.organisationCreditbureau = organisationCreditbureau;
+        return new CreditBureauConfiguration().setConfigurationKey(configkey).setValue(value).setDescription(description)
+                .setOrganisationCreditbureau(organisation_creditbureau);
 
-	}
+    }
 
-	public CreditBureauConfiguration fromJson(JsonCommand command, OrganisationCreditBureau organisation_creditbureau) {
-		final String configkey = command.stringValueOfParameterNamed("configkey");
-		final String value = command.stringValueOfParameterNamed("value");
-		final String description = command.stringValueOfParameterNamed("description");
+    public Map<String, Object> update(final JsonCommand command) {
 
-		return new CreditBureauConfiguration(configkey, value, description, organisation_creditbureau);
+        final Map<String, Object> actualChanges = new LinkedHashMap<>(1);
 
-	}
+        final String configurationKey = "configkey";
 
-	public String getConfigkey() {
-		return this.configurationKey;
-	}
+        if (command.isChangeInStringParameterNamed(configurationKey, this.configurationKey)) {
+            final String newValue = command.stringValueOfParameterNamed(configurationKey);
+            actualChanges.put(configurationKey, newValue);
+            this.configurationKey = StringUtils.defaultIfEmpty(newValue, null);
+        }
 
-	public void setConfigkey(String configkey) {
-		this.configurationKey = configkey;
-	}
+        final String value = "value";
+        if (command.isChangeInStringParameterNamed(value, this.value)) {
+            final String newValue = command.stringValueOfParameterNamed(value);
+            actualChanges.put(value, newValue);
+            this.value = StringUtils.defaultIfEmpty(newValue, null);
+        }
 
-	public String getValue() {
-		return this.value;
-	}
+        final String description = "description";
+        if (command.isChangeInStringParameterNamed(description, this.configurationKey)) {
+            final String newValue = command.stringValueOfParameterNamed(description);
+            actualChanges.put(description, newValue);
+            this.description = StringUtils.defaultIfEmpty(newValue, null);
+        }
 
-	public void setValue(String value) {
-		this.value = value;
-	}
-
-	public String getDescription() {
-		return this.description;
-	}
-
-	public void setDescription(String description) {
-		this.description = description;
-	}
-
-	public OrganisationCreditBureau getOrganisation_creditbureau() {
-		return this.organisationCreditbureau;
-	}
-
-	public void setOrganisation_creditbureau(OrganisationCreditBureau organisation_creditbureau) {
-		this.organisationCreditbureau = organisation_creditbureau;
-	}
+        return actualChanges;
+    }
 
 }

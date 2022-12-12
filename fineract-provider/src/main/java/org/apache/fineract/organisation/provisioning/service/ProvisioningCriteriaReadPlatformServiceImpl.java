@@ -24,10 +24,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-
 import org.apache.fineract.accounting.glaccount.data.GLAccountData;
 import org.apache.fineract.accounting.glaccount.service.GLAccountReadPlatformService;
-import org.apache.fineract.infrastructure.core.service.RoutingDataSource;
 import org.apache.fineract.organisation.provisioning.data.ProvisioningCategoryData;
 import org.apache.fineract.organisation.provisioning.data.ProvisioningCriteriaData;
 import org.apache.fineract.organisation.provisioning.data.ProvisioningCriteriaDefinitionData;
@@ -50,12 +48,12 @@ public class ProvisioningCriteriaReadPlatformServiceImpl implements Provisioning
     private final LoanProductReadPlatformService loanProductReaPlatformService;
 
     @Autowired
-    public ProvisioningCriteriaReadPlatformServiceImpl(final RoutingDataSource dataSource,
+    public ProvisioningCriteriaReadPlatformServiceImpl(final JdbcTemplate jdbcTemplate,
             final ProvisioningCategoryReadPlatformService provisioningCategoryReadPlatformService,
             final LoanProductReadPlatformService loanProductReadPlatformService,
             final GLAccountReadPlatformService glAccountReadPlatformService,
             final LoanProductReadPlatformService loanProductReaPlatformService) {
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
+        this.jdbcTemplate = jdbcTemplate;
         this.provisioningCategoryReadPlatformService = provisioningCategoryReadPlatformService;
         this.loanProductReadPlatformService = loanProductReadPlatformService;
         this.glAccountReadPlatformService = glAccountReadPlatformService;
@@ -83,7 +81,7 @@ public class ProvisioningCriteriaReadPlatformServiceImpl implements Provisioning
         final Collection<GLAccountData> glAccounts = this.glAccountReadPlatformService.retrieveAllEnabledDetailGLAccounts();
         return ProvisioningCriteriaData.toTemplate(data, constructCriteriaTemplate(categories), allLoanProducts, glAccounts);
     }
-    
+
     private Collection<ProvisioningCriteriaDefinitionData> constructCriteriaTemplate(Collection<ProvisioningCategoryData> categories) {
         List<ProvisioningCriteriaDefinitionData> definitions = new ArrayList<>();
         for (ProvisioningCategoryData data : categories) {
@@ -91,22 +89,24 @@ public class ProvisioningCriteriaReadPlatformServiceImpl implements Provisioning
         }
         return definitions;
     }
+
     @Override
     public Collection<ProvisioningCriteriaData> retrieveAllProvisioningCriterias() {
-        ProvisioningCriteriaRowMapper mapper = new ProvisioningCriteriaRowMapper() ;
-        final String sql = "select " + mapper.schema() ;
-        return this.jdbcTemplate.query(sql, mapper, new Object[] {});
+        ProvisioningCriteriaRowMapper mapper = new ProvisioningCriteriaRowMapper();
+        final String sql = "select " + mapper.schema();
+        return this.jdbcTemplate.query(sql, mapper); // NOSONAR
     }
-    
+
     private static final class ProvisioningCriteriaRowMapper implements RowMapper<ProvisioningCriteriaData> {
 
         @Override
         public ProvisioningCriteriaData mapRow(final ResultSet rs, @SuppressWarnings("unused") final int rowNum) throws SQLException {
-            Long criteriaId = rs.getLong("id") ;
+            Long criteriaId = rs.getLong("id");
             String criteriaName = rs.getString("criteriaName");
-            String createdBy = rs.getString("username") ;
-            return ProvisioningCriteriaData.toLookup(criteriaId, criteriaName, createdBy) ;
+            String createdBy = rs.getString("username");
+            return ProvisioningCriteriaData.toLookup(criteriaId, criteriaName, createdBy);
         }
+
         public String schema() {
             return "mpc.id as id, mpc.criteria_name as criteriaName, appu.username as username from m_provisioning_criteria as mpc LEFT JOIN m_appuser appu on mpc.createdby_id=appu.id";
         }
@@ -116,21 +116,21 @@ public class ProvisioningCriteriaReadPlatformServiceImpl implements Provisioning
     public ProvisioningCriteriaData retrieveProvisioningCriteria(Long criteriaId) {
         try {
             String criteriaName = retrieveCriteriaName(criteriaId);
-            Collection<LoanProductData> loanProducts = loanProductReaPlatformService
-                    .retrieveAllLoanProductsForLookup("select product_id from m_loanproduct_provisioning_mapping where m_loanproduct_provisioning_mapping.criteria_id="
+            Collection<LoanProductData> loanProducts = loanProductReaPlatformService.retrieveAllLoanProductsForLookup(
+                    "select product_id from m_loanproduct_provisioning_mapping where m_loanproduct_provisioning_mapping.criteria_id="
                             + criteriaId);
             List<ProvisioningCriteriaDefinitionData> definitions = retrieveProvisioningDefinitions(criteriaId);
             return ProvisioningCriteriaData.toLookup(criteriaId, criteriaName, loanProducts, definitions);
-        }catch(EmptyResultDataAccessException e) {
-            throw new ProvisioningCriteriaNotFoundException(criteriaId) ;
+        } catch (EmptyResultDataAccessException e) {
+            throw new ProvisioningCriteriaNotFoundException(criteriaId, e);
         }
-       
+
     }
 
     private List<ProvisioningCriteriaDefinitionData> retrieveProvisioningDefinitions(Long criteriaId) {
         ProvisioningCriteriaDefinitionRowMapper rowMapper = new ProvisioningCriteriaDefinitionRowMapper();
         final String sql = "select " + rowMapper.schema() + " where pc.criteria_id = ?";
-        return this.jdbcTemplate.query(sql, rowMapper, new Object[] { criteriaId });
+        return this.jdbcTemplate.query(sql, rowMapper, new Object[] { criteriaId }); // NOSONAR
     }
 
     private static final class ProvisioningCriteriaDefinitionRowMapper implements RowMapper<ProvisioningCriteriaDefinitionData> {
@@ -138,8 +138,7 @@ public class ProvisioningCriteriaReadPlatformServiceImpl implements Provisioning
         private final StringBuilder sqlQuery = new StringBuilder()
                 .append("pc.id, pc.criteria_id, pc.category_id, mpc.category_name, pc.min_age, pc.max_age, ")
                 .append("pc.provision_percentage, pc.liability_account, pc.expense_account, lia.gl_code as liabilitycode, expe.gl_code as expensecode, ")
-                .append("lia.name as liabilityname, expe.name as expensename ")
-                .append("from m_provisioning_criteria_definition as pc ")
+                .append("lia.name as liabilityname, expe.name as expensename ").append("from m_provisioning_criteria_definition as pc ")
                 .append("LEFT JOIN acc_gl_account lia ON lia.id = pc.liability_account ")
                 .append("LEFT JOIN acc_gl_account expe ON expe.id = pc.expense_account ")
                 .append("LEFT JOIN m_provision_category mpc ON mpc.id = pc.category_id");
@@ -156,13 +155,15 @@ public class ProvisioningCriteriaReadPlatformServiceImpl implements Provisioning
             BigDecimal provisioningPercentage = rs.getBigDecimal("provision_percentage");
             Long liabilityAccount = rs.getLong("liability_account");
             String liabilityAccountCode = rs.getString("liabilitycode");
-            String liabilityAccountName = rs.getString("liabilityname") ;
+            String liabilityAccountName = rs.getString("liabilityname");
             Long expenseAccount = rs.getLong("expense_account");
             String expenseAccountCode = rs.getString("expensecode");
-            String expenseAccountName = rs.getString("expensename") ;
-            
-            return new ProvisioningCriteriaDefinitionData(id, categoryId, categoryName, minAge, maxAge, provisioningPercentage,
-                    liabilityAccount, liabilityAccountCode, liabilityAccountName, expenseAccount, expenseAccountCode, expenseAccountName);
+            String expenseAccountName = rs.getString("expensename");
+
+            return new ProvisioningCriteriaDefinitionData().setId(id).setCategoryId(categoryId).setCategoryName(categoryName)
+                    .setMinAge(minAge).setMaxAge(maxAge).setProvisioningPercentage(provisioningPercentage)
+                    .setLiabilityAccount(liabilityAccount).setLiabilityCode(liabilityAccountCode).setLiabilityName(liabilityAccountName)
+                    .setExpenseAccount(expenseAccount).setExpenseCode(expenseAccountCode).setExpenseName(expenseAccountName);
         }
 
         public String schema() {
@@ -173,7 +174,7 @@ public class ProvisioningCriteriaReadPlatformServiceImpl implements Provisioning
     private String retrieveCriteriaName(Long criteriaId) {
         ProvisioningCriteriaNameRowMapper rowMapper = new ProvisioningCriteriaNameRowMapper();
         final String sql = "select " + rowMapper.schema() + " from m_provisioning_criteria pc where pc.id = ?";
-        return this.jdbcTemplate.queryForObject(sql, rowMapper, new Object[] { criteriaId });
+        return this.jdbcTemplate.queryForObject(sql, rowMapper, new Object[] { criteriaId }); // NOSONAR
     }
 
     private static final class ProvisioningCriteriaNameRowMapper implements RowMapper<String> {

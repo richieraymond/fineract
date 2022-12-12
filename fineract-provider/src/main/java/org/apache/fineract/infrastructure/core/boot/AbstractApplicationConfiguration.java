@@ -18,37 +18,35 @@
  */
 package org.apache.fineract.infrastructure.core.boot;
 
-import org.apache.fineract.notification.config.MessagingConfiguration;
+import org.apache.fineract.infrastructure.core.config.FineractProperties;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
+import org.springframework.boot.autoconfigure.gson.GsonAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration;
+import org.springframework.boot.autoconfigure.liquibase.LiquibaseAutoConfiguration;
+import org.springframework.boot.autoconfigure.liquibase.LiquibaseProperties;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.ImportResource;
-import org.springframework.context.annotation.PropertySource;
+import org.springframework.integration.annotation.IntegrationComponentScan;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 /**
- * Base Spring Configuration with what's common to all Configuration subclasses.
- *
- * Notably the EnableAutoConfiguration excludes relevant for (and often adjusted
- * when upgrading versions of) Spring Boot, the "old" (pre. Spring Boot &amp;
- * MariaDB4j) fineract appContext.xml which all configurations need, and the
- * web.xml successor WebXmlConfiguration.
- *
- * Should NOT include Configuration related to embedded Tomcat, data sources,
- * and MariaDB4j (because those differ in the subclasses).
+ * Base Spring Configuration. Excludes autoconfiguration for those things we want to manually configure.
  */
+
 @Configuration
-@Import({ WebXmlConfiguration.class, WebXmlOauthConfiguration.class, WebFrontEndConfiguration.class,
-	MessagingConfiguration.class, WebTwoFactorXmlConfiguration.class })
-@ImportResource({ "classpath*:META-INF/spring/appContext.xml" })
-@PropertySource(value="classpath:META-INF/spring/jdbc.properties")
-@EnableAutoConfiguration(exclude = { DataSourceAutoConfiguration.class,
-		HibernateJpaAutoConfiguration.class,
-		DataSourceTransactionManagerAutoConfiguration.class,
-		FlywayAutoConfiguration.class })
+@EnableAutoConfiguration(exclude = { DataSourceAutoConfiguration.class, HibernateJpaAutoConfiguration.class,
+        DataSourceTransactionManagerAutoConfiguration.class, GsonAutoConfiguration.class, JdbcTemplateAutoConfiguration.class,
+        LiquibaseAutoConfiguration.class })
+@EnableTransactionManagement
+@EnableWebSecurity
+@EnableConfigurationProperties({ FineractProperties.class, LiquibaseProperties.class })
+@ComponentScan(basePackages = "org.apache.fineract.**")
+@IntegrationComponentScan(basePackages = "org.apache.fineract.**")
 public abstract class AbstractApplicationConfiguration {
 
 }

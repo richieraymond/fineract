@@ -18,14 +18,14 @@
  */
 package org.apache.fineract.accounting.journalentry.data;
 
+import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.fineract.accounting.journalentry.api.JournalEntryJsonInputParams;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.ApiParameterError;
@@ -35,22 +35,20 @@ import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.google.gson.reflect.TypeToken;
-
 @Component
 public class JournalEntryDataValidator {
 
     private final FromJsonHelper fromApiJsonHelper;
 
-    private final Set<String> RUNNING_BALANCE_UPDATE_REQUEST_DATA_PARAMETERS = new HashSet<>(
-            Arrays.asList(JournalEntryJsonInputParams.OFFICE_ID.getValue()));
+    private static final Set<String> RUNNING_BALANCE_UPDATE_REQUEST_DATA_PARAMETERS = new HashSet<>(
+            Collections.singletonList(JournalEntryJsonInputParams.OFFICE_ID.getValue()));
 
     @Autowired
     public JournalEntryDataValidator(final FromJsonHelper fromApiJsonHelper) {
         this.fromApiJsonHelper = fromApiJsonHelper;
     }
 
-    public void validateForUpdateRunningbalance(final JsonCommand command) {
+    public void validateForUpdateRunningBalance(final JsonCommand command) {
         final Type typeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
         this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, command.json(), RUNNING_BALANCE_UPDATE_REQUEST_DATA_PARAMETERS);
         final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
@@ -62,8 +60,10 @@ public class JournalEntryDataValidator {
             baseDataValidator.reset().parameter(JournalEntryJsonInputParams.OFFICE_ID.getValue()).value(officeId).ignoreIfNull()
                     .longGreaterThanZero();
         }
-        if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException("validation.msg.validation.errors.exist",
-                "Validation errors exist.", dataValidationErrors); }
+        if (!dataValidationErrors.isEmpty()) {
+            throw new PlatformApiDataValidationException("validation.msg.validation.errors.exist", "Validation errors exist.",
+                    dataValidationErrors);
+        }
     }
 
 }

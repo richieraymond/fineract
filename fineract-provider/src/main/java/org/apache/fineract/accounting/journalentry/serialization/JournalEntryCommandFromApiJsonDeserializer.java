@@ -18,14 +18,19 @@
  */
 package org.apache.fineract.accounting.journalentry.serialization;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.commons.lang.StringUtils;
+import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.accounting.journalentry.api.JournalEntryJsonInputParams;
 import org.apache.fineract.accounting.journalentry.command.JournalEntryCommand;
 import org.apache.fineract.accounting.journalentry.command.SingleDebitOrCreditEntryCommand;
@@ -33,32 +38,22 @@ import org.apache.fineract.infrastructure.core.exception.InvalidJsonException;
 import org.apache.fineract.infrastructure.core.serialization.AbstractFromApiJsonDeserializer;
 import org.apache.fineract.infrastructure.core.serialization.FromApiJsonDeserializer;
 import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
-import org.joda.time.LocalDate;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.reflect.TypeToken;
-
 /**
- * Implementation of {@link FromApiJsonDeserializer} for
- * {@link JournalEntryCommand}'s.
+ * Implementation of {@link FromApiJsonDeserializer} for {@link JournalEntryCommand}'s.
  */
 @Component
+@RequiredArgsConstructor
 public final class JournalEntryCommandFromApiJsonDeserializer extends AbstractFromApiJsonDeserializer<JournalEntryCommand> {
 
     private final FromJsonHelper fromApiJsonHelper;
 
-    @Autowired
-    public JournalEntryCommandFromApiJsonDeserializer(final FromJsonHelper fromApiJsonfromApiJsonHelper) {
-        this.fromApiJsonHelper = fromApiJsonfromApiJsonHelper;
-    }
-
     @Override
     public JournalEntryCommand commandFromApiJson(final String json) {
-        if (StringUtils.isBlank(json)) { throw new InvalidJsonException(); }
+        if (StringUtils.isBlank(json)) {
+            throw new InvalidJsonException();
+        }
 
         final Type typeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
         final Set<String> supportedParameters = JournalEntryJsonInputParams.getAllValues();
@@ -67,11 +62,11 @@ public final class JournalEntryCommandFromApiJsonDeserializer extends AbstractFr
         final JsonElement element = this.fromApiJsonHelper.parse(json);
 
         final Long officeId = this.fromApiJsonHelper.extractLongNamed(JournalEntryJsonInputParams.OFFICE_ID.getValue(), element);
-        final String currencyCode = this.fromApiJsonHelper
-                .extractStringNamed(JournalEntryJsonInputParams.CURRENCY_CODE.getValue(), element);
+        final String currencyCode = this.fromApiJsonHelper.extractStringNamed(JournalEntryJsonInputParams.CURRENCY_CODE.getValue(),
+                element);
         final String comments = this.fromApiJsonHelper.extractStringNamed(JournalEntryJsonInputParams.COMMENTS.getValue(), element);
-        final LocalDate transactionDate = this.fromApiJsonHelper.extractLocalDateNamed(
-                JournalEntryJsonInputParams.TRANSACTION_DATE.getValue(), element);
+        final LocalDate transactionDate = this.fromApiJsonHelper
+                .extractLocalDateNamed(JournalEntryJsonInputParams.TRANSACTION_DATE.getValue(), element);
         final String referenceNumber = this.fromApiJsonHelper.extractStringNamed(JournalEntryJsonInputParams.REFERENCE_NUMBER.getValue(),
                 element);
         final Long accountingRuleId = this.fromApiJsonHelper.extractLongNamed(JournalEntryJsonInputParams.ACCOUNTING_RULE.getValue(),
@@ -95,26 +90,26 @@ public final class JournalEntryCommandFromApiJsonDeserializer extends AbstractFr
         if (element.isJsonObject()) {
             if (topLevelJsonElement.has(JournalEntryJsonInputParams.CREDITS.getValue())
                     && topLevelJsonElement.get(JournalEntryJsonInputParams.CREDITS.getValue()).isJsonArray()) {
-                credits = populateCreditsOrDebitsArray(topLevelJsonElement, locale, credits, JournalEntryJsonInputParams.CREDITS.getValue());
+                credits = populateCreditsOrDebitsArray(topLevelJsonElement, locale, JournalEntryJsonInputParams.CREDITS.getValue());
             }
             if (topLevelJsonElement.has(JournalEntryJsonInputParams.DEBITS.getValue())
                     && topLevelJsonElement.get(JournalEntryJsonInputParams.DEBITS.getValue()).isJsonArray()) {
-                debits = populateCreditsOrDebitsArray(topLevelJsonElement, locale, debits, JournalEntryJsonInputParams.DEBITS.getValue());
+                debits = populateCreditsOrDebitsArray(topLevelJsonElement, locale, JournalEntryJsonInputParams.DEBITS.getValue());
             }
         }
-        return new JournalEntryCommand(officeId, currencyCode, transactionDate, comments, credits, debits, referenceNumber,
-                accountingRuleId, amount, paymentTypeId, accountNumber, checkNumber, receiptNumber, bankNumber, routingCode);
+        return new JournalEntryCommand(officeId, currencyCode, transactionDate, comments, referenceNumber, accountingRuleId, amount,
+                paymentTypeId, accountNumber, checkNumber, receiptNumber, bankNumber, routingCode, credits, debits);
     }
 
     /**
-     * @param comments
      * @param topLevelJsonElement
      * @param locale
+     * @param paramName
      */
     private SingleDebitOrCreditEntryCommand[] populateCreditsOrDebitsArray(final JsonObject topLevelJsonElement, final Locale locale,
-            SingleDebitOrCreditEntryCommand[] debitOrCredits, final String paramName) {
+            final String paramName) {
         final JsonArray array = topLevelJsonElement.get(paramName).getAsJsonArray();
-        debitOrCredits = new SingleDebitOrCreditEntryCommand[array.size()];
+        SingleDebitOrCreditEntryCommand[] debitOrCredits = new SingleDebitOrCreditEntryCommand[array.size()];
         for (int i = 0; i < array.size(); i++) {
 
             final JsonObject creditElement = array.get(i).getAsJsonObject();
@@ -124,7 +119,7 @@ public final class JournalEntryCommandFromApiJsonDeserializer extends AbstractFr
             final String comments = this.fromApiJsonHelper.extractStringNamed("comments", creditElement);
             final BigDecimal amount = this.fromApiJsonHelper.extractBigDecimalNamed("amount", creditElement, locale);
 
-            debitOrCredits[i] = new SingleDebitOrCreditEntryCommand(parametersPassedInForCreditsCommand, glAccountId, amount, comments);
+            debitOrCredits[i] = new SingleDebitOrCreditEntryCommand(glAccountId, amount, comments, parametersPassedInForCreditsCommand);
         }
         return debitOrCredits;
     }

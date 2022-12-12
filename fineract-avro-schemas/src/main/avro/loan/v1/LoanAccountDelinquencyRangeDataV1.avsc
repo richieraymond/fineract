@@ -1,0 +1,39 @@
+{
+    "name": "LoanAccountDelinquencyRangeDataV1",
+    "namespace": "org.apache.fineract.avro.loan.v1",
+    "type": "record",
+    "fields": [
+        {
+            "default": null,
+            "name": "id",
+            "type": [
+                "null",
+                "long"
+            ]
+        },
+        {
+            "default": null,
+            "name": "accountNo",
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        {
+            "default": null,
+            "name": "externalId",
+            "type": [
+                "null",
+                "string"
+            ]
+        },
+        {
+            "default": null,
+            "name": "delinquencyRange",
+            "type": [
+                "null",
+                "org.apache.fineract.avro.loan.v1.DelinquencyRangeDataV1"
+            ]
+        }
+    ]
+}

@@ -21,10 +21,8 @@ package org.apache.fineract.portfolio.group.service;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
-
 import org.apache.fineract.infrastructure.codes.data.CodeValueData;
 import org.apache.fineract.infrastructure.core.domain.JdbcSupport;
-import org.apache.fineract.infrastructure.core.service.RoutingDataSource;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
 import org.apache.fineract.portfolio.group.data.GroupRoleData;
 import org.apache.fineract.portfolio.group.exception.GroupRoleNotFoundException;
@@ -41,9 +39,9 @@ public class GroupRolesReadPlatformServiceImpl implements GroupRolesReadPlatform
     private final PlatformSecurityContext context;
 
     @Autowired
-    public GroupRolesReadPlatformServiceImpl(final PlatformSecurityContext context, final RoutingDataSource dataSource) {
+    public GroupRolesReadPlatformServiceImpl(final PlatformSecurityContext context, final JdbcTemplate jdbcTemplate) {
         this.context = context;
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
@@ -51,7 +49,7 @@ public class GroupRolesReadPlatformServiceImpl implements GroupRolesReadPlatform
         this.context.authenticatedUser();
         final GroupRolesDataMapper mapper = new GroupRolesDataMapper();
         final String sql = "Select " + mapper.schema() + " where role.group_id=?";
-        return this.jdbcTemplate.query(sql, mapper, new Object[] { groupId });
+        return this.jdbcTemplate.query(sql, mapper, new Object[] { groupId }); // NOSONAR
     }
 
     @Override
@@ -60,15 +58,15 @@ public class GroupRolesReadPlatformServiceImpl implements GroupRolesReadPlatform
             this.context.authenticatedUser();
             final GroupRolesDataMapper mapper = new GroupRolesDataMapper();
             final String sql = "Select " + mapper.schema() + " where role.group_id=? and role.id=?";
-            return this.jdbcTemplate.queryForObject(sql, mapper, new Object[] { groupId, roleId });
+            return this.jdbcTemplate.queryForObject(sql, mapper, new Object[] { groupId, roleId }); // NOSONAR
         } catch (final EmptyResultDataAccessException e) {
-            throw new GroupRoleNotFoundException(roleId);
+            throw new GroupRoleNotFoundException(roleId, e);
         }
     }
 
     private static final class GroupRolesDataMapper implements RowMapper<GroupRoleData> {
 
-        public final String schema() {
+        public String schema() {
             return " role.id AS id, role.client_id AS clientId, c.display_name as clientName, role.role_cv_id AS roleId, cv.code_value AS roleName"
                     + " from m_code_value cv join m_group_roles role on role.role_cv_id = cv.id left join m_client c on c.id = role.client_id ";
         }

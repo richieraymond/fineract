@@ -21,77 +21,66 @@ package org.apache.fineract.infrastructure.hooks.processor;
 import static org.apache.fineract.infrastructure.hooks.api.HookApiConstants.contentTypeName;
 import static org.apache.fineract.infrastructure.hooks.api.HookApiConstants.payloadURLName;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-
-import org.apache.fineract.infrastructure.hooks.domain.Hook;
-import org.apache.fineract.infrastructure.hooks.domain.HookConfiguration;
-import org.apache.fineract.useradministration.domain.AppUser;
-import org.springframework.stereotype.Service;
-
-import retrofit.Callback;
-
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import lombok.RequiredArgsConstructor;
+import org.apache.fineract.infrastructure.core.domain.FineractContext;
+import org.apache.fineract.infrastructure.hooks.domain.Hook;
+import org.apache.fineract.infrastructure.hooks.domain.HookConfiguration;
+import org.springframework.stereotype.Service;
+import retrofit2.Callback;
 
 @Service
+@RequiredArgsConstructor
 public class WebHookProcessor implements HookProcessor {
 
-	@Override
-	public void process(final Hook hook,
-			@SuppressWarnings("unused") final AppUser appUser,
-			final String payload, final String entityName,
-			final String actionName, final String tenantIdentifier,
-			final String authToken) {
+    private final ProcessorHelper processorHelper;
 
-		final Set<HookConfiguration> config = hook.getHookConfig();
+    @Override
+    public void process(final Hook hook, final String payload, final String entityName, final String actionName,
+            final FineractContext context) {
 
-		String url = "";
-		String contentType = "";
+        final Set<HookConfiguration> config = hook.getConfig();
 
-		for (final HookConfiguration conf : config) {
-			final String fieldName = conf.getFieldName();
-			if (fieldName.equals(payloadURLName)) {
-				url = conf.getFieldValue();
-			}
-			if (fieldName.equals(contentTypeName)) {
-				contentType = conf.getFieldValue();
-			}
-		}
+        String url = "";
+        String contentType = "";
 
-		sendRequest(url, contentType, payload, entityName, actionName,
-				tenantIdentifier, authToken);
+        for (final HookConfiguration conf : config) {
+            final String fieldName = conf.getFieldName();
+            if (fieldName.equals(payloadURLName)) {
+                url = conf.getFieldValue();
+            }
+            if (fieldName.equals(contentTypeName)) {
+                contentType = conf.getFieldValue();
+            }
+        }
 
-	}
+        sendRequest(url, contentType, payload, entityName, actionName, context);
+    }
 
-	@SuppressWarnings("unchecked")
-	private void sendRequest(final String url, final String contentType,
-			final String payload, final String entityName,
-			final String actionName, final String tenantIdentifier,
-			@SuppressWarnings("unused") final String authToken) {
+    @SuppressWarnings("unchecked")
+    private void sendRequest(final String url, final String contentType, final String payload, final String entityName,
+            final String actionName, final FineractContext context) {
 
-		final String fineractEndpointUrl = System.getProperty("baseUrl");
-		final WebHookService service = ProcessorHelper
-				.createWebHookService(url);
+        final String fineractEndpointUrl = System.getProperty("baseUrl");
+        final WebHookService service = processorHelper.createWebHookService(url);
 
-		@SuppressWarnings("rawtypes")
-		final Callback callback = ProcessorHelper.createCallback(url);
+        @SuppressWarnings("rawtypes")
+        final Callback callback = processorHelper.createCallback(url);
 
-		if (contentType.equalsIgnoreCase("json")
-				|| contentType.contains("json")) {
-			final JsonObject json = new JsonParser().parse(payload)
-					.getAsJsonObject();
-			service.sendJsonRequest(entityName, actionName, tenantIdentifier,
-					fineractEndpointUrl, json, callback);
-		} else {
-			Map<String, String> map = new HashMap<>();
-			map = new Gson().fromJson(payload, map.getClass());
-			service.sendFormRequest(entityName, actionName, tenantIdentifier,
-					fineractEndpointUrl, map, callback);
-		}
-
-	}
-
+        if (contentType.equalsIgnoreCase("json") || contentType.contains("json")) {
+            final JsonObject json = JsonParser.parseString(payload).getAsJsonObject();
+            service.sendJsonRequest(entityName, actionName, context.getTenantContext().getTenantIdentifier(), fineractEndpointUrl, json)
+                    .enqueue(callback);
+        } else {
+            Map<String, String> map = new HashMap<>();
+            map = new Gson().fromJson(payload, map.getClass());
+            service.sendFormRequest(entityName, actionName, context.getTenantContext().getTenantIdentifier(), fineractEndpointUrl, map)
+                    .enqueue(callback);
+        }
+    }
 }

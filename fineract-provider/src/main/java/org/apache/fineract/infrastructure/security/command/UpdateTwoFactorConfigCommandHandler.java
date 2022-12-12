@@ -19,7 +19,6 @@
 package org.apache.fineract.infrastructure.security.command;
 
 import java.util.Map;
-
 import org.apache.fineract.commands.annotation.CommandType;
 import org.apache.fineract.commands.handler.NewCommandSourceHandler;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
@@ -28,13 +27,13 @@ import org.apache.fineract.infrastructure.core.data.CommandProcessingResultBuild
 import org.apache.fineract.infrastructure.security.data.TwoFactorConfigurationValidator;
 import org.apache.fineract.infrastructure.security.service.TwoFactorConfigurationService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Profile;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @CommandType(entity = "TWOFACTOR_CONFIGURATION", action = "UPDATE")
-@Profile("twofactor")
+@ConditionalOnProperty("fineract.security.2fa.enabled")
 public class UpdateTwoFactorConfigCommandHandler implements NewCommandSourceHandler {
 
     private final TwoFactorConfigurationService configurationService;
@@ -42,7 +41,7 @@ public class UpdateTwoFactorConfigCommandHandler implements NewCommandSourceHand
 
     @Autowired
     public UpdateTwoFactorConfigCommandHandler(TwoFactorConfigurationService configurationService,
-                                               TwoFactorConfigurationValidator dataValidator) {
+            TwoFactorConfigurationValidator dataValidator) {
         this.configurationService = configurationService;
         this.dataValidator = dataValidator;
     }
@@ -52,9 +51,6 @@ public class UpdateTwoFactorConfigCommandHandler implements NewCommandSourceHand
     public CommandProcessingResult processCommand(final JsonCommand command) {
         this.dataValidator.validateForUpdate(command.json());
         final Map<String, Object> changes = configurationService.update(command);
-        return new CommandProcessingResultBuilder()
-                .withCommandId(command.commandId())
-                .with(changes)
-                .build();
+        return new CommandProcessingResultBuilder().withCommandId(command.commandId()).with(changes).build();
     }
 }

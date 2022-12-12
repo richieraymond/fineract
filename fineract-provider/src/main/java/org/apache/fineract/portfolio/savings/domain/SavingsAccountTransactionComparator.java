@@ -21,8 +21,7 @@ package org.apache.fineract.portfolio.savings.domain;
 import java.util.Comparator;
 
 /**
- * Sort savings account transactions by transaction date and transaction type
- * placing
+ * Sort savings account transactions by transaction date and transaction type placing
  */
 public class SavingsAccountTransactionComparator implements Comparator<SavingsAccountTransaction> {
 
@@ -31,7 +30,7 @@ public class SavingsAccountTransactionComparator implements Comparator<SavingsAc
         int compareResult = 0;
         final int comparsion = o1.transactionLocalDate().compareTo(o2.transactionLocalDate());
         if (comparsion == 0) {
-            compareResult = o1.createdDate().compareTo(o2.createdDate());
+            compareResult = o1.getCreatedDate().compareTo(o2.getCreatedDate());
             if (compareResult == 0 && o1.getId() != null && o2.getId() != null) {
                 compareResult = o1.getId().compareTo(o2.getId());
             } else {

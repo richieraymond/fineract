@@ -18,38 +18,31 @@
  */
 package org.apache.fineract.infrastructure.survey.data;
 
-import org.joda.time.LocalDate;
+import java.time.LocalDate;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 
 /**
  * Created by Cieyou on 3/18/14.
  */
+@Data
+@NoArgsConstructor
+@Accessors(chain = true)
 public class ClientScoresOverview {
 
     @SuppressWarnings("unused")
-    final private String surveyName;
+    private String surveyName;
     @SuppressWarnings("unused")
-    final private long id;
+    private long id;
     @SuppressWarnings("unused")
-    final private String likelihoodCode;
+    private String likelihoodCode;
     @SuppressWarnings("unused")
-    final private String likelihoodName;
+    private String likelihoodName;
     @SuppressWarnings("unused")
-    final private long score;
+    private long score;
     @SuppressWarnings("unused")
-    final private Double povertyLine;
+    private Double povertyLine;
     @SuppressWarnings("unused")
-    final private LocalDate date;
-
-    public ClientScoresOverview(final String likelihoodCode, final String likelihoodName, final long score, final Double povertyLine,
-            final LocalDate date, final long resourceId, final String surveyName) {
-
-        this.likelihoodCode = likelihoodCode;
-        this.likelihoodName = likelihoodName;
-        this.score = score;
-        this.povertyLine = povertyLine;
-        this.date = date;
-        this.id = resourceId;
-        this.surveyName = surveyName;
-
-    }
+    private LocalDate date;
 }

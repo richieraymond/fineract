@@ -28,7 +28,7 @@ public enum GLAccountUsage {
     private final Integer value;
     private final String code;
 
-    private GLAccountUsage(final Integer value, final String code) {
+    GLAccountUsage(final Integer value, final String code) {
         this.value = value;
         this.code = code;
     }
@@ -44,6 +44,7 @@ public enum GLAccountUsage {
     private static final Map<Integer, GLAccountUsage> intToEnumMap = new HashMap<>();
     private static int minValue;
     private static int maxValue;
+
     static {
         int i = 0;
         for (final GLAccountUsage type : GLAccountUsage.values()) {

@@ -19,12 +19,10 @@
 package org.apache.fineract.portfolio.loanaccount.data;
 
 import java.math.BigDecimal;
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.Map;
-
 import org.apache.fineract.organisation.monetary.data.CurrencyData;
 import org.apache.fineract.portfolio.common.domain.PeriodFrequencyType;
-import org.joda.time.LocalDate;
 
 public class LoanScheduleAccrualData {
 
@@ -88,8 +86,8 @@ public class LoanScheduleAccrualData {
         return this.officeId;
     }
 
-    public Date getDueDate() {
-        return this.dueDate.toDate();
+    public LocalDate getDueDate() {
+        return this.dueDate;
     }
 
     public LocalDate getDueDateAsLocaldate() {
@@ -175,20 +173,16 @@ public class LoanScheduleAccrualData {
         this.dueDatePenaltyIncome = dueDatePenaltyIncome;
     }
 
-    
     public BigDecimal getWaivedInterestIncome() {
         return this.waivedInterestIncome;
     }
 
-    
-    public BigDecimal getAccruableIncome () {
+    public BigDecimal getAccruableIncome() {
         return this.accruableIncome;
     }
 
-    
-    public void updateAccruableIncome (BigDecimal accruableIncome ) {
-        this.accruableIncome = accruableIncome ;
+    public void updateAccruableIncome(BigDecimal accruableIncome) {
+        this.accruableIncome = accruableIncome;
     }
-
 
 }

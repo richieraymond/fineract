@@ -18,17 +18,15 @@
  */
 package org.apache.fineract.portfolio.savings.domain;
 
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
-
 import org.apache.fineract.portfolio.charge.exception.SavingsAccountChargeNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
  * <p>
- * Wrapper for {@link SavingsAccountChargeRepository} that adds NULL checking
- * and Error handling capabilities
+ * Wrapper for {@link SavingsAccountChargeRepository} that adds NULL checking and Error handling capabilities
  * </p>
  */
 @Service
@@ -42,18 +40,18 @@ public class SavingsAccountChargeRepositoryWrapper {
     }
 
     public SavingsAccountCharge findOneWithNotFoundDetection(final Long id) {
-        final SavingsAccountCharge savingsAccountCharge = this.repository.findOne(id);
-        if (savingsAccountCharge == null) { throw new SavingsAccountChargeNotFoundException(id); }
-        return savingsAccountCharge;
+        return this.repository.findById(id).orElseThrow(() -> new SavingsAccountChargeNotFoundException(id));
     }
 
     public SavingsAccountCharge findOneWithNotFoundDetection(final Long id, final Long savingsAccountId) {
         final SavingsAccountCharge savingsAccountCharge = this.repository.findByIdAndSavingsAccountId(id, savingsAccountId);
-        if (savingsAccountCharge == null) { throw new SavingsAccountChargeNotFoundException(id); }
+        if (savingsAccountCharge == null) {
+            throw new SavingsAccountChargeNotFoundException(id);
+        }
         return savingsAccountCharge;
     }
 
-    public List<SavingsAccountCharge> findPendingCharges(final Date transactionDate) {
+    public List<SavingsAccountCharge> findPendingCharges(final LocalDate transactionDate) {
         return this.repository.findPendingCharges(transactionDate);
     }
 
@@ -62,7 +60,7 @@ public class SavingsAccountChargeRepositoryWrapper {
     }
 
     public void save(final Iterable<SavingsAccountCharge> savingsAccountCharges) {
-        this.repository.save(savingsAccountCharges);
+        this.repository.saveAll(savingsAccountCharges);
     }
 
     public void saveAndFlush(final SavingsAccountCharge savingsAccountCharge) {

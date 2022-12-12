@@ -20,19 +20,19 @@ package org.apache.fineract.infrastructure.dataqueries.data;
 
 import java.util.List;
 
-public class ResultsetRowData {
+public final class ResultsetRowData {
 
-    private final List<String> row;
+    private final List<Object> row;
 
-    public static ResultsetRowData create(final List<String> rowValues) {
+    public static ResultsetRowData create(final List<Object> rowValues) {
         return new ResultsetRowData(rowValues);
     }
 
-    private ResultsetRowData(final List<String> rowValues) {
+    private ResultsetRowData(final List<Object> rowValues) {
         this.row = rowValues;
     }
 
-    public List<String> getRow() {
+    public List<Object> getRow() {
         return this.row;
     }
 }

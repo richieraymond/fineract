@@ -18,15 +18,15 @@
  */
 package org.apache.fineract.portfolio.loanproduct.productmix.serialization;
 
+import com.google.gson.JsonElement;
+import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.infrastructure.core.data.ApiParameterError;
 import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
 import org.apache.fineract.infrastructure.core.exception.InvalidJsonException;
@@ -35,16 +35,16 @@ import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.google.gson.JsonElement;
-import com.google.gson.reflect.TypeToken;
-
 @Component
 public final class ProductMixDataValidator {
 
+    public static final String RESTRICTED_PRODUCTS = "restrictedProducts";
     /**
      * The parameters supported for this command.
      */
-    private final Set<String> supportedParameters = new HashSet<>(Arrays.asList("restrictedProducts"));
+    private static final Set<String> SUPPORTED_PARAMETERS = new HashSet<>(List.of(RESTRICTED_PRODUCTS));
+    public static final String PRODUCTMIX = "productmix";
+    public static final String RESTRICTED_PRODUCT = "restrictedProduct";
 
     private final FromJsonHelper fromApiJsonHelper;
 
@@ -54,18 +54,20 @@ public final class ProductMixDataValidator {
     }
 
     public void validateForCreate(final String json) {
-        if (StringUtils.isBlank(json)) { throw new InvalidJsonException(); }
+        if (StringUtils.isBlank(json)) {
+            throw new InvalidJsonException();
+        }
 
         final Type typeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
-        this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, this.supportedParameters);
+        this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, SUPPORTED_PARAMETERS);
 
         final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
-        final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors).resource("productmix");
+        final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors).resource(PRODUCTMIX);
 
         final JsonElement element = this.fromApiJsonHelper.parse(json);
 
-        final String[] restrictedProducts = this.fromApiJsonHelper.extractArrayNamed("restrictedProducts", element);
-        baseDataValidator.reset().parameter("restrictedProducts").value(restrictedProducts).arrayNotEmpty();
+        final String[] restrictedProducts = this.fromApiJsonHelper.extractArrayNamed(RESTRICTED_PRODUCTS, element);
+        baseDataValidator.reset().parameter(RESTRICTED_PRODUCTS).value(restrictedProducts).arrayNotEmpty();
         if (restrictedProducts != null) {
             validateRestrictedProducts(restrictedProducts, baseDataValidator);
         }
@@ -75,27 +77,31 @@ public final class ProductMixDataValidator {
 
     private void validateRestrictedProducts(final String[] restrictedProducts, final DataValidatorBuilder baseDataValidator) {
         for (final String restrictedId : restrictedProducts) {
-            baseDataValidator.reset().parameter("restrictedProduct").value(restrictedId).notBlank().longGreaterThanZero();
+            baseDataValidator.reset().parameter(RESTRICTED_PRODUCT).value(restrictedId).notBlank().longGreaterThanZero();
         }
     }
 
     private void throwExceptionIfValidationWarningsExist(final List<ApiParameterError> dataValidationErrors) {
-        if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException("validation.msg.validation.errors.exist",
-                "Validation errors exist.", dataValidationErrors); }
+        if (!dataValidationErrors.isEmpty()) {
+            throw new PlatformApiDataValidationException("validation.msg.validation.errors.exist", "Validation errors exist.",
+                    dataValidationErrors);
+        }
     }
 
     public void validateForUpdate(final String json) {
 
-        if (StringUtils.isBlank(json)) { throw new InvalidJsonException(); }
+        if (StringUtils.isBlank(json)) {
+            throw new InvalidJsonException();
+        }
 
         final Type typeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
-        this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, this.supportedParameters);
+        this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, SUPPORTED_PARAMETERS);
 
         final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
-        final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors).resource("productmix");
+        final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors).resource(PRODUCTMIX);
 
         final JsonElement element = this.fromApiJsonHelper.parse(json);
-        final String[] restrictedProducts = this.fromApiJsonHelper.extractArrayNamed("restrictedProducts", element);
+        final String[] restrictedProducts = this.fromApiJsonHelper.extractArrayNamed(RESTRICTED_PRODUCTS, element);
         validateRestrictedProducts(restrictedProducts, baseDataValidator);
 
         throwExceptionIfValidationWarningsExist(dataValidationErrors);

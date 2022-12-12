@@ -21,20 +21,18 @@ package org.apache.fineract.portfolio.tax.service;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
-
 import org.apache.fineract.accounting.common.AccountingDropdownReadPlatformService;
 import org.apache.fineract.accounting.common.AccountingEnumerations;
 import org.apache.fineract.accounting.glaccount.data.GLAccountData;
 import org.apache.fineract.infrastructure.core.data.EnumOptionData;
 import org.apache.fineract.infrastructure.core.domain.JdbcSupport;
-import org.apache.fineract.infrastructure.core.service.RoutingDataSource;
 import org.apache.fineract.portfolio.tax.data.TaxComponentData;
 import org.apache.fineract.portfolio.tax.data.TaxComponentHistoryData;
 import org.apache.fineract.portfolio.tax.data.TaxGroupData;
 import org.apache.fineract.portfolio.tax.data.TaxGroupMappingsData;
-import org.joda.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -43,31 +41,31 @@ import org.springframework.stereotype.Service;
 @Service
 public class TaxReadPlatformServiceImpl implements TaxReadPlatformService {
 
-    final TaxComponentMapper taxComponentMapper = new TaxComponentMapper();
-    final TaxGroupMapper taxGroupMapper = new TaxGroupMapper();
-    final TaxComponentLookUpMapper taxComponentLookUpMapper = new TaxComponentLookUpMapper();
-    final TaxGroupLookUpMapper taxGroupLookUpMapper = new TaxGroupLookUpMapper();
+    private static final TaxComponentMapper TAX_COMPONENT_MAPPER = new TaxComponentMapper();
+    private static final TaxGroupMapper TAX_GROUP_MAPPER = new TaxGroupMapper();
+    private static final TaxComponentLookUpMapper TAX_COMPONENT_LOOK_UP_MAPPER = new TaxComponentLookUpMapper();
+    private static final TaxGroupLookUpMapper TAX_GROUP_LOOK_UP_MAPPER = new TaxGroupLookUpMapper();
 
     private final JdbcTemplate jdbcTemplate;
     private final AccountingDropdownReadPlatformService accountingDropdownReadPlatformService;
 
     @Autowired
-    public TaxReadPlatformServiceImpl(final RoutingDataSource dataSource,
+    public TaxReadPlatformServiceImpl(final JdbcTemplate jdbcTemplate,
             final AccountingDropdownReadPlatformService accountingDropdownReadPlatformService) {
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
+        this.jdbcTemplate = jdbcTemplate;
         this.accountingDropdownReadPlatformService = accountingDropdownReadPlatformService;
     }
 
     @Override
     public Collection<TaxComponentData> retrieveAllTaxComponents() {
-        String sql = "select " + this.taxComponentMapper.getSchema();
-        return this.jdbcTemplate.query(sql, this.taxComponentMapper);
+        String sql = "select " + TAX_COMPONENT_MAPPER.getSchema();
+        return this.jdbcTemplate.query(sql, TAX_COMPONENT_MAPPER); // NOSONAR
     }
 
     @Override
     public TaxComponentData retrieveTaxComponentData(final Long id) {
-        String sql = "select " + this.taxComponentMapper.getSchema() + " where tc.id=?";
-        return this.jdbcTemplate.queryForObject(sql, this.taxComponentMapper, new Object[] { id });
+        String sql = "select " + TAX_COMPONENT_MAPPER.getSchema() + " where tc.id=?";
+        return this.jdbcTemplate.queryForObject(sql, TAX_COMPONENT_MAPPER, id); // NOSONAR
     }
 
     @Override
@@ -78,14 +76,14 @@ public class TaxReadPlatformServiceImpl implements TaxReadPlatformService {
 
     @Override
     public Collection<TaxGroupData> retrieveAllTaxGroups() {
-        String sql = "select " + this.taxGroupMapper.getSchema();
-        return this.jdbcTemplate.query(sql, this.taxGroupMapper);
+        String sql = "select " + TAX_GROUP_MAPPER.getSchema();
+        return this.jdbcTemplate.query(sql, TAX_GROUP_MAPPER); // NOSONAR
     }
 
     @Override
     public TaxGroupData retrieveTaxGroupData(final Long id) {
-        String sql = "select " + this.taxGroupMapper.getSchema() + " where tg.id=?";
-        return this.jdbcTemplate.queryForObject(sql, this.taxGroupMapper, new Object[] { id });
+        String sql = "select " + TAX_GROUP_MAPPER.getSchema() + " where tg.id=?";
+        return this.jdbcTemplate.queryForObject(sql, TAX_GROUP_MAPPER, id); // NOSONAR
     }
 
     @Override
@@ -101,22 +99,22 @@ public class TaxReadPlatformServiceImpl implements TaxReadPlatformService {
     }
 
     private Collection<TaxComponentData> retrieveTaxComponentsForLookUp() {
-        String sql = "select " + this.taxComponentLookUpMapper.getSchema();
-        return this.jdbcTemplate.query(sql, this.taxComponentLookUpMapper);
+        String sql = "select " + TAX_COMPONENT_LOOK_UP_MAPPER.getSchema();
+        return this.jdbcTemplate.query(sql, TAX_COMPONENT_LOOK_UP_MAPPER); // NOSONAR
     }
 
     @Override
     public Collection<TaxGroupData> retrieveTaxGroupsForLookUp() {
-        String sql = "select " + this.taxGroupLookUpMapper.getSchema();
-        return this.jdbcTemplate.query(sql, this.taxGroupLookUpMapper);
+        String sql = "select " + TAX_GROUP_LOOK_UP_MAPPER.getSchema();
+        return this.jdbcTemplate.query(sql, TAX_GROUP_LOOK_UP_MAPPER); // NOSONAR
     }
 
     private static final class TaxComponentMapper implements RowMapper<TaxComponentData> {
 
         private final String schema;
-        private TaxComponentHistoryDataMapper componentHistoryDataMapper = new TaxComponentHistoryDataMapper();
+        private final TaxComponentHistoryDataMapper componentHistoryDataMapper = new TaxComponentHistoryDataMapper();
 
-        public TaxComponentMapper() {
+        TaxComponentMapper() {
             StringBuilder sb = new StringBuilder();
             sb.append("tc.id as id, tc.name as name,");
             sb.append("tc.percentage as percentage, tc.start_date as startDate,");
@@ -149,7 +147,7 @@ public class TaxReadPlatformServiceImpl implements TaxReadPlatformService {
                 final Long debitAccountId = rs.getLong("debitAccountId");
                 final String debitAccountName = rs.getString("debitAccountName");
                 final String debitAccountGlCode = rs.getString("debitAccountGlCode");
-                debitAccountData = new GLAccountData(debitAccountId, debitAccountName, debitAccountGlCode);
+                debitAccountData = new GLAccountData().setId(debitAccountId).setName(debitAccountName).setGlCode(debitAccountGlCode);
             }
 
             final Integer creditAccountTypeEnum = JdbcSupport.getIntegerDefaultToNullIfZero(rs, "creditAccountTypeEnum");
@@ -162,7 +160,7 @@ public class TaxReadPlatformServiceImpl implements TaxReadPlatformService {
                 final Long creditAccountId = rs.getLong("creditAccountId");
                 final String creditAccountName = rs.getString("creditAccountName");
                 final String creditAccountGlCode = rs.getString("creditAccountGlCode");
-                creditAccountData = new GLAccountData(creditAccountId, creditAccountName, creditAccountGlCode);
+                creditAccountData = new GLAccountData().setId(creditAccountId).setName(creditAccountName).setGlCode(creditAccountGlCode);
             }
             final LocalDate startDate = JdbcSupport.getLocalDate(rs, "startDate");
 
@@ -176,8 +174,8 @@ public class TaxReadPlatformServiceImpl implements TaxReadPlatformService {
                     break;
                 }
             }
-            return TaxComponentData.instance(id, name, percentage, debitAccountType, debitAccountData, creditAccountType,
-                    creditAccountData, startDate, historyDatas);
+            return TaxComponentData.instance(id, name, percentage, debitAccountType, debitAccountData, creditAccountType, creditAccountData,
+                    startDate, historyDatas);
         }
 
         public String getSchema() {
@@ -203,7 +201,7 @@ public class TaxReadPlatformServiceImpl implements TaxReadPlatformService {
         private final String schema;
         private final TaxGroupMappingsDataMapper taxGroupMappingsDataMapper = new TaxGroupMappingsDataMapper();
 
-        public TaxGroupMapper() {
+        TaxGroupMapper() {
             StringBuilder sb = new StringBuilder();
             sb.append("tg.id as id, tg.name as name,");
             sb.append("tgm.id as mappingId,");
@@ -258,7 +256,7 @@ public class TaxReadPlatformServiceImpl implements TaxReadPlatformService {
 
         private final String schema;
 
-        public TaxComponentLookUpMapper() {
+        TaxComponentLookUpMapper() {
             StringBuilder sb = new StringBuilder();
             sb.append("tc.id as id, tc.name as name ");
             sb.append(" from m_tax_component tc ");
@@ -282,7 +280,7 @@ public class TaxReadPlatformServiceImpl implements TaxReadPlatformService {
 
         private final String schema;
 
-        public TaxGroupLookUpMapper() {
+        TaxGroupLookUpMapper() {
             StringBuilder sb = new StringBuilder();
             sb.append("tg.id as id, tg.name as name ");
             sb.append(" from m_tax_group tg ");

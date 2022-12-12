@@ -35,6 +35,7 @@ public enum ConditionType {
     private final String code;
 
     private static final Map<Integer, ConditionType> intToEnumMap = new HashMap<>();
+
     static {
         for (final ConditionType type : ConditionType.values()) {
             intToEnumMap.put(type.value, type);
@@ -46,7 +47,7 @@ public enum ConditionType {
         return type;
     }
 
-    private ConditionType(final Integer value, final String code) {
+    ConditionType(final Integer value, final String code) {
         this.value = value;
         this.code = code;
     }

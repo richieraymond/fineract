@@ -18,90 +18,80 @@
  */
 package org.apache.fineract.infrastructure.hooks.service;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.LocalDate;
+import java.util.Collection;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.apache.fineract.infrastructure.core.domain.JdbcSupport;
-import org.apache.fineract.infrastructure.core.service.RoutingDataSource;
-import org.apache.fineract.infrastructure.hooks.data.*;
+import org.apache.fineract.infrastructure.hooks.data.Event;
+import org.apache.fineract.infrastructure.hooks.data.EventResultSetExtractor;
+import org.apache.fineract.infrastructure.hooks.data.Field;
+import org.apache.fineract.infrastructure.hooks.data.Grouping;
+import org.apache.fineract.infrastructure.hooks.data.HookData;
+import org.apache.fineract.infrastructure.hooks.data.HookTemplateData;
 import org.apache.fineract.infrastructure.hooks.domain.Hook;
 import org.apache.fineract.infrastructure.hooks.domain.HookRepository;
 import org.apache.fineract.infrastructure.hooks.exception.HookNotFoundException;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
-import org.joda.time.LocalDate;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.Collection;
-import java.util.List;
-
 @Service
+@RequiredArgsConstructor
 public class HookReadPlatformServiceImpl implements HookReadPlatformService {
 
     private final JdbcTemplate jdbcTemplate;
     private final HookRepository hookRepository;
     private final PlatformSecurityContext context;
 
-    @Autowired
-    public HookReadPlatformServiceImpl(final PlatformSecurityContext context,
-            final HookRepository hookRepository,
-            final RoutingDataSource dataSource) {
-        this.context = context;
-        this.hookRepository = hookRepository;
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
-    }
-
     @Override
     public Collection<HookData> retrieveAllHooks() {
-        this.context.authenticatedUser();
-        final HookMapper rm = new HookMapper(this.jdbcTemplate);
+        context.authenticatedUser();
+        final HookMapper rm = new HookMapper(jdbcTemplate);
         final String sql = "select " + rm.schema() + " order by h.name";
 
-        return this.jdbcTemplate.query(sql, rm, new Object[]{});
+        return jdbcTemplate.query(sql, rm); // NOSONAR
     }
 
     @Override
     public HookData retrieveHook(final Long hookId) {
         try {
-            this.context.authenticatedUser();
-            final HookMapper rm = new HookMapper(this.jdbcTemplate);
+            context.authenticatedUser();
+            final HookMapper rm = new HookMapper(jdbcTemplate);
             final String sql = "select " + rm.schema() + " where h.id = ?";
 
-            return this.jdbcTemplate.queryForObject(sql, rm,
-                    new Object[]{hookId});
+            return jdbcTemplate.queryForObject(sql, rm, hookId); // NOSONAR
         } catch (final EmptyResultDataAccessException e) {
-            throw new HookNotFoundException(hookId);
+            throw new HookNotFoundException(hookId, e);
         }
 
     }
 
     @Override
     @Cacheable(value = "hooks", key = "T(org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil).getTenant().getTenantIdentifier().concat('HK')")
-    public List<Hook> retrieveHooksByEvent(final String actionName,
-            final String entityName) {
-
-        return this.hookRepository.findAllHooksListeningToEvent(actionName,
-                entityName);
+    public List<Hook> retrieveHooksByEvent(final String entityName, final String actionName) {
+        return hookRepository.findAllHooksListeningToEvent(entityName, actionName);
     }
 
     @Override
     public HookData retrieveNewHookDetails(final String templateName) {
 
-        this.context.authenticatedUser();
-        final TemplateMapper rm = new TemplateMapper(this.jdbcTemplate);
+        context.authenticatedUser();
+        final TemplateMapper rm = new TemplateMapper(jdbcTemplate);
         final String sql;
         List<HookTemplateData> templateData;
 
         if (templateName == null) {
             sql = "select " + rm.schema() + " order by s.name";
-            templateData = this.jdbcTemplate.query(sql, rm, new Object[]{});
+            templateData = jdbcTemplate.query(sql, rm); // NOSONAR
         } else {
             sql = "select " + rm.schema() + " where s.name = ? order by s.name";
-            templateData = this.jdbcTemplate.query(sql, rm,
-                    new Object[]{templateName});
+            templateData = jdbcTemplate.query(sql, rm, templateName); // NOSONAR
         }
 
         final List<Grouping> events = getTemplateForEvents();
@@ -111,19 +101,15 @@ public class HookReadPlatformServiceImpl implements HookReadPlatformService {
 
     private List<Grouping> getTemplateForEvents() {
         final String sql = "select p.grouping, p.entity_name, p.action_name from m_permission p "
-                + " where p.action_name NOT LIKE '%CHECKER%' AND p.action_name NOT LIKE '%READ%' "
-                + " order by p.grouping, p.entity_name ";
+                + " where p.action_name NOT LIKE '%CHECKER%' AND p.action_name NOT LIKE '%READ%' " + " order by p.grouping, p.entity_name ";
         final EventResultSetExtractor extractor = new EventResultSetExtractor();
-        return this.jdbcTemplate.query(sql, extractor);
+        return jdbcTemplate.query(sql, extractor);
     }
 
+    @RequiredArgsConstructor
     private static final class HookMapper implements RowMapper<HookData> {
 
         private final JdbcTemplate jdbcTemplate;
-
-        public HookMapper(final JdbcTemplate jdbcTemplate) {
-            this.jdbcTemplate = jdbcTemplate;
-        }
 
         public String schema() {
             return " h.id, s.name as name, h.name as display_name, h.is_active, h.created_date,"
@@ -133,25 +119,20 @@ public class HookReadPlatformServiceImpl implements HookReadPlatformService {
         }
 
         @Override
-        public HookData mapRow(final ResultSet rs,
-                @SuppressWarnings("unused") final int rowNum)
-                throws SQLException {
+        public HookData mapRow(final ResultSet rs, @SuppressWarnings("unused") final int rowNum) throws SQLException {
 
             final Long id = rs.getLong("id");
             final String name = rs.getString("name");
             final String displayname = rs.getString("display_name");
             final boolean isActive = rs.getBoolean("is_active");
-            final LocalDate createdAt = JdbcSupport.getLocalDate(rs,
-                    "created_date");
-            final LocalDate updatedAt = JdbcSupport.getLocalDate(rs,
-                    "lastmodified_date");
+            final LocalDate createdAt = JdbcSupport.getLocalDate(rs, "created_date");
+            final LocalDate updatedAt = JdbcSupport.getLocalDate(rs, "lastmodified_date");
             final Long templateId = rs.getLong("ugd_template_id");
             final String templateName = rs.getString("ugd_template_name");
             final List<Event> registeredEvents = retrieveEvents(id);
             final List<Field> config = retrieveConfig(id);
 
-            return HookData.instance(id, name, displayname, isActive,
-                    createdAt, updatedAt, templateId, registeredEvents, config,
+            return HookData.instance(id, name, displayname, isActive, createdAt, updatedAt, templateId, registeredEvents, config,
                     templateName);
         }
 
@@ -160,19 +141,15 @@ public class HookReadPlatformServiceImpl implements HookReadPlatformService {
             final HookEventMapper rm = new HookEventMapper();
             final String sql = "select " + rm.schema() + " where h.id= ?";
 
-            return this.jdbcTemplate.query(sql, rm, new Object[]{hookId});
+            return jdbcTemplate.query(sql, rm, hookId); // NOSONAR
         }
 
         private List<Field> retrieveConfig(final Long hookId) {
 
             final HookConfigMapper rm = new HookConfigMapper();
-            final String sql = "select " + rm.schema()
-                    + " where h.id= ? order by hc.field_name";
+            final String sql = "select " + rm.schema() + " where h.id= ? order by hc.field_name";
 
-            final List<Field> fields = this.jdbcTemplate.query(sql, rm,
-                    new Object[]{hookId});
-
-            return fields;
+            return jdbcTemplate.query(sql, rm, hookId); // NOSONAR
         }
     }
 
@@ -183,9 +160,7 @@ public class HookReadPlatformServiceImpl implements HookReadPlatformService {
         }
 
         @Override
-        public Event mapRow(final ResultSet rs,
-                @SuppressWarnings("unused") final int rowNum)
-                throws SQLException {
+        public Event mapRow(final ResultSet rs, @SuppressWarnings("unused") final int rowNum) throws SQLException {
             final String actionName = rs.getString("action_name");
             final String entityName = rs.getString("entity_name");
             return Event.instance(actionName, entityName);
@@ -199,33 +174,24 @@ public class HookReadPlatformServiceImpl implements HookReadPlatformService {
         }
 
         @Override
-        public Field mapRow(final ResultSet rs,
-                @SuppressWarnings("unused") final int rowNum)
-                throws SQLException {
+        public Field mapRow(final ResultSet rs, @SuppressWarnings("unused") final int rowNum) throws SQLException {
             final String fieldName = rs.getString("field_name");
             final String fieldValue = rs.getString("field_value");
             return Field.fromConfig(fieldName, fieldValue);
         }
     }
 
-    private static final class TemplateMapper
-            implements
-                RowMapper<HookTemplateData> {
+    @RequiredArgsConstructor
+    private static final class TemplateMapper implements RowMapper<HookTemplateData> {
 
         private final JdbcTemplate jdbcTemplate;
-
-        public TemplateMapper(final JdbcTemplate jdbcTemplate) {
-            this.jdbcTemplate = jdbcTemplate;
-        }
 
         public String schema() {
             return " s.id, s.name from m_hook_templates s ";
         }
 
         @Override
-        public HookTemplateData mapRow(final ResultSet rs,
-                @SuppressWarnings("unused") final int rowNum)
-                throws SQLException {
+        public HookTemplateData mapRow(final ResultSet rs, @SuppressWarnings("unused") final int rowNum) throws SQLException {
 
             final Long id = rs.getLong("id");
             final String name = rs.getString("name");
@@ -237,13 +203,9 @@ public class HookReadPlatformServiceImpl implements HookReadPlatformService {
         private List<Field> retrieveSchema(final Long templateId) {
 
             final TemplateSchemaMapper rm = new TemplateSchemaMapper();
-            final String sql = "select " + rm.schema()
-                    + " where s.id= ? order by hs.field_name ";
+            final String sql = "select " + rm.schema() + " where s.id= ? order by hs.field_name ";
 
-            final List<Field> fields = this.jdbcTemplate.query(sql, rm,
-                    new Object[]{templateId});
-
-            return fields;
+            return jdbcTemplate.query(sql, rm, templateId); // NOSONAR;
         }
     }
 
@@ -255,15 +217,12 @@ public class HookReadPlatformServiceImpl implements HookReadPlatformService {
         }
 
         @Override
-        public Field mapRow(final ResultSet rs,
-                @SuppressWarnings("unused") final int rowNum)
-                throws SQLException {
+        public Field mapRow(final ResultSet rs, @SuppressWarnings("unused") final int rowNum) throws SQLException {
             final String fieldName = rs.getString("field_name");
             final String fieldType = rs.getString("field_type");
             final Boolean optional = rs.getBoolean("optional");
             final String placeholder = rs.getString("placeholder");
-            return Field
-                    .fromSchema(fieldType, fieldName, optional, placeholder);
+            return Field.fromSchema(fieldType, fieldName, optional, placeholder);
         }
     }
 

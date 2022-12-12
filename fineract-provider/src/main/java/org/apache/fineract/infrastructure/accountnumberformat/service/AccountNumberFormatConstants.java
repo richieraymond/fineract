@@ -18,13 +18,13 @@
  */
 package org.apache.fineract.infrastructure.accountnumberformat.service;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-
 import org.apache.fineract.infrastructure.accountnumberformat.data.AccountNumberFormatData;
 
-public class AccountNumberFormatConstants {
+public final class AccountNumberFormatConstants {
+
+    private AccountNumberFormatConstants() {
+
+    }
 
     // resource name for validation
     public static final String ENTITY_NAME = "accountNumberFormat";
@@ -40,6 +40,7 @@ public class AccountNumberFormatConstants {
     public static final String idParamName = "id";
     public static final String accountTypeParamName = "accountType";
     public static final String prefixTypeParamName = "prefixType";
+    public static final String prefixCharacterParamName = "prefixCharacter";
 
     // response parameters
 
@@ -50,9 +51,8 @@ public class AccountNumberFormatConstants {
     public static final String prefixTypeOptionsParamName = "prefixTypeOptions";
 
     /**
-     * These parameters will match the class level parameters of
-     * {@link AccountNumberFormatData}. Where possible, we try to get response
-     * parameters to match those of request parameters.
+     * These parameters will match the class level parameters of {@link AccountNumberFormatData}. Where possible, we try
+     * to get response parameters to match those of request parameters.
      */
 
     // Error messages codes
@@ -63,5 +63,6 @@ public class AccountNumberFormatConstants {
     public static final String ACCOUNT_TYPE_ENUM_COLUMN_NAME = "account_type_enum";
     public static final String PREFIX_TYPE_ENUM_COLUMN_NAME = "prefix_type_enum";
     public static final String ACCOUNT_TYPE_UNIQUE_CONSTRAINT_NAME = "account_type_enum";
+    public static final String PREFIX_CHARACTER_COLUMN_NAME = "prefix_character";
 
 }

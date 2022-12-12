@@ -22,10 +22,8 @@ import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
-
 import org.apache.fineract.infrastructure.codes.data.CodeValueData;
 import org.apache.fineract.infrastructure.core.domain.JdbcSupport;
-import org.apache.fineract.infrastructure.core.service.RoutingDataSource;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
 import org.apache.fineract.organisation.monetary.data.CurrencyData;
 import org.apache.fineract.portfolio.collateral.data.CollateralData;
@@ -45,10 +43,10 @@ public class CollateralReadPlatformServiceImpl implements CollateralReadPlatform
     private final LoanRepositoryWrapper loanRepositoryWrapper;
 
     @Autowired
-    public CollateralReadPlatformServiceImpl(final PlatformSecurityContext context, final RoutingDataSource dataSource,
+    public CollateralReadPlatformServiceImpl(final PlatformSecurityContext context, final JdbcTemplate jdbcTemplate,
             final LoanRepositoryWrapper loanRepositoryWrapper) {
         this.context = context;
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
+        this.jdbcTemplate = jdbcTemplate;
         this.loanRepositoryWrapper = loanRepositoryWrapper;
     }
 
@@ -56,11 +54,11 @@ public class CollateralReadPlatformServiceImpl implements CollateralReadPlatform
 
         private final StringBuilder sqlBuilder = new StringBuilder(
                 "lc.id as id, lc.description as description, lc.value as value, cv.id as typeId, cv.code_value as typeName, oc.code as currencyCode, ")
-                .append(" oc.name as currencyName,oc.decimal_places as currencyDecimalPlaces, oc.currency_multiplesof as inMultiplesOf, oc.display_symbol as currencyDisplaySymbol, oc.internationalized_name_code as currencyNameCode")
-                .append(" FROM m_loan_collateral lc") //
-                .append(" JOIN m_code_value cv on lc.type_cv_id = cv.id")//
-                .append(" JOIN m_loan loan on lc.loan_id = loan.id")//
-                .append(" JOIN m_organisation_currency oc on loan.currency_code = oc.code");
+                        .append(" oc.name as currencyName,oc.decimal_places as currencyDecimalPlaces, oc.currency_multiplesof as inMultiplesOf, oc.display_symbol as currencyDisplaySymbol, oc.internationalized_name_code as currencyNameCode")
+                        .append(" FROM m_loan_collateral lc") //
+                        .append(" JOIN m_code_value cv on lc.type_cv_id = cv.id")//
+                        .append(" JOIN m_loan loan on lc.loan_id = loan.id")//
+                        .append(" JOIN m_organisation_currency oc on loan.currency_code = oc.code");
 
         public String schema() {
             return this.sqlBuilder.toString();
@@ -99,7 +97,7 @@ public class CollateralReadPlatformServiceImpl implements CollateralReadPlatform
 
         final String sql = "select " + rm.schema() + " where lc.loan_id=? order by id ASC";
 
-        return this.jdbcTemplate.query(sql, rm, new Object[] { loanId });
+        return this.jdbcTemplate.query(sql, rm, new Object[] { loanId }); // NOSONAR
     }
 
     @Override
@@ -108,9 +106,9 @@ public class CollateralReadPlatformServiceImpl implements CollateralReadPlatform
             final CollateralMapper rm = new CollateralMapper();
             String sql = "select " + rm.schema();
             sql += " where lc.loan_id=? and lc.id = ?";
-            return this.jdbcTemplate.queryForObject(sql, rm, new Object[] { loanId, collateralId });
+            return this.jdbcTemplate.queryForObject(sql, rm, new Object[] { loanId, collateralId }); // NOSONAR
         } catch (final EmptyResultDataAccessException e) {
-            throw new CollateralNotFoundException(loanId, collateralId);
+            throw new CollateralNotFoundException(loanId, collateralId, e);
         }
 
     }

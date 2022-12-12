@@ -19,27 +19,30 @@
 package org.apache.fineract.infrastructure.core.domain;
 
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.Date;
-
-import org.joda.time.DateTime;
-import org.joda.time.LocalDate;
-import org.joda.time.LocalTime;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.ZonedDateTime;
+import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.springframework.jdbc.support.JdbcUtils;
 
 /**
- * Support for retrieving possibly null values from jdbc recordset delegating to
- * springs {@link JdbcUtils} where possible.
+ * Support for retrieving possibly null values from jdbc recordset delegating to springs {@link JdbcUtils} where
+ * possible.
  */
-public class JdbcSupport {
+public final class JdbcSupport {
 
-    public static DateTime getDateTime(final ResultSet rs, final String columnName) throws SQLException {
-        DateTime dateTime = null;
+    private JdbcSupport() {}
+
+    public static ZonedDateTime getDateTime(final ResultSet rs, final String columnName) throws SQLException {
+        ZonedDateTime dateTime = null;
         final Timestamp dateValue = rs.getTimestamp(columnName);
         if (dateValue != null) {
-            dateTime = new DateTime(dateValue.getTime());
+            dateTime = ZonedDateTime.of(dateValue.toLocalDateTime(), DateUtils.getDateTimeZoneOfTenant());
         }
         return dateTime;
     }
@@ -48,18 +51,20 @@ public class JdbcSupport {
         LocalDate localDate = null;
         final Date dateValue = rs.getDate(columnName);
         if (dateValue != null) {
-            localDate = new LocalDate(dateValue);
+            localDate = dateValue.toLocalDate();
         }
         return localDate;
     }
+
     public static LocalTime getLocalTime(final ResultSet rs, final String columnName) throws SQLException {
         LocalTime localTime = null;
-        final Date timeValue = rs.getTime(columnName);
+        final Timestamp timeValue = rs.getTimestamp(columnName);
         if (timeValue != null) {
-            localTime = new LocalTime(timeValue);
+            localTime = timeValue.toLocalDateTime().toLocalTime();
         }
         return localTime;
-    } 
+    }
+
     public static Long getLong(final ResultSet rs, final String columnName) throws SQLException {
         return (Long) JdbcUtils.getResultSetValue(rs, rs.findColumn(columnName), Long.class);
     }
@@ -72,7 +77,7 @@ public class JdbcSupport {
         final Integer value = (Integer) JdbcUtils.getResultSetValue(rs, rs.findColumn(columnName), Integer.class);
         return defaultToNullIfZero(value);
     }
-    
+
     public static Long getLongDefaultToNullIfZero(final ResultSet rs, final String columnName) throws SQLException {
         final Long value = (Long) JdbcUtils.getResultSetValue(rs, rs.findColumn(columnName), Long.class);
         return defaultToNullIfZero(value);
@@ -85,7 +90,7 @@ public class JdbcSupport {
         }
         return result;
     }
-    
+
     private static Long defaultToNullIfZero(final Long value) {
         Long result = value;
         if (result != null && Long.valueOf(0).equals(value)) {
@@ -118,5 +123,16 @@ public class JdbcSupport {
             result = null;
         }
         return result;
+    }
+
+    public static OffsetDateTime getOffsetDateTime(ResultSet rs, String columnName) throws SQLException {
+        final Timestamp timestamp = rs.getTimestamp(columnName);
+        if (timestamp != null) {
+            OffsetDateTime offsetDateTimeAtUTC = OffsetDateTime.of(timestamp.toLocalDateTime(),
+                    DateUtils.getSystemZoneId().getRules().getOffset(timestamp.toLocalDateTime()));
+            return offsetDateTimeAtUTC
+                    .withOffsetSameInstant(DateUtils.getDateTimeZoneOfTenant().getRules().getOffset(offsetDateTimeAtUTC.toInstant()));
+        }
+        return null;
     }
 }

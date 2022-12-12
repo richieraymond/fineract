@@ -19,11 +19,12 @@
 package org.apache.fineract.portfolio.savings.domain;
 
 import java.util.List;
-
+import javax.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -32,6 +33,13 @@ public interface SavingsAccountRepository extends JpaRepository<SavingsAccount, 
 
     @Query("select s_acc from SavingsAccount s_acc where s_acc.client.id = :clientId")
     List<SavingsAccount> findSavingAccountByClientId(@Param("clientId") Long clientId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select sa from SavingsAccount sa where sa.id = :savingsId")
+    SavingsAccount findOneLocked(@Param("savingsId") Long id);
+
+    @Query("select s_acc from SavingsAccount s_acc where s_acc.gsim.id = :gsimId")
+    List<SavingsAccount> findSavingAccountByGsimId(@Param("gsimId") Long gsimId);
 
     @Query("select s_acc from SavingsAccount s_acc where s_acc.status = :status")
     List<SavingsAccount> findSavingAccountByStatus(@Param("status") Integer status);
@@ -51,8 +59,11 @@ public interface SavingsAccountRepository extends JpaRepository<SavingsAccount, 
 
     @Query("select sa from SavingsAccount sa where sa.accountNumber = :accountNumber and sa.status in (100, 200, 300, 303, 304) ")
     SavingsAccount findNonClosedAccountByAccountNumber(@Param("accountNumber") String accountNumber);
-    
-    Page<SavingsAccount> findByStatus(Integer status,Pageable pageable);
+
+    @Query("select sa from SavingsAccount sa where sa.accountNumber = :accountNumber ")
+    SavingsAccount findSavingsAccountByAccountNumber(@Param("accountNumber") String accountNumber);
+
+    Page<SavingsAccount> findByStatus(Integer status, Pageable pageable);
 
     SavingsAccount findByExternalId(String externalId);
 }

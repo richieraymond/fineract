@@ -30,12 +30,13 @@ public enum LoanPreClosureInterestCalculationStrategy {
     // REPAYMENT_PERIOD_DATE(3,
     // "loanPreClosureInterestCalculationStrategy.repaymentPeriodDate")
 
-    private Integer value;
-    private String code;
+    private final Integer value;
+    private final String code;
 
     private static final Map<Integer, LoanPreClosureInterestCalculationStrategy> intToEnumMap = new HashMap<>();
     private static int minValue;
     private static int maxValue;
+
     static {
         int i = 0;
         for (final LoanPreClosureInterestCalculationStrategy type : LoanPreClosureInterestCalculationStrategy.values()) {
@@ -54,11 +55,10 @@ public enum LoanPreClosureInterestCalculationStrategy {
     }
 
     public static LoanPreClosureInterestCalculationStrategy fromInt(final Integer ruleTypeValue) {
-        final LoanPreClosureInterestCalculationStrategy type = intToEnumMap.get(ruleTypeValue);
-        return type;
+        return intToEnumMap.get(ruleTypeValue);
     }
 
-    private LoanPreClosureInterestCalculationStrategy(final Integer value, final String code) {
+    LoanPreClosureInterestCalculationStrategy(final Integer value, final String code) {
         this.value = value;
         this.code = code;
     }

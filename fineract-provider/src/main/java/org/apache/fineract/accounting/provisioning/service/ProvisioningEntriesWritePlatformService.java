@@ -18,17 +18,18 @@
  */
 package org.apache.fineract.accounting.provisioning.service;
 
+import java.time.LocalDate;
+import org.apache.fineract.accounting.provisioning.domain.ProvisioningEntry;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
-
 
 public interface ProvisioningEntriesWritePlatformService {
 
     CommandProcessingResult createProvisioningEntries(JsonCommand command);
-    
-    CommandProcessingResult reCreateProvisioningEntries(Long provisioningEntryId, JsonCommand command) ;
-    
+
+    ProvisioningEntry createProvisioningEntry(LocalDate date, boolean addJournalEntries);
+
+    CommandProcessingResult reCreateProvisioningEntries(Long provisioningEntryId, JsonCommand command);
+
     CommandProcessingResult createProvisioningJournalEntries(Long provisioningEntryId, JsonCommand command);
-    
-    void generateLoanLossProvisioningAmount() ;
 }

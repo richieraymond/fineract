@@ -18,174 +18,368 @@
  */
 package org.apache.fineract.portfolio.loanaccount.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
-
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDate;
+import java.util.Set;
 
 /**
  * Created by Chirag Gupta on 12/30/17.
  */
 final class LoanTransactionsApiResourceSwagger {
-    private LoanTransactionsApiResourceSwagger() {
-    }
 
-    @ApiModel(value = "GetLoansLoanIdTransactionsTemplateResponse")
-    public final static class GetLoansLoanIdTransactionsTemplateResponse {
-        private GetLoansLoanIdTransactionsTemplateResponse() {
-        }
+    private LoanTransactionsApiResourceSwagger() {}
 
-        final class GetLoansTransactionType {
-            private GetLoansTransactionType() {
-            }
+    @Schema(description = "GetLoansLoanIdTransactionsTemplateResponse")
+    public static final class GetLoansLoanIdTransactionsTemplateResponse {
 
-            @ApiModelProperty(example = "2")
-            public Integer id;
-            @ApiModelProperty(example = "loanTransactionType.repayment")
+        private GetLoansLoanIdTransactionsTemplateResponse() {}
+
+        static final class GetLoansTransactionType {
+
+            private GetLoansTransactionType() {}
+
+            @Schema(example = "2")
+            public Long id;
+            @Schema(example = "loanTransactionType.repayment")
             public String code;
-            @ApiModelProperty(example = "Repayment")
-            public String value;
+            @Schema(example = "Repayment")
+            public String description;
         }
 
-        final class GetLoansTotal {
-            private GetLoansTotal() {
-            }
+        static final class GetLoansTotal {
 
-            @ApiModelProperty(example = "XOF")
+            private GetLoansTotal() {}
+
+            @Schema(example = "XOF")
             public String currencyCode;
-            @ApiModelProperty(example = "0")
+            @Schema(example = "0")
             public Integer digitsAfterDecimal;
-            @ApiModelProperty(example = "0")
+            @Schema(example = "0")
             public Integer inMultiplesOf;
-            @ApiModelProperty(example = "471")
+            @Schema(example = "471")
             public Float amount;
-            @ApiModelProperty(example = "CFA Franc BCEAO")
+            @Schema(example = "CFA Franc BCEAO")
             public String defaultName;
-            @ApiModelProperty(example = "currency.XOF")
+            @Schema(example = "currency.XOF")
             public String nameCode;
-            @ApiModelProperty(example = "CFA")
+            @Schema(example = "CFA")
             public String displaySymbol;
-            @ApiModelProperty(example = "false")
+            @Schema(example = "false")
             public Boolean zero;
-            @ApiModelProperty(example = "true")
+            @Schema(example = "true")
             public Boolean greaterThanZero;
-            @ApiModelProperty(example = "471 CFA")
+            @Schema(example = "471 CFA")
             public String displaySymbolValue;
         }
 
         public GetLoansTransactionType transactionType;
-        @ApiModelProperty(example = "[2009, 8, 1]")
+        @Schema(example = "[2009, 8, 1]")
         public LocalDate date;
         public GetLoansTotal total;
     }
 
-    @ApiModel(value = "GetLoansLoanIdTransactionsTransactionIdResponse")
-    public final static class GetLoansLoanIdTransactionsTransactionIdResponse {
-        private GetLoansLoanIdTransactionsTransactionIdResponse() {
-        }
+    @Schema(description = "GetLoansLoanIdTransactionsTransactionIdResponse")
+    public static final class GetLoansLoanIdTransactionsTransactionIdResponse {
 
-        final class GetLoansType {
-            private GetLoansType() {
-            }
+        private GetLoansLoanIdTransactionsTransactionIdResponse() {}
 
-            @ApiModelProperty(example = "2")
-            public Integer id;
-            @ApiModelProperty(example = "loanTransactionType.repayment")
+        static final class GetLoansType {
+
+            private GetLoansType() {}
+
+            @Schema(example = "2")
+            public Long id;
+            @Schema(example = "3e7791ce-aa10-11ec-b909-0242ac120002")
+            public String externalId;
+            @Schema(example = "2")
+            public Long loanId;
+            @Schema(example = "3e7791ce-aa10-11ec-b909-0242ac120002")
+            public String externalLoanId;
+            @Schema(example = "loanTransactionType.repayment")
             public String code;
-            @ApiModelProperty(example = "Repayment")
-            public String value;
-            @ApiModelProperty(example = "false")
+            @Schema(example = "Repayment")
+            public String description;
+            @Schema(example = "false")
             public Boolean disbursement;
-            @ApiModelProperty(example = "false")
+            @Schema(example = "false")
             public Boolean repaymentAtDisbursement;
-            @ApiModelProperty(example = "true")
+            @Schema(example = "true")
             public Boolean repayment;
-            @ApiModelProperty(example = "false")
+            @Schema(example = "false")
             public Boolean contra;
-            @ApiModelProperty(example = "false")
+            @Schema(example = "false")
             public Boolean waiveInterest;
-            @ApiModelProperty(example = "false")
+            @Schema(example = "false")
             public Boolean waiveCharges;
-            @ApiModelProperty(example = "false")
+            @Schema(example = "false")
             public Boolean writeOff;
-            @ApiModelProperty(example = "false")
+            @Schema(example = "false")
             public Boolean recoveryRepayment;
         }
 
-        final class GetLoansCurrency {
-            private GetLoansCurrency() {
-            }
+        static final class GetLoansCurrency {
 
-            @ApiModelProperty(example = "USD")
+            private GetLoansCurrency() {}
+
+            @Schema(example = "USD")
             public String code;
-            @ApiModelProperty(example = "US Dollar")
+            @Schema(example = "US Dollar")
             public String name;
-            @ApiModelProperty(example = "2")
+            @Schema(example = "2")
             public Integer decimalPlaces;
-            @ApiModelProperty(example = "$")
+            @Schema(example = "$")
             public String displaySymbol;
-            @ApiModelProperty(example = "currency.USD")
+            @Schema(example = "currency.USD")
             public String nameCode;
-            @ApiModelProperty(example = "US Dollar ($)")
+            @Schema(example = "US Dollar ($)")
             public String displayLabel;
         }
 
-        @ApiModelProperty(example = "3")
-        public Integer id;
+        static final class GetLoanTransactionRelation {
+
+            private GetLoanTransactionRelation() {}
+
+            @Schema(example = "1")
+            public Long fromLoanTransaction;
+            @Schema(example = "10")
+            public Long toLoanTransaction;
+            @Schema(example = "10")
+            public Long toLoanCharge;
+            @Schema(example = "CHARGEBACK")
+            public String relationType;
+            @Schema(example = "100.00")
+            public Double amount;
+            @Schema(example = "Repayment Adjustment Chargeback")
+            public String paymentType;
+
+        }
+
+        @Schema(example = "3")
+        public Long id;
         public GetLoansType type;
-        @ApiModelProperty(example = "[2012, 5, 14]")
+        @Schema(example = "[2012, 5, 14]")
         public LocalDate date;
-        @ApiModelProperty(example = "false")
+        @Schema(example = "[2012, 5, 14]")
+        public LocalDate submittedOnDate;
+        @Schema(example = "false")
         public Boolean manuallyReversed;
         public GetLoansCurrency currency;
-        @ApiModelProperty(example = "559.88")
+        @Schema(example = "559.88")
         public Double amount;
-        @ApiModelProperty(example = "559.88")
+        @Schema(example = "559.88")
         public Double interestPortion;
-    }
+        @Schema(example = "20120514")
+        public String reversalExternalId;
+        @Schema(example = "20120514")
+        public String externalId;
+        @Schema(example = "[2012, 5, 18]")
+        public LocalDate reversedOnDate;
+        @Schema(example = "1000.00")
+        public Double netDisbursalAmount;
+        @Schema(example = "240.00")
+        public Double principalPortion;
+        @Schema(example = "23.90")
+        public Double feeChargesPortion;
+        @Schema(example = "12.80")
+        public Double penaltyChargesPortion;
+        @Schema(example = "33.00")
+        public Double overpaymentPortion;
+        @Schema(example = "55.50")
+        public Double unrecognizedIncomePortion;
+        @Schema(example = "100.00")
+        public Double outstandingLoanBalance;
+        @Schema(example = "[2012, 5, 18]")
+        public LocalDate possibleNextRepaymentDate;
+        public Set<GetLoanTransactionRelation> transactionRelations;
+        public PaymentDetailData paymentDetailData;
 
-    @ApiModel(value = "PostLoansLoanIdTransactionsRequest")
-    public final static class PostLoansLoanIdTransactionsRequest {
-        private PostLoansLoanIdTransactionsRequest() {
+        static final class PaymentDetailData {
+
+            private PaymentDetailData() {}
+
+            @Schema(example = "62")
+            public Long id;
+            public PaymentType paymentType;
+            @Schema(example = "acc123")
+            public String accountNumber;
+            @Schema(example = "che123")
+            public String checkNumber;
+            @Schema(example = "rou123")
+            public String routingCode;
+            @Schema(example = "rec123")
+            public String receiptNumber;
+            @Schema(example = "ban123")
+            public String bankNumber;
+        }
+
+        static final class PaymentType {
+
+            private PaymentType() {}
+
+            @Schema(example = "11")
+            public Long id;
+            @Schema(example = "DOWN_PAYMENT")
+            public String name;
+            @Schema(example = "true")
+            public Boolean isSystemDefined;
         }
     }
 
-    @ApiModel(value = "PostLoansLoanIdTransactionsResponse")
-    public final static class PostLoansLoanIdTransactionsResponse {
-        private PostLoansLoanIdTransactionsResponse() {
-        }
+    @Schema(description = "PostLoansLoanIdTransactionsRequest")
+    public static final class PostLoansLoanIdTransactionsRequest {
 
-        @ApiModelProperty(example = "1")
-        public Integer officeId;
-        @ApiModelProperty(example = "1")
-        public Integer clientId;
-        @ApiModelProperty(example = "22")
-        public Integer resourceId;
-    }
+        private PostLoansLoanIdTransactionsRequest() {}
 
-    @ApiModel(value = "PostLoansLoanIdTransactionsTransactionIdRequest")
-    public final static class PostLoansLoanIdTransactionsTransactionIdRequest {
-        private PostLoansLoanIdTransactionsTransactionIdRequest() {
-        }
-
-        @ApiModelProperty(example = "en_GB")
+        @Schema(example = "en_GB")
         public String locale;
-        @ApiModelProperty(example = "dd MMMM yyyy")
+        @Schema(example = "dd MMMM yyyy")
         public String dateFormat;
-        @ApiModelProperty(example = "25 May 2012")
+        @Schema(example = "28 June 2022")
         public String transactionDate;
-        @ApiModelProperty(example = "50,000.00")
+        @Schema(example = "50000.00")
         public Double transactionAmount;
-        @ApiModelProperty(example = "An optional note about why your adjusting or changing the transaction.")
+        @Schema(example = "An optional note about why your adjusting or changing the transaction.")
         public String note;
+        @Schema(example = "3e7791ce-aa10-11ec-b909-0242ac120002")
+        public String externalId;
+        @Schema(example = "3")
+        public Long paymentTypeId;
+        @Schema(example = "acc123")
+        public String accountNumber;
+        @Schema(example = "che123")
+        public String checkNumber;
+        @Schema(example = "rou123")
+        public String routingCode;
+        @Schema(example = "rec123")
+        public String receiptNumber;
+        @Schema(example = "ban123")
+        public String bankNumber;
+        @Schema(example = "3")
+        public Integer loanChargeId;
+        @Schema(example = "28 June 2022")
+        public String dueDate;
+
     }
 
-    @ApiModel(value = "PostLoansLoanIdTransactionsTransactionIdResponse")
-    public final static class PostLoansLoanIdTransactionsTransactionIdResponse {
-        private PostLoansLoanIdTransactionsTransactionIdResponse() {
+    @Schema(description = "PostLoansLoanIdTransactionsResponse")
+    public static final class PostLoansLoanIdTransactionsResponse {
+
+        private PostLoansLoanIdTransactionsResponse() {}
+
+        @Schema(example = "1")
+        public Long officeId;
+        @Schema(example = "1")
+        public Long clientId;
+        @Schema(example = "1")
+        public Long loanId;
+        @Schema(example = "22")
+        public Long resourceId;
+        @Schema(example = "95174ff9-1a75-4d72-a413-6f9b1cb988b7")
+        public String resourceExternalId;
+        @Schema(example = "22")
+        public Long subResourceId;
+        @Schema(example = "95174ff9-1a75-4d72-a413-6f9b1cb988b7")
+        public String subResourceExternalId;
+        public PostLoansLoanIdTransactionsResponse.Changes changes;
+
+        static final class Changes {
+
+            @Schema(example = "en_GB")
+            public String locale;
+            @Schema(example = "dd MMMM yyyy")
+            public String dateFormat;
+            @Schema(example = "28 June 2022")
+            public String transactionDate;
+            @Schema(example = "50,000.00")
+            public Double transactionAmount;
+            @Schema(example = "An optional note about why your adjusting or changing the transaction.")
+            public String note;
+            @Schema(example = "95174ff9-1a75-4d72-a413-6f9b1cb988b7")
+            public String reversalExternalId;
+            @Schema(example = "1")
+            public Long paymentTypeId;
+            @Schema(example = "4ff9b1cb988b7")
+            public String externalId;
+        }
+    }
+
+    @Schema(description = "PostLoansLoanIdTransactionsTransactionIdRequest")
+    public static final class PostLoansLoanIdTransactionsTransactionIdRequest {
+
+        private PostLoansLoanIdTransactionsTransactionIdRequest() {}
+
+        @Schema(example = "en_GB")
+        public String locale;
+        @Schema(example = "dd MMMM yyyy")
+        public String dateFormat;
+        @Schema(example = "28 June 2022")
+        public String transactionDate;
+        @Schema(example = "50,000.00")
+        public Double transactionAmount;
+        @Schema(example = "An optional note about why your adjusting or changing the transaction.")
+        public String note;
+        @Schema(example = "95174ff9-1a75-4d72-a413-6f9b1cb988b7")
+        public String reversalExternalId;
+        @Schema(example = "1")
+        public Long paymentTypeId;
+        @Schema(example = "4ff9b1cb988b7")
+        public String externalId;
+    }
+
+    @Schema(description = "PutChargeTransactionChangesResponse")
+    public static final class PutChargeTransactionChangesResponse {
+
+        private PutChargeTransactionChangesResponse() {}
+
+        static final class Changes {
+
+            @Schema(example = "10.0")
+            public Double amount;
+            @Schema(example = "10.0")
+            public Double principalPortion;
+            @Schema(example = "10.0")
+            public Double interestPortion;
+            @Schema(example = "10.0")
+            public Double feeChargesPortion;
+            @Schema(example = "10.0")
+            public Double penaltyChargesPortion;
+            @Schema(example = "10.0")
+            public Double outstandingLoanBalance;
+            @Schema(example = "1")
+            public Long id;
+            @Schema(example = "95174ff9-1a75-4d72-a413-6f9b1cb988b7")
+            public String externalId;
+            @Schema(example = "28 June 2022")
+            public LocalDate date;
+
         }
 
-        @ApiModelProperty(example = "16")
-        public Integer resourceId;
+        @Schema(example = "1")
+        public Long officeId;
+        @Schema(example = "1")
+        public Long clientId;
+        @Schema(example = "1")
+        public Long loanId;
+        @Schema(example = "22")
+        public Long resourceId;
+        @Schema(example = "95174ff9-1a75-4d72-a413-6f9b1cb988b7")
+        public String resourceExternalId;
+        @Schema(example = "22")
+        public Long subResourceId;
+        @Schema(example = "95174ff9-1a75-4d72-a413-6f9b1cb988b7")
+        public String subResourceExternalId;
+        public PutChargeTransactionChangesResponse.Changes changes;
+
+    }
+
+    @Schema(description = "PutChargeTransactionChangesRequest")
+    public static final class PutChargeTransactionChangesRequest {
+
+        private PutChargeTransactionChangesRequest() {}
+
+        @Schema(example = "1")
+        public Long id;
+        @Schema(example = "2")
+        public Long loanId;
     }
 }

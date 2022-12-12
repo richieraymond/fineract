@@ -19,9 +19,7 @@
 package org.apache.fineract.portfolio.loanaccount.data;
 
 import java.math.BigDecimal;
-
-import org.apache.fineract.infrastructure.bulkimport.constants.TemplatePopulateImportConstants;
-import org.joda.time.LocalDate;
+import java.time.LocalDate;
 
 /**
  * Immutable data object representing a loan transaction.
@@ -30,31 +28,34 @@ public class LoanApprovalData {
 
     private final LocalDate approvalDate;
     private final BigDecimal approvalAmount;
+    private final BigDecimal netDisbursalAmount;
 
-    //import fields
+    // import fields
     private LocalDate approvedOnDate;
     private String note;
     private String dateFormat;
     private String locale;
     private transient Integer rowIndex;
 
-    public static LoanApprovalData importInstance(LocalDate approvedOnDate, Integer rowIndex,
-            String locale,String dateFormat){
-        return new LoanApprovalData(approvedOnDate,rowIndex,locale,dateFormat);
-    }
-    private LoanApprovalData(LocalDate approvedOnDate, Integer rowIndex,String locale,String dateFormat) {
-        this.approvedOnDate = approvedOnDate;
-        this.rowIndex = rowIndex;
-        this.dateFormat=dateFormat;
-        this.locale= locale;
-        this.note="";
-        this.approvalAmount=null;
-        this.approvalDate=null;
+    public static LoanApprovalData importInstance(LocalDate approvedOnDate, Integer rowIndex, String locale, String dateFormat) {
+        return new LoanApprovalData(approvedOnDate, rowIndex, locale, dateFormat);
     }
 
-    public LoanApprovalData(final BigDecimal approvalAmount, final LocalDate approvalDate) {
+    private LoanApprovalData(LocalDate approvedOnDate, Integer rowIndex, String locale, String dateFormat) {
+        this.approvedOnDate = approvedOnDate;
+        this.rowIndex = rowIndex;
+        this.dateFormat = dateFormat;
+        this.locale = locale;
+        this.note = "";
+        this.approvalAmount = null;
+        this.approvalDate = null;
+        this.netDisbursalAmount = null;
+    }
+
+    public LoanApprovalData(final BigDecimal approvalAmount, final LocalDate approvalDate, final BigDecimal netDisbursalAmount) {
         this.approvalDate = approvalDate;
         this.approvalAmount = approvalAmount;
+        this.netDisbursalAmount = netDisbursalAmount;
     }
 
     public LocalDate getApprovalDate() {
@@ -63,6 +64,10 @@ public class LoanApprovalData {
 
     public BigDecimal getApprovalAmount() {
         return this.approvalAmount;
+    }
+
+    public BigDecimal getNetDisbursalAmount() {
+        return this.netDisbursalAmount;
     }
 
 }

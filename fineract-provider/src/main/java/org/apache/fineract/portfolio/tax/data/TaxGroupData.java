@@ -18,9 +18,10 @@
  */
 package org.apache.fineract.portfolio.tax.data;
 
+import java.io.Serializable;
 import java.util.Collection;
 
-public class TaxGroupData {
+public final class TaxGroupData implements Serializable {
 
     private final Long id;
     private final String name;
@@ -58,6 +59,10 @@ public class TaxGroupData {
         this.name = name;
         this.taxAssociations = taxAssociations;
         this.taxComponents = taxComponents;
+    }
+
+    public Collection<TaxGroupMappingsData> getTaxAssociations() {
+        return this.taxAssociations;
     }
 
 }

@@ -18,60 +18,32 @@
  */
 package org.apache.fineract.infrastructure.creditbureau.data;
 
-public class CreditBureauData {
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 
-	private final long creditBureauId;
+@Data
+@NoArgsConstructor
+@Accessors(chain = true)
+public final class CreditBureauData {
 
-	private final String creditBureauName;
+    private long creditBureauId;
 
-	private final String country;
+    private String creditBureauName;
 
-	private final String productName;
+    private String country;
 
-	private final String creditBureauSummary;
+    private String productName;
 
-	private final long implementationKey;
+    private String creditBureauSummary;
 
-	private CreditBureauData(final long creditBureauId, final String creditBureauName, final String country,
-			final String productName, final String creditBureauSummary, final long implementationKey) {
-		this.creditBureauId = creditBureauId;
-		this.creditBureauName = creditBureauName;
-		this.country = country;
-		this.productName = productName;
-		this.creditBureauSummary = creditBureauSummary;
-		this.implementationKey = implementationKey;
+    private long implementationKey;
 
-	}
+    public static CreditBureauData instance(final long creditBureauId, final String creditBureauName, final String country,
+            final String productName, final String creditBureauSummary, final long implementationKey) {
 
-	public static CreditBureauData instance(final long creditBureauId, final String creditBureauName,
-			final String country, final String productName, final String creditBureauSummary, final long implementationKey) {
-
-		return new CreditBureauData(creditBureauId, creditBureauName, country, productName, creditBureauSummary,
-				implementationKey);
-	}
-
-	public String getCreditBureauSummary() {
-		return this.creditBureauSummary;
-	}
-
-	public long getCreditBureauId() {
-		return this.creditBureauId;
-	}
-
-	public String getCreditBureauName() {
-		return this.creditBureauName;
-	}
-
-	public String getCountry() {
-		return this.country;
-	}
-
-	public String getProductName() {
-		return this.productName;
-	}
-
-	public long getImplementationKey() {
-		return this.implementationKey;
-	}
+        return new CreditBureauData().setCreditBureauId(creditBureauId).setCreditBureauName(creditBureauName).setCountry(country)
+                .setProductName(productName).setCreditBureauSummary(creditBureauSummary).setImplementationKey(implementationKey);
+    }
 
 }

@@ -22,7 +22,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -33,8 +32,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriInfo;
-
-import io.swagger.annotations.Api;
 import org.apache.fineract.commands.domain.CommandWrapper;
 import org.apache.fineract.commands.service.CommandWrapperBuilder;
 import org.apache.fineract.commands.service.PortfolioCommandSourceWritePlatformService;
@@ -52,14 +49,14 @@ import org.springframework.stereotype.Component;
 @Path("/officetransactions")
 @Component
 @Scope("singleton")
-@Api(value = "officetransactions", description = "")
+
 public class OfficeTransactionsApiResource {
 
-    private static final Set<String> RESPONSE_DATA_PARAMETERS = new HashSet<>(Arrays.asList("id", "transactionDate", "fromOfficeId",
-            "fromOfficeName", "toOfficeId", "toOfficeIdName", "currencyCode", "digitsAfterDecimal", "inMultiplesOf", "transactionAmount",
-            "description", "allowedOffices", "currencyOptions"));
+    private static final Set<String> RESPONSE_DATA_PARAMETERS = new HashSet<>(
+            Arrays.asList("id", "transactionDate", "fromOfficeId", "fromOfficeName", "toOfficeId", "toOfficeIdName", "currencyCode",
+                    "digitsAfterDecimal", "inMultiplesOf", "transactionAmount", "description", "allowedOffices", "currencyOptions"));
 
-    private final String resourceNameForReadPermissions = "OFFICE";
+    private static final String RESOURCE_NAME_FOR_READ_PERMISSIONS = "OFFICE";
 
     private final PlatformSecurityContext context;
     private final OfficeReadPlatformService readPlatformService;
@@ -84,7 +81,7 @@ public class OfficeTransactionsApiResource {
     @Produces({ MediaType.APPLICATION_JSON })
     public String retrieveOfficeTransactions(@Context final UriInfo uriInfo) {
 
-        this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForReadPermissions);
+        this.context.authenticatedUser().validateHasReadPermission(RESOURCE_NAME_FOR_READ_PERMISSIONS);
 
         final Collection<OfficeTransactionData> officeTransactions = this.readPlatformService.retrieveAllOfficeTransactions();
 
@@ -98,7 +95,7 @@ public class OfficeTransactionsApiResource {
     @Produces({ MediaType.APPLICATION_JSON })
     public String newOfficeTransactionDetails(@Context final UriInfo uriInfo) {
 
-        this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForReadPermissions);
+        this.context.authenticatedUser().validateHasReadPermission(RESOURCE_NAME_FOR_READ_PERMISSIONS);
 
         final OfficeTransactionData officeTransactionData = this.readPlatformService.retrieveNewOfficeTransactionDetails();
 

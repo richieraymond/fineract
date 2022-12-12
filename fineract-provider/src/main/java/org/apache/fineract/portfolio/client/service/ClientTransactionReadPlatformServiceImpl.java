@@ -21,14 +21,15 @@ package org.apache.fineract.portfolio.client.service;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.Collection;
-
+import lombok.RequiredArgsConstructor;
 import org.apache.fineract.infrastructure.core.data.EnumOptionData;
 import org.apache.fineract.infrastructure.core.domain.JdbcSupport;
 import org.apache.fineract.infrastructure.core.service.Page;
 import org.apache.fineract.infrastructure.core.service.PaginationHelper;
-import org.apache.fineract.infrastructure.core.service.RoutingDataSource;
 import org.apache.fineract.infrastructure.core.service.SearchParameters;
+import org.apache.fineract.infrastructure.core.service.database.DatabaseSpecificSQLGenerator;
 import org.apache.fineract.organisation.monetary.data.CurrencyData;
 import org.apache.fineract.portfolio.client.data.ClientTransactionData;
 import org.apache.fineract.portfolio.client.domain.ClientEnumerations;
@@ -36,37 +37,30 @@ import org.apache.fineract.portfolio.client.domain.ClientTransactionType;
 import org.apache.fineract.portfolio.client.exception.ClientTransactionNotFoundException;
 import org.apache.fineract.portfolio.paymentdetail.data.PaymentDetailData;
 import org.apache.fineract.portfolio.paymenttype.data.PaymentTypeData;
-import org.joda.time.LocalDate;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class ClientTransactionReadPlatformServiceImpl implements ClientTransactionReadPlatformService {
 
     private final JdbcTemplate jdbcTemplate;
-    private final ClientTransactionMapper clientTransactionMapper;
-    private final PaginationHelper<ClientTransactionData> paginationHelper;
-
-    @Autowired
-    public ClientTransactionReadPlatformServiceImpl(final RoutingDataSource dataSource) {
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
-        this.clientTransactionMapper = new ClientTransactionMapper();
-        this.paginationHelper = new PaginationHelper<>();
-    }
+    private final DatabaseSpecificSQLGenerator sqlGenerator;
+    private final ClientTransactionMapper clientTransactionMapper = new ClientTransactionMapper();
+    private final PaginationHelper paginationHelper;
 
     private static final class ClientTransactionMapper implements RowMapper<ClientTransactionData> {
 
         private final String schemaSql;
 
-        public ClientTransactionMapper() {
+        ClientTransactionMapper() {
 
             final StringBuilder sqlBuilder = new StringBuilder(400);
             sqlBuilder.append("tr.id as transactionId, tr.transaction_type_enum as transactionType,  ");
             sqlBuilder.append("tr.transaction_date as transactionDate, tr.amount as transactionAmount, ");
-            sqlBuilder.append("tr.created_date as submittedOnDate, tr.is_reversed as reversed, ");
+            sqlBuilder.append("tr.submitted_on_date as submittedOnDate, tr.is_reversed as reversed, ");
             sqlBuilder.append("tr.external_id as externalId, o.name as officeName, o.id as officeId, ");
             sqlBuilder.append("c.id as clientId, c.account_no as accountNo, ccpb.client_charge_id as clientChargeId, ");
             sqlBuilder.append("pd.payment_type_id as paymentType,pd.account_number as accountNumber,pd.check_number as checkNumber, ");
@@ -138,21 +132,23 @@ public class ClientTransactionReadPlatformServiceImpl implements ClientTransacti
     public Page<ClientTransactionData> retrieveAllTransactions(Long clientId, SearchParameters searchParameters) {
         Object[] parameters = new Object[1];
         final StringBuilder sqlBuilder = new StringBuilder();
-        sqlBuilder.append("select SQL_CALC_FOUND_ROWS ").append(this.clientTransactionMapper.schema()).append(" where c.id = ? ");
+        sqlBuilder.append("select " + sqlGenerator.calcFoundRows() + " ").append(this.clientTransactionMapper.schema())
+                .append(" where c.id = ? ");
         parameters[0] = clientId;
-        final String sqlCountRows = "SELECT FOUND_ROWS()";
-        sqlBuilder.append(" order by tr.transaction_date DESC, tr.created_date DESC, tr.id DESC ");
+        sqlBuilder.append(" order by tr.transaction_date DESC, tr.submitted_on_date DESC, tr.id DESC ");
 
         // apply limit and offsets
+
         if (searchParameters.isLimited()) {
-            sqlBuilder.append(" limit ").append(searchParameters.getLimit());
+            sqlBuilder.append(" ");
             if (searchParameters.isOffset()) {
-                sqlBuilder.append(" offset ").append(searchParameters.getOffset());
+                sqlBuilder.append(sqlGenerator.limit(searchParameters.getLimit(), searchParameters.getOffset()));
+            } else {
+                sqlBuilder.append(sqlGenerator.limit(searchParameters.getLimit()));
             }
         }
 
-        return this.paginationHelper.fetchPage(this.jdbcTemplate, sqlCountRows, sqlBuilder.toString(), parameters,
-                this.clientTransactionMapper);
+        return this.paginationHelper.fetchPage(this.jdbcTemplate, sqlBuilder.toString(), parameters, this.clientTransactionMapper);
     }
 
     @Override
@@ -165,17 +161,17 @@ public class ClientTransactionReadPlatformServiceImpl implements ClientTransacti
             sql = sql + " and ccpb.client_charge_id = ?";
         }
         parameters[0] = clientId;
-        sql = sql + " order by tr.transaction_date DESC, tr.created_date DESC, tr.id DESC";
-        return this.jdbcTemplate.query(sql, this.clientTransactionMapper, parameters);
+        sql = sql + " order by tr.transaction_date DESC, tr.submitted_on_date DESC, tr.id DESC";
+        return this.jdbcTemplate.query(sql, this.clientTransactionMapper, parameters); // NOSONAR
     }
 
     @Override
     public ClientTransactionData retrieveTransaction(Long clientId, Long transactionId) {
         try {
             final String sql = "select " + this.clientTransactionMapper.schema() + " where c.id = ? and tr.id= ?";
-            return this.jdbcTemplate.queryForObject(sql, this.clientTransactionMapper, new Object[] { clientId, transactionId });
+            return this.jdbcTemplate.queryForObject(sql, this.clientTransactionMapper, clientId, transactionId); // NOSONAR
         } catch (final EmptyResultDataAccessException e) {
-            throw new ClientTransactionNotFoundException(clientId, transactionId);
+            throw new ClientTransactionNotFoundException(clientId, transactionId, e);
         }
     }
 

@@ -18,8 +18,13 @@
  */
 package org.apache.fineract.portfolio.loanaccount.serialization;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -27,8 +32,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.infrastructure.core.data.ApiParameterError;
 import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
 import org.apache.fineract.infrastructure.core.exception.InvalidJsonException;
@@ -37,28 +41,24 @@ import org.apache.fineract.infrastructure.core.exception.UnsupportedParameterExc
 import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
 import org.apache.fineract.portfolio.loanaccount.api.LoanApiConstants;
 import org.apache.fineract.portfolio.loanaccount.domain.Loan;
-import org.joda.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.reflect.TypeToken;
 
 @Component
 public class VariableLoanScheduleFromApiJsonValidator {
 
-    final Set<String> variableSchedulesupportedParameters = new HashSet<>(Arrays.asList(LoanApiConstants.exceptionParamName,
-            LoanApiConstants.localeParameterName, LoanApiConstants.dateFormatParameterName));
-    final Set<String> variableSchedulesupportedArrayParameters = new HashSet<>(Arrays.asList(
-            LoanApiConstants.modifiedinstallmentsParamName, LoanApiConstants.newinstallmentsParamName,
-            LoanApiConstants.deletedinstallmentsParamName));
-    final Set<String> variableScheduleModifiedParameters = new HashSet<>(Arrays.asList(LoanApiConstants.dueDateParamName,
+    private static final Set<String> VARIABLE_SCHEDULESUPPORTED_PARAMETERS = new HashSet<>(Arrays
+            .asList(LoanApiConstants.exceptionParamName, LoanApiConstants.localeParameterName, LoanApiConstants.dateFormatParameterName));
+    private static final Set<String> VARIABLE_SCHEDULESUPPORTED_ARRAY_PARAMETERS = new HashSet<>(
+            Arrays.asList(LoanApiConstants.modifiedinstallmentsParamName, LoanApiConstants.newinstallmentsParamName,
+                    LoanApiConstants.deletedinstallmentsParamName));
+    private static final Set<String> VARIABLE_SCHEDULE_MODIFIED_PARAMETERS = new HashSet<>(Arrays.asList(LoanApiConstants.dueDateParamName,
             LoanApiConstants.modifiedDueDateParamName, LoanApiConstants.principalParamName, LoanApiConstants.installmentAmountParamName));
-    final Set<String> variableScheduleNewInstallmentParameters = new HashSet<>(Arrays.asList(LoanApiConstants.dueDateParamName,
-            LoanApiConstants.principalParamName, LoanApiConstants.installmentAmountParamName));
-    final Set<String> variableScheduleDeleteInstallmentParameters = new HashSet<>(Arrays.asList(LoanApiConstants.dueDateParamName));
+    private static final Set<String> VARIABLE_SCHEDULE_NEW_INSTALLMENT_PARAMETERS = new HashSet<>(Arrays
+            .asList(LoanApiConstants.dueDateParamName, LoanApiConstants.principalParamName, LoanApiConstants.installmentAmountParamName));
+    private static final Set<String> VARIABLE_SCHEDULE_DELETE_INSTALLMENT_PARAMETERS = new HashSet<>(
+            List.of(LoanApiConstants.dueDateParamName));
+    public static final String LOAN = "loan";
 
     private final FromJsonHelper fromApiJsonHelper;
 
@@ -68,17 +68,19 @@ public class VariableLoanScheduleFromApiJsonValidator {
     }
 
     public void validateSchedule(final String json, final Loan loan) {
-        if (StringUtils.isBlank(json)) { throw new InvalidJsonException(); }
+        if (StringUtils.isBlank(json)) {
+            throw new InvalidJsonException();
+        }
 
         final Type typeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
-        this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, this.variableSchedulesupportedParameters);
+        this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, VARIABLE_SCHEDULESUPPORTED_PARAMETERS);
 
         final List<ApiParameterError> dataValidationErrors = new ArrayList<>();
-        final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors).resource("loan");
+        final DataValidatorBuilder baseDataValidator = new DataValidatorBuilder(dataValidationErrors).resource(LOAN);
 
         if (!loan.isSubmittedAndPendingApproval()) {
             baseDataValidator.reset().failWithCodeNoParameterAddedToErrorCode("account.is.not.submitted.and.pending.state",
-                    "Loan is not in submited state");
+                    "Loan is not in submitted state");
             throw new PlatformApiDataValidationException(dataValidationErrors);
         }
 
@@ -89,32 +91,34 @@ public class VariableLoanScheduleFromApiJsonValidator {
                 final String dateFormat = this.fromApiJsonHelper.extractDateFormatParameter(topLevelJsonElement);
                 final Locale locale = this.fromApiJsonHelper.extractLocaleParameter(topLevelJsonElement);
                 final JsonObject exceptionObject = topLevelJsonElement.getAsJsonObject(LoanApiConstants.exceptionParamName);
-                this.fromApiJsonHelper.checkForUnsupportedParameters(exceptionObject, this.variableSchedulesupportedArrayParameters);
+                this.fromApiJsonHelper.checkForUnsupportedParameters(exceptionObject, VARIABLE_SCHEDULESUPPORTED_ARRAY_PARAMETERS);
                 if (this.fromApiJsonHelper.parameterExists(LoanApiConstants.modifiedinstallmentsParamName, exceptionObject)
                         && exceptionObject.get(LoanApiConstants.modifiedinstallmentsParamName).isJsonArray()) {
                     final JsonArray modificationsArray = exceptionObject.get(LoanApiConstants.modifiedinstallmentsParamName)
                             .getAsJsonArray();
                     validateLoanTermVariations(loan, baseDataValidator, dateFormat, locale, modificationsArray,
-                            this.variableScheduleModifiedParameters, LoanApiConstants.modifiedinstallmentsParamName);
+                            VARIABLE_SCHEDULE_MODIFIED_PARAMETERS, LoanApiConstants.modifiedinstallmentsParamName);
                 }
                 if (this.fromApiJsonHelper.parameterExists(LoanApiConstants.newinstallmentsParamName, exceptionObject)
                         && exceptionObject.get(LoanApiConstants.newinstallmentsParamName).isJsonArray()) {
                     final JsonArray array = exceptionObject.get(LoanApiConstants.newinstallmentsParamName).getAsJsonArray();
                     validateLoanTermVariations(loan, baseDataValidator, dateFormat, locale, array,
-                            this.variableScheduleNewInstallmentParameters, LoanApiConstants.newinstallmentsParamName);
+                            VARIABLE_SCHEDULE_NEW_INSTALLMENT_PARAMETERS, LoanApiConstants.newinstallmentsParamName);
                 }
                 if (this.fromApiJsonHelper.parameterExists(LoanApiConstants.deletedinstallmentsParamName, exceptionObject)
                         && exceptionObject.get(LoanApiConstants.deletedinstallmentsParamName).isJsonArray()) {
                     final JsonArray array = exceptionObject.get(LoanApiConstants.deletedinstallmentsParamName).getAsJsonArray();
                     validateLoanTermVariations(loan, baseDataValidator, dateFormat, locale, array,
-                            this.variableScheduleDeleteInstallmentParameters, LoanApiConstants.deletedinstallmentsParamName);
+                            VARIABLE_SCHEDULE_DELETE_INSTALLMENT_PARAMETERS, LoanApiConstants.deletedinstallmentsParamName);
                 }
             }
         } else {
             baseDataValidator.reset().failWithCodeNoParameterAddedToErrorCode("variable.schedule.not.supported",
                     "Loan schedule modification not allowed");
         }
-        if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException(dataValidationErrors); }
+        if (!dataValidationErrors.isEmpty()) {
+            throw new PlatformApiDataValidationException(dataValidationErrors);
+        }
     }
 
     private void validateLoanTermVariations(final Loan loan, final DataValidatorBuilder baseDataValidator, final String dateFormat,
@@ -132,14 +136,13 @@ public class VariableLoanScheduleFromApiJsonValidator {
             baseDataValidator.reset().parameter(arrayName).parameterAtIndexArray(LoanApiConstants.principalParamName, i)
                     .value(principalAmount).zeroOrPositiveAmount();
 
-            if (loan.getLoanProductRelatedDetail().getInterestMethod().isDecliningBalnce()
+            if (loan.getLoanProductRelatedDetail().getInterestMethod().isDecliningBalance()
                     && loan.getLoanProductRelatedDetail().getAmortizationMethod().isEqualInstallment() && principalAmount != null) {
                 List<String> unsupportedParams = new ArrayList<>(1);
                 unsupportedParams.add(LoanApiConstants.principalParamName);
                 throw new UnsupportedParameterException(unsupportedParams);
-            } else if ((!loan.getLoanProductRelatedDetail().getInterestMethod().isDecliningBalnce() || loan.getLoanProductRelatedDetail()
-                    .getAmortizationMethod().isEqualPrincipal())
-                    && installmentAmount != null) {
+            } else if ((!loan.getLoanProductRelatedDetail().getInterestMethod().isDecliningBalance()
+                    || loan.getLoanProductRelatedDetail().getAmortizationMethod().isEqualPrincipal()) && installmentAmount != null) {
                 List<String> unsupportedParams = new ArrayList<>(1);
                 unsupportedParams.add(LoanApiConstants.installmentAmountParamName);
                 throw new UnsupportedParameterException(unsupportedParams);

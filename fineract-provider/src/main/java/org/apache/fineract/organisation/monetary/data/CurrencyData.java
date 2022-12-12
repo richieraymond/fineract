@@ -18,19 +18,23 @@
  */
 package org.apache.fineract.organisation.monetary.data;
 
+import java.io.Serializable;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+
 /**
  * Immutable data object representing currency.
  */
-public class CurrencyData {
+@Getter
+@EqualsAndHashCode
+public class CurrencyData implements Serializable {
 
     private final String code;
     private final String name;
     private final int decimalPlaces;
     private final Integer inMultiplesOf;
     private final String displaySymbol;
-    @SuppressWarnings("unused")
     private final String nameCode;
-    @SuppressWarnings("unused")
     private final String displayLabel;
 
     public static CurrencyData blank() {
@@ -40,7 +44,7 @@ public class CurrencyData {
     public CurrencyData(String code) {
         this.code = code;
         this.name = null;
-        this.decimalPlaces =0;
+        this.decimalPlaces = 0;
         this.inMultiplesOf = null;
         this.displaySymbol = null;
         this.nameCode = null;
@@ -58,32 +62,22 @@ public class CurrencyData {
         this.displayLabel = generateDisplayLabel();
     }
 
-    public String code() {
-        return this.code;
-    }
-
-    public int decimalPlaces() {
-        return this.decimalPlaces;
-    }
-
-    public Integer currencyInMultiplesOf() {
-        return this.inMultiplesOf;
-    }
-
-    @Override
-    public boolean equals(final Object obj) {
-        final CurrencyData currencyData = (CurrencyData) obj;
-        return currencyData.code.equals(this.code);
-    }
-
-    @Override
-    public int hashCode() {
-        return this.code.hashCode();
+    public CurrencyData(final String code, final int decimalPlaces, final Integer inMultiplesOf) {
+        this.code = code;
+        this.name = null;
+        this.decimalPlaces = decimalPlaces;
+        this.inMultiplesOf = inMultiplesOf;
+        this.displaySymbol = null;
+        this.nameCode = null;
+        this.displayLabel = null;
     }
 
     private String generateDisplayLabel() {
 
-        final StringBuilder builder = new StringBuilder(this.name).append(' ');
+        final StringBuilder builder = new StringBuilder(20);
+        if (this.name != null) {
+            builder.append(this.name).append(' ');
+        }
 
         if (this.displaySymbol != null && !"".equalsIgnoreCase(this.displaySymbol.trim())) {
             builder.append('(').append(this.displaySymbol).append(')');
@@ -92,9 +86,5 @@ public class CurrencyData {
         }
 
         return builder.toString();
-    }
-
-    public String getName() {
-        return name;
     }
 }

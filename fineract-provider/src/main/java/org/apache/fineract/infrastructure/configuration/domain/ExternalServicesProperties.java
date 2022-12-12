@@ -20,20 +20,26 @@ package org.apache.fineract.infrastructure.configuration.domain;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-
 import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
 import javax.persistence.Table;
-
-import org.apache.commons.lang.StringUtils;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.Accessors;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.infrastructure.configuration.data.ExternalServicesPropertiesData;
-import org.apache.fineract.infrastructure.configuration.service.ExternalServicesConstants.EXTERNALSERVICEPROPERTIES_JSON_INPUT_PARAMS;
-import org.apache.fineract.infrastructure.configuration.service.ExternalServicesConstants.SMTP_JSON_INPUT_PARAMS;
+import org.apache.fineract.infrastructure.configuration.service.ExternalServicesConstants.ExternalservicePropertiesJSONinputParams;
+import org.apache.fineract.infrastructure.configuration.service.ExternalServicesConstants.SMTPJSONinputParams;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 
 @Entity
 @Table(name = "c_external_service_properties")
+@Getter
+@Setter
+@NoArgsConstructor
+@Accessors(chain = true)
 public class ExternalServicesProperties {
 
     @EmbeddedId
@@ -42,29 +48,20 @@ public class ExternalServicesProperties {
     @Column(name = "value", length = 250)
     private String value;
 
-    protected ExternalServicesProperties() {
-
-    }
-
-    private ExternalServicesProperties(final ExternalServicePropertiesPK externalServicePropertiesPK, final String value) {
-        this.externalServicePropertiesPK = externalServicePropertiesPK;
-
-        this.value = value;
-
-    }
     public static ExternalServicesProperties fromJson(final ExternalService externalService, final JsonCommand command) {
-        final String name = command.stringValueOfParameterNamed(EXTERNALSERVICEPROPERTIES_JSON_INPUT_PARAMS.NAME.getValue());
-        final String value = command.stringValueOfParameterNamed(EXTERNALSERVICEPROPERTIES_JSON_INPUT_PARAMS.VALUE.getValue());
-        return new ExternalServicesProperties(new ExternalServicePropertiesPK(externalService.getId(), name), value);
+        final String name = command.stringValueOfParameterNamed(ExternalservicePropertiesJSONinputParams.NAME.getValue());
+        final String value = command.stringValueOfParameterNamed(ExternalservicePropertiesJSONinputParams.VALUE.getValue());
+        return new ExternalServicesProperties().setExternalServicePropertiesPK(
+                new ExternalServicePropertiesPK().setExternalServiceId(externalService.getId()).setName(name)).setValue(value);
     }
 
     public Map<String, Object> update(final JsonCommand command, String paramName) {
         final Map<String, Object> actualChanges = new LinkedHashMap<>(2);
 
-        final String valueParamName = EXTERNALSERVICEPROPERTIES_JSON_INPUT_PARAMS.VALUE.getValue();
+        final String valueParamName = ExternalservicePropertiesJSONinputParams.VALUE.getValue();
         if (command.isChangeInStringParameterNamed(paramName, this.value)) {
             final String newValue = command.stringValueOfParameterNamed(paramName);
-            if (paramName.equals(SMTP_JSON_INPUT_PARAMS.PASSWORD.getValue()) && newValue.equals("XXXX")) {
+            if (paramName.equals(SMTPJSONinputParams.PASSWORD.getValue()) && newValue.equals("XXXX")) {
                 // If Param Name is Password and ParamValue is XXXX that means
                 // the password has not been changed.
             } else {
@@ -77,6 +74,6 @@ public class ExternalServicesProperties {
     }
 
     public ExternalServicesPropertiesData toData() {
-        return new ExternalServicesPropertiesData(this.externalServicePropertiesPK.getName(), this.value);
+        return new ExternalServicesPropertiesData().setName(this.externalServicePropertiesPK.getName()).setValue(this.value);
     }
 }

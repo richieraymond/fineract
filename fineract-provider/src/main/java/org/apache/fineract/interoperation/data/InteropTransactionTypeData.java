@@ -18,24 +18,28 @@
  */
 package org.apache.fineract.interoperation.data;
 
+import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_BALANCE_OF_PAYMENTS;
+import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_INITIATOR;
+import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_INITIATOR_TYPE;
+import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_REFUND_INFO;
+import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_SCENARIO;
+import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_SUB_SCENARIO;
+
 import com.google.gson.JsonObject;
+import java.util.Arrays;
+import java.util.List;
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
 import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
 import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
 import org.apache.fineract.interoperation.domain.InteropInitiatorType;
 import org.apache.fineract.interoperation.domain.InteropTransactionRole;
 import org.apache.fineract.interoperation.domain.InteropTransactionScenario;
 
-import javax.validation.constraints.NotNull;
-import java.util.Arrays;
-
-import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_INITIATOR;
-import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_INITIATOR_TYPE;
-import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_SCENARIO;
-import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_SUB_SCENARIO;
-
 public class InteropTransactionTypeData {
 
-    public static final String[] PARAMS = {PARAM_SCENARIO, PARAM_SUB_SCENARIO, PARAM_INITIATOR, PARAM_INITIATOR_TYPE};
+    public static final List<String> PARAMS = List.copyOf(Arrays.asList(PARAM_SCENARIO, PARAM_SUB_SCENARIO, PARAM_INITIATOR,
+            PARAM_INITIATOR_TYPE, PARAM_REFUND_INFO, PARAM_BALANCE_OF_PAYMENTS));
 
     @NotNull
     private final InteropTransactionScenario scenario;
@@ -45,12 +49,26 @@ public class InteropTransactionTypeData {
     private final InteropTransactionRole initiator;
     @NotNull
     private final InteropInitiatorType initiatorType;
+    // TODO: SKIP FOR NOW
+    @Valid
+    private InteropRefundData refundInfo;
 
-    public InteropTransactionTypeData(InteropTransactionScenario scenario, String subScenario, InteropTransactionRole initiator, InteropInitiatorType initiatorType) {
+    private String balanceOfPayments; // 3 digits number, see
+                                      // https://www.imf.org/external/np/sta/bopcode/
+
+    InteropTransactionTypeData(InteropTransactionScenario scenario, String subScenario, InteropTransactionRole initiator,
+            InteropInitiatorType initiatorType, InteropRefundData refundInfo, String balanceOfPayments) {
         this.scenario = scenario;
         this.subScenario = subScenario;
         this.initiator = initiator;
         this.initiatorType = initiatorType;
+        this.refundInfo = refundInfo;
+        this.balanceOfPayments = balanceOfPayments;
+    }
+
+    private InteropTransactionTypeData(InteropTransactionScenario scenario, String subScenario, InteropTransactionRole initiator,
+            InteropInitiatorType initiatorType) {
+        this(scenario, subScenario, initiator, initiatorType, null, null);
     }
 
     public InteropTransactionScenario getScenario() {
@@ -69,12 +87,13 @@ public class InteropTransactionTypeData {
         return initiatorType;
     }
 
-
-    public static InteropTransactionTypeData validateAndParse(DataValidatorBuilder dataValidator, JsonObject element, FromJsonHelper jsonHelper) {
-        if (element == null)
+    public static InteropTransactionTypeData validateAndParse(DataValidatorBuilder dataValidator, JsonObject element,
+            FromJsonHelper jsonHelper) {
+        if (element == null) {
             return null;
+        }
 
-        jsonHelper.checkForUnsupportedParameters(element, Arrays.asList(PARAMS));
+        jsonHelper.checkForUnsupportedParameters(element, PARAMS);
 
         String scenarioString = jsonHelper.extractStringNamed(PARAM_SCENARIO, element);
         DataValidatorBuilder dataValidatorCopy = dataValidator.reset().parameter(PARAM_SCENARIO).value(scenarioString).notBlank();

@@ -18,93 +18,132 @@
  */
 package org.apache.fineract.infrastructure.documentmanagement.api;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+import org.apache.fineract.infrastructure.core.data.UploadRequest;
+import org.glassfish.jersey.media.multipart.FormDataParam;
 
 /**
  * Created by sanyam on 7/8/17.
  */
 
 final class DocumentManagementApiResourceSwagger {
+
     private DocumentManagementApiResourceSwagger() {
 
     }
 
-    @ApiModel(value = "GetEntityTypeEntityIdDocumentsResponse")
+    @Schema(description = "GetEntityTypeEntityIdDocumentsResponse")
     public static final class GetEntityTypeEntityIdDocumentsResponse {
+
         private GetEntityTypeEntityIdDocumentsResponse() {
 
         }
 
-        @ApiModelProperty(example = "1")
+        @Schema(example = "1")
         public Long id;
-        @ApiModelProperty(example = "clients")
+        @Schema(example = "clients")
         public String parentEntityType;
-        @ApiModelProperty(example = "1")
+        @Schema(example = "1")
         public Long parentEntityId;
-        @ApiModelProperty(example = "Client Details Form")
+        @Schema(example = "Client Details Form")
         public String name;
-        @ApiModelProperty(example = "CGAP.pdf")
+        @Schema(example = "CGAP.pdf")
         public String fileName;
-        @ApiModelProperty(example = "5246719")
+        @Schema(example = "5246719")
         public Long size;
-        @ApiModelProperty(example = "application/pdf")
+        @Schema(example = "application/pdf")
         public String type;
-        @ApiModelProperty(example = "A signed form signed by new member")
+        @Schema(example = "A signed form signed by new member")
         public String description;
-        @ApiModelProperty(example = "")
+        @Schema(example = "")
         public String location;
-        @ApiModelProperty(example = "")
+        @Schema(example = "")
         public Integer storageType;
     }
 
-    @ApiModel(value = "PostEntityTypeEntityIdDocumentsResponse")
+    @Schema(description = "PostEntityTypeEntityIdDocumentsResponse")
     public static final class PostEntityTypeEntityIdDocumentsResponse {
+
         private PostEntityTypeEntityIdDocumentsResponse() {
 
         }
-        @ApiModelProperty(example = "3")
+
+        @Schema(example = "3")
         public Long resourceId;
-        @ApiModelProperty(example = "3")
+        @Schema(example = "3")
         public String resourceIdentifier;
     }
 
-    @ApiModel(value = "PutEntityTypeEntityIdDocumentsResponse")
+    @Schema(description = "PutEntityTypeEntityIdDocumentsResponse")
     public static final class PutEntityTypeEntityIdDocumentsResponse {
+
         private PutEntityTypeEntityIdDocumentsResponse() {
 
         }
 
-        public final class PutEntityTypeEntityIdDocumentsResponseChangesSwagger{
+        public static final class PutEntityTypeEntityIdDocumentsResponseChangesSwagger {
+
             private PutEntityTypeEntityIdDocumentsResponseChangesSwagger() {
 
             }
 
         }
-        @ApiModelProperty(example = "3")
+
+        @Schema(example = "3")
         public Long resourceId;
-        public PutEntityTypeEntityIdDocumentsResponseChangesSwagger changes;
-        @ApiModelProperty(example = "3")
+        public PutEntityTypeEntityIdDocumentsResponse.PutEntityTypeEntityIdDocumentsResponseChangesSwagger changes;
+        @Schema(example = "3")
         public String resourceIdentifier;
     }
 
-    @ApiModel(value = "DeleteEntityTypeEntityIdDocumentsResponse")
+    @Schema(description = "DeleteEntityTypeEntityIdDocumentsResponse")
     public static final class DeleteEntityTypeEntityIdDocumentsResponse {
+
         private DeleteEntityTypeEntityIdDocumentsResponse() {
 
         }
 
-        public final class PutEntityTypeEntityIdDocumentsResponseChangesSwagger{
+        public static final class PutEntityTypeEntityIdDocumentsResponseChangesSwagger {
+
             private PutEntityTypeEntityIdDocumentsResponseChangesSwagger() {
 
             }
 
         }
-        @ApiModelProperty(example = "3")
+
+        @Schema(example = "3")
         public Long resourceId;
-        public PutEntityTypeEntityIdDocumentsResponseChangesSwagger changes;
-        @ApiModelProperty(example = "3")
+        public DeleteEntityTypeEntityIdDocumentsResponse.PutEntityTypeEntityIdDocumentsResponseChangesSwagger changes;
+        @Schema(example = "3")
         public String resourceIdentifier;
+    }
+
+    @Schema(description = "Document upload request")
+    public static final class DocumentUploadRequest extends UploadRequest {
+
+        @Schema(name = "name", type = "string", accessMode = Schema.AccessMode.READ_WRITE)
+        @FormDataParam("name")
+        private String name;
+
+        @Schema(name = "description", type = "string", accessMode = Schema.AccessMode.READ_WRITE)
+        @FormDataParam("description")
+        private String description;
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public void setDescription(String description) {
+            this.description = description;
+        }
     }
 
 }

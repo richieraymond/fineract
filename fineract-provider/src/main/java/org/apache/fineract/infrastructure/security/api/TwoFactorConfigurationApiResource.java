@@ -18,16 +18,13 @@
  */
 package org.apache.fineract.infrastructure.security.api;
 
-
 import java.util.Map;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-
 import org.apache.fineract.commands.domain.CommandWrapper;
 import org.apache.fineract.commands.service.CommandWrapperBuilder;
 import org.apache.fineract.commands.service.PortfolioCommandSourceWritePlatformService;
@@ -36,7 +33,7 @@ import org.apache.fineract.infrastructure.core.serialization.DefaultToApiJsonSer
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
 import org.apache.fineract.infrastructure.security.service.TwoFactorConfigurationService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Profile;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -45,10 +42,10 @@ import org.springframework.stereotype.Component;
 @Produces({ MediaType.APPLICATION_JSON })
 @Component
 @Scope("singleton")
-@Profile("twofactor")
+@ConditionalOnProperty("fineract.security.2fa.enabled")
 public class TwoFactorConfigurationApiResource {
 
-    private final String resourceNameForPermissions = "TWOFACTOR_CONFIG";
+    private static final String RESOURCE_NAME_FOR_PERMISSIONS = "TWOFACTOR_CONFIG";
 
     private final PlatformSecurityContext context;
     private final TwoFactorConfigurationService configurationService;
@@ -56,30 +53,27 @@ public class TwoFactorConfigurationApiResource {
     private final PortfolioCommandSourceWritePlatformService commandsSourceWritePlatformService;
 
     @Autowired
-    public TwoFactorConfigurationApiResource(PlatformSecurityContext context,
-             TwoFactorConfigurationService configurationService,
-             DefaultToApiJsonSerializer<Map<String, Object>> toApiJsonSerializer,
-             PortfolioCommandSourceWritePlatformService commandsSourceWritePlatformService) {
+    public TwoFactorConfigurationApiResource(PlatformSecurityContext context, TwoFactorConfigurationService configurationService,
+            DefaultToApiJsonSerializer<Map<String, Object>> toApiJsonSerializer,
+            PortfolioCommandSourceWritePlatformService commandsSourceWritePlatformService) {
         this.context = context;
         this.configurationService = configurationService;
         this.toApiJsonSerializer = toApiJsonSerializer;
         this.commandsSourceWritePlatformService = commandsSourceWritePlatformService;
     }
 
-
     @GET
     public String retrieveAll() {
-        this.context.authenticatedUser().validateHasReadPermission(this.resourceNameForPermissions);
+        this.context.authenticatedUser().validateHasReadPermission(RESOURCE_NAME_FOR_PERMISSIONS);
         Map<String, Object> configurationMap = configurationService.retrieveAll();
         return toApiJsonSerializer.serialize(configurationMap);
     }
 
     @PUT
     public String updateConfiguration(final String apiRequestBodyAsJson) {
-        final CommandWrapper commandRequest = new CommandWrapperBuilder()
-                .updateTwoFactorConfiguration().withJson(apiRequestBodyAsJson).build();
-        final CommandProcessingResult result = this.commandsSourceWritePlatformService.
-                logCommandSource(commandRequest);
+        final CommandWrapper commandRequest = new CommandWrapperBuilder().updateTwoFactorConfiguration().withJson(apiRequestBodyAsJson)
+                .build();
+        final CommandProcessingResult result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
 
         return this.toApiJsonSerializer.serialize(result);
     }

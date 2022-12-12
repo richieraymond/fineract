@@ -19,63 +19,39 @@
 package org.apache.fineract.accounting.journalentry.command;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.apache.fineract.accounting.journalentry.api.JournalEntryJsonInputParams;
 import org.apache.fineract.infrastructure.core.data.ApiParameterError;
 import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
 import org.apache.fineract.infrastructure.core.exception.PlatformApiDataValidationException;
-import org.joda.time.LocalDate;
 
 /**
  * Immutable command for adding an accounting closure
  */
+@RequiredArgsConstructor
+@Getter
 public class JournalEntryCommand {
 
     private final Long officeId;
-    private final LocalDate transactionDate;
     private final String currencyCode;
+    private final LocalDate transactionDate;
     private final String comments;
     private final String referenceNumber;
     private final Long accountingRuleId;
     private final BigDecimal amount;
     private final Long paymentTypeId;
-    @SuppressWarnings("unused")
     private final String accountNumber;
-    @SuppressWarnings("unused")
     private final String checkNumber;
-    @SuppressWarnings("unused")
     private final String receiptNumber;
-    @SuppressWarnings("unused")
     private final String bankNumber;
-    @SuppressWarnings("unused")
     private final String routingCode;
 
     private final SingleDebitOrCreditEntryCommand[] credits;
     private final SingleDebitOrCreditEntryCommand[] debits;
-
-    public JournalEntryCommand(final Long officeId, final String currencyCode, final LocalDate transactionDate, final String comments,
-            final SingleDebitOrCreditEntryCommand[] credits, final SingleDebitOrCreditEntryCommand[] debits, final String referenceNumber,
-            final Long accountingRuleId, final BigDecimal amount, final Long paymentTypeId, final String accountNumber,
-            final String checkNumber, final String receiptNumber, final String bankNumber, final String routingCode) {
-        this.officeId = officeId;
-        this.currencyCode = currencyCode;
-        this.transactionDate = transactionDate;
-        this.comments = comments;
-        this.credits = credits;
-        this.debits = debits;
-        this.referenceNumber = referenceNumber;
-        this.accountingRuleId = accountingRuleId;
-        this.amount = amount;
-        this.paymentTypeId = paymentTypeId;
-        this.accountNumber = accountNumber;
-        this.checkNumber = checkNumber;
-        this.receiptNumber = receiptNumber;
-        this.bankNumber = bankNumber;
-        this.routingCode = routingCode;
-
-    }
 
     public void validateForCreate() {
 
@@ -124,8 +100,10 @@ public class JournalEntryCommand {
         }
         baseDataValidator.reset().parameter("amount").value(this.amount).ignoreIfNull().zeroOrPositiveAmount();
 
-        if (!dataValidationErrors.isEmpty()) { throw new PlatformApiDataValidationException("validation.msg.validation.errors.exist",
-                "Validation errors exist.", dataValidationErrors); }
+        if (!dataValidationErrors.isEmpty()) {
+            throw new PlatformApiDataValidationException("validation.msg.validation.errors.exist", "Validation errors exist.",
+                    dataValidationErrors);
+        }
     }
 
     /**
@@ -140,33 +118,4 @@ public class JournalEntryCommand {
         baseDataValidator.reset().parameter(paramSuffix + "[" + arrayPos + "].amount").value(credit.getAmount()).notNull()
                 .zeroOrPositiveAmount();
     }
-
-    public Long getOfficeId() {
-        return this.officeId;
-    }
-
-    public LocalDate getTransactionDate() {
-        return this.transactionDate;
-    }
-
-    public String getComments() {
-        return this.comments;
-    }
-
-    public SingleDebitOrCreditEntryCommand[] getCredits() {
-        return this.credits;
-    }
-
-    public SingleDebitOrCreditEntryCommand[] getDebits() {
-        return this.debits;
-    }
-
-    public String getReferenceNumber() {
-        return this.referenceNumber;
-    }
-
-    public Long getAccountingRuleId() {
-        return this.accountingRuleId;
-    }
-
 }

@@ -18,95 +18,49 @@
  */
 package org.apache.fineract.infrastructure.creditbureau.data;
 
-public class CreditBureauLoanProductMappingData {
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 
-	private final long creditbureauLoanProductMappingId;
+@Data
+@NoArgsConstructor
+@Accessors(chain = true)
+public final class CreditBureauLoanProductMappingData {
 
-	private final long organisationCreditBureauId;
+    private long creditbureauLoanProductMappingId;
 
-	private final String alias;
+    private long organisationCreditBureauId;
 
-	private final String creditbureauSummary;
+    private String alias;
 
-	private final String loanProductName;
+    private String creditbureauSummary;
 
-	private final long loanProductId;
+    private String loanProductName;
 
-	private final boolean isCreditCheckMandatory;
+    private long loanProductId;
 
-	private final boolean skipCrediCheckInFailure;
+    private boolean isCreditCheckMandatory;
 
-	private final long stalePeriod;
+    private boolean skipCrediCheckInFailure;
 
-	private final boolean is_active;
+    private long stalePeriod;
 
-	private CreditBureauLoanProductMappingData(final long creditbureauLoanProductMappingId,
-			final long organisationCreditBureauId, final String alias, final String creditbureauSummary,
-			final String loanProductName, final long loanProductId, final boolean isCreditCheckMandatory,
-			final boolean skipCrediCheckInFailure, final long stalePeriod, final boolean is_active) {
-		this.creditbureauLoanProductMappingId = creditbureauLoanProductMappingId;
-		this.organisationCreditBureauId = organisationCreditBureauId;
-		this.alias = alias;
-		this.creditbureauSummary = creditbureauSummary;
-		this.loanProductName = loanProductName;
-		this.loanProductId = loanProductId;
-		this.isCreditCheckMandatory = isCreditCheckMandatory;
-		this.skipCrediCheckInFailure = skipCrediCheckInFailure;
-		this.stalePeriod = stalePeriod;
-		this.is_active = is_active;
-	}
+    private boolean active;
 
-	public static CreditBureauLoanProductMappingData instance(final long creditbureauLoanProductMappingId,
-			final long organisationCreditBureauId, final String alias, final String creditbureauSummary,
-			final String loanProductName, final long loanProductId, final boolean isCreditCheckMandatory,
-			final boolean skipCrediCheckInFailure, final long stalePeriod, final boolean is_active) {
-		return new CreditBureauLoanProductMappingData(creditbureauLoanProductMappingId, organisationCreditBureauId, alias,
-				creditbureauSummary, loanProductName, loanProductId, isCreditCheckMandatory, skipCrediCheckInFailure,
-				stalePeriod, is_active);
-	}
+    public static CreditBureauLoanProductMappingData instance(final long creditbureauLoanProductMappingId,
+            final long organisationCreditBureauId, final String alias, final String creditbureauSummary, final String loanProductName,
+            final long loanProductId, final boolean isCreditCheckMandatory, final boolean skipCrediCheckInFailure, final long stalePeriod,
+            final boolean active) {
+        return new CreditBureauLoanProductMappingData().setCreditbureauLoanProductMappingId(creditbureauLoanProductMappingId)
+                .setOrganisationCreditBureauId(organisationCreditBureauId).setAlias(alias).setCreditbureauSummary(creditbureauSummary)
+                .setLoanProductName(loanProductName).setLoanProductId(loanProductId).setCreditCheckMandatory(isCreditCheckMandatory)
+                .setSkipCrediCheckInFailure(skipCrediCheckInFailure).setStalePeriod(stalePeriod).setActive(active);
+    }
 
-	public static CreditBureauLoanProductMappingData instance1(final String loanProductName, final long loanProductId) {
-		return new CreditBureauLoanProductMappingData(0, 0, "", "", loanProductName, loanProductId, false, false, 0, false);
-	}
-
-	public long getCreditbureauLoanProductMappingId() {
-		return this.creditbureauLoanProductMappingId;
-	}
-
-	public String getAlias() {
-		return this.alias;
-	}
-
-	public String getCreditbureauSummary() {
-		return this.creditbureauSummary;
-	}
-
-	public String getLoanProductName() {
-		return this.loanProductName;
-	}
-
-	public long getOrganisationCreditBureauId() {
-		return this.organisationCreditBureauId;
-	}
-
-	public long getLoanProductId() {
-		return this.loanProductId;
-	}
-
-	public boolean isCreditCheckMandatory() {
-		return this.isCreditCheckMandatory;
-	}
-
-	public boolean isSkipCrediCheckInFailure() {
-		return this.skipCrediCheckInFailure;
-	}
-
-	public long getStalePeriod() {
-		return this.stalePeriod;
-	}
-
-	public boolean isIs_active() {
-		return this.is_active;
-	}
+    public static CreditBureauLoanProductMappingData instance1(final String loanProductName, final long loanProductId) {
+        return new CreditBureauLoanProductMappingData().setCreditbureauLoanProductMappingId(0).setOrganisationCreditBureauId(0).setAlias("")
+                .setCreditbureauSummary("").setLoanProductName(loanProductName).setLoanProductId(loanProductId)
+                .setCreditCheckMandatory(false).setSkipCrediCheckInFailure(false).setStalePeriod(0).setActive(false);
+    }
 
 }

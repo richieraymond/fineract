@@ -18,26 +18,21 @@
  */
 package org.apache.fineract.batch.command.internal;
 
+import com.google.common.base.Splitter;
+import java.util.List;
 import javax.ws.rs.core.UriInfo;
-
+import lombok.RequiredArgsConstructor;
 import org.apache.fineract.batch.command.CommandStrategy;
 import org.apache.fineract.batch.domain.BatchRequest;
 import org.apache.fineract.batch.domain.BatchResponse;
-import org.apache.fineract.batch.exception.ErrorHandler;
-import org.apache.fineract.batch.exception.ErrorInfo;
 import org.apache.fineract.portfolio.loanaccount.rescheduleloan.api.RescheduleLoansApiResource;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class ApproveLoanRescheduleCommandStrategy implements CommandStrategy {
 
     private final RescheduleLoansApiResource rescheduleLoansApiResource;
-
-    @Autowired
-    public ApproveLoanRescheduleCommandStrategy(final RescheduleLoansApiResource rescheduleLoansApiResource) {
-        this.rescheduleLoansApiResource = rescheduleLoansApiResource;
-    }
 
     @Override
     public BatchResponse execute(BatchRequest request, UriInfo uriInfo) {
@@ -47,30 +42,18 @@ public class ApproveLoanRescheduleCommandStrategy implements CommandStrategy {
         response.setRequestId(request.getRequestId());
         response.setHeaders(request.getHeaders());
 
-        final String[] pathParameters = request.getRelativeUrl().split("/");
-        Long scheduleId = Long.parseLong(pathParameters[1].substring(0, pathParameters[1].indexOf("?")));
+        final List<String> pathParameters = Splitter.on('/').splitToList(request.getRelativeUrl());
+        Long scheduleId = Long.parseLong(pathParameters.get(1).substring(0, pathParameters.get(1).indexOf("?")));
 
-        // Try-catch blocks to map exceptions to appropriate status codes
-        try {
+        // Calls 'approve' function from 'Loans reschedule Request' to
+        // approve a
+        // loan
+        responseBody = rescheduleLoansApiResource.updateLoanRescheduleRequest(scheduleId, "approve", request.getBody());
 
-            // Calls 'approve' function from 'Loans reschedule Request' to approve a
-            // loan
-            responseBody = rescheduleLoansApiResource.updateLoanRescheduleRequest(scheduleId, "approve", request.getBody());
-
-            response.setStatusCode(200);
-            // Sets the body of the response after the successful approval of a
-            // Loans reschedule Request
-            response.setBody(responseBody);
-
-        } catch (RuntimeException e) {
-
-            // Gets an object of type ErrorInfo, containing information about
-            // raised exception
-            ErrorInfo ex = ErrorHandler.handler(e);
-
-            response.setStatusCode(ex.getStatusCode());
-            response.setBody(ex.getMessage());
-        }
+        response.setStatusCode(200);
+        // Sets the body of the response after the successful approval of a
+        // Loans reschedule Request
+        response.setBody(responseBody);
 
         return response;
     }

@@ -21,10 +21,8 @@ package org.apache.fineract.infrastructure.codes.service;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
-
 import org.apache.fineract.infrastructure.codes.data.CodeData;
 import org.apache.fineract.infrastructure.codes.exception.CodeNotFoundException;
-import org.apache.fineract.infrastructure.core.service.RoutingDataSource;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
@@ -40,9 +38,9 @@ public class CodeReadPlatformServiceImpl implements CodeReadPlatformService {
     private final PlatformSecurityContext context;
 
     @Autowired
-    public CodeReadPlatformServiceImpl(final PlatformSecurityContext context, final RoutingDataSource dataSource) {
+    public CodeReadPlatformServiceImpl(final PlatformSecurityContext context, final JdbcTemplate jdbcTemplate) {
         this.context = context;
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     private static final class CodeMapper implements RowMapper<CodeData> {
@@ -70,7 +68,7 @@ public class CodeReadPlatformServiceImpl implements CodeReadPlatformService {
         final CodeMapper rm = new CodeMapper();
         final String sql = "select " + rm.schema() + " order by c.code_name";
 
-        return this.jdbcTemplate.query(sql, rm, new Object[] {});
+        return this.jdbcTemplate.query(sql, rm); // NOSONAR
     }
 
     @Override
@@ -81,9 +79,9 @@ public class CodeReadPlatformServiceImpl implements CodeReadPlatformService {
             final CodeMapper rm = new CodeMapper();
             final String sql = "select " + rm.schema() + " where c.id = ?";
 
-            return this.jdbcTemplate.queryForObject(sql, rm, new Object[] { codeId });
+            return this.jdbcTemplate.queryForObject(sql, rm, new Object[] { codeId }); // NOSONAR
         } catch (final EmptyResultDataAccessException e) {
-            throw new CodeNotFoundException(codeId);
+            throw new CodeNotFoundException(codeId, e);
         }
     }
 
@@ -95,9 +93,9 @@ public class CodeReadPlatformServiceImpl implements CodeReadPlatformService {
             final CodeMapper rm = new CodeMapper();
             final String sql = "select " + rm.schema() + " where c.code_name = ?";
 
-            return this.jdbcTemplate.queryForObject(sql, rm, new Object[] { codeName });
+            return this.jdbcTemplate.queryForObject(sql, rm, new Object[] { codeName }); // NOSONAR
         } catch (final EmptyResultDataAccessException e) {
-            throw new CodeNotFoundException(codeName);
+            throw new CodeNotFoundException(codeName, e);
         }
     }
 }

@@ -18,30 +18,28 @@
  */
 package org.apache.fineract.infrastructure.gcm.domain;
 
-import java.util.Date;
-
+import java.time.OffsetDateTime;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.apache.fineract.portfolio.client.data.ClientData;
 
+@Getter
+@Setter
+@NoArgsConstructor
+@Accessors(chain = true)
 public class DeviceRegistrationData {
 
-	public Long id;
-	public ClientData clientData;
-	public String registrationId;
-	public Date updatedOnDate;
+    public Long id;
+    public ClientData clientData;
+    public String registrationId;
+    public OffsetDateTime updatedOnDate;
 
-	private DeviceRegistrationData(final Long id, final ClientData clientData,
-			final String registrationId, final Date updatedOnDate) {
-		this.id = id;
-		this.clientData = clientData;
-		this.registrationId = registrationId;
-		this.updatedOnDate = updatedOnDate;
-	}
-
-	public static DeviceRegistrationData instance(final Long id,
-			final ClientData clientData, final String registrationId,
-			final Date updatedOnDate) {
-		return new DeviceRegistrationData(id, clientData, registrationId,
-				updatedOnDate);
-	}
+    public static DeviceRegistrationData instance(final Long id, final ClientData clientData, final String registrationId,
+            final OffsetDateTime updatedOnDate) {
+        return new DeviceRegistrationData().setId(id).setClientData(clientData).setRegistrationId(registrationId)
+                .setUpdatedOnDate(updatedOnDate);
+    }
 
 }

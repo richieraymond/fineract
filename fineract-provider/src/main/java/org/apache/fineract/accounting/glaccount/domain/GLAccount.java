@@ -18,11 +18,10 @@
  */
 package org.apache.fineract.accounting.glaccount.domain;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
@@ -31,9 +30,10 @@ import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
-
-import org.apache.commons.lang.BooleanUtils;
-import org.apache.commons.lang.StringUtils;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.apache.fineract.accounting.glaccount.api.GLAccountJsonInputParams;
 import org.apache.fineract.infrastructure.codes.domain.CodeValue;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
@@ -41,7 +41,11 @@ import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
 
 @Entity
 @Table(name = "acc_gl_account", uniqueConstraints = { @UniqueConstraint(columnNames = { "gl_code" }, name = "acc_gl_code") })
-public class GLAccount extends AbstractPersistableCustom<Long> {
+@Getter
+@Setter
+@NoArgsConstructor
+@Accessors(chain = true)
+public class GLAccount extends AbstractPersistableCustom {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
@@ -52,7 +56,7 @@ public class GLAccount extends AbstractPersistableCustom<Long> {
 
     @OneToMany(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
-    private List<GLAccount> children = new LinkedList<>();
+    private List<GLAccount> children = new ArrayList<>();
 
     @Column(name = "name", nullable = false, length = 45)
     private String name;
@@ -61,7 +65,7 @@ public class GLAccount extends AbstractPersistableCustom<Long> {
     private String glCode;
 
     @Column(name = "disabled", nullable = false)
-    private boolean disabled = false;
+    private boolean disabled;
 
     @Column(name = "manual_journal_entries_allowed", nullable = false)
     private boolean manualEntriesAllowed = true;
@@ -79,33 +83,18 @@ public class GLAccount extends AbstractPersistableCustom<Long> {
     @JoinColumn(name = "tag_id")
     private CodeValue tagId;
 
-    protected GLAccount() {
-        //
-    }
-
-    private GLAccount(final GLAccount parent, final String name, final String glCode, final boolean disabled,
-            final boolean manualEntriesAllowed, final Integer type, final Integer usage, final String description, final CodeValue tagId) {
-        this.name = StringUtils.defaultIfEmpty(name, null);
-        this.glCode = StringUtils.defaultIfEmpty(glCode, null);
-        this.disabled = BooleanUtils.toBooleanDefaultIfNull(disabled, false);
-        this.manualEntriesAllowed = BooleanUtils.toBooleanDefaultIfNull(manualEntriesAllowed, true);
-        this.usage = usage;
-        this.type = type;
-        this.description = StringUtils.defaultIfEmpty(description, null);
-        this.parent = parent;
-        this.tagId = tagId;
-    }
-
     public static GLAccount fromJson(final GLAccount parent, final JsonCommand command, final CodeValue glAccountTagType) {
         final String name = command.stringValueOfParameterNamed(GLAccountJsonInputParams.NAME.getValue());
         final String glCode = command.stringValueOfParameterNamed(GLAccountJsonInputParams.GL_CODE.getValue());
         final boolean disabled = command.booleanPrimitiveValueOfParameterNamed(GLAccountJsonInputParams.DISABLED.getValue());
-        final boolean manualEntriesAllowed = command.booleanPrimitiveValueOfParameterNamed(GLAccountJsonInputParams.MANUAL_ENTRIES_ALLOWED
-                .getValue());
+        final boolean manualEntriesAllowed = command
+                .booleanPrimitiveValueOfParameterNamed(GLAccountJsonInputParams.MANUAL_ENTRIES_ALLOWED.getValue());
         final Integer usage = command.integerValueSansLocaleOfParameterNamed(GLAccountJsonInputParams.USAGE.getValue());
         final Integer type = command.integerValueSansLocaleOfParameterNamed(GLAccountJsonInputParams.TYPE.getValue());
         final String description = command.stringValueOfParameterNamed(GLAccountJsonInputParams.DESCRIPTION.getValue());
-        return new GLAccount(parent, name, glCode, disabled, manualEntriesAllowed, type, usage, description, glAccountTagType);
+        return new GLAccount().setParent(parent).setName(name).setGlCode(glCode).setDisabled(disabled)
+                .setManualEntriesAllowed(manualEntriesAllowed).setType(type).setUsage(usage).setDescription(description)
+                .setTagId(glAccountTagType);
     }
 
     public Map<String, Object> update(final JsonCommand command) {
@@ -194,34 +183,6 @@ public class GLAccount extends AbstractPersistableCustom<Long> {
         return GLAccountUsage.HEADER.getValue().equals(this.usage);
     }
 
-    public Integer getUsage() {
-        return this.usage;
-    }
-
-    public List<GLAccount> getChildren() {
-        return this.children;
-    }
-
-    public boolean isDisabled() {
-        return this.disabled;
-    }
-
-    public boolean isManualEntriesAllowed() {
-        return this.manualEntriesAllowed;
-    }
-
-    public String getGlCode() {
-        return this.glCode;
-    }
-
-    public String getName() {
-        return this.name;
-    }
-
-    public Integer getType() {
-        return this.type;
-    }
-
     public void generateHierarchy() {
 
         if (this.parent != null) {
@@ -237,14 +198,5 @@ public class GLAccount extends AbstractPersistableCustom<Long> {
 
     public boolean isDetailAccount() {
         return GLAccountUsage.DETAIL.getValue().equals(this.usage);
-    }
-
-    public void updateTagId(final CodeValue tagID) {
-        this.tagId = tagID;
-    }
-
-    public void updateParentAccount(final GLAccount parentAccount) {
-        this.parent = parentAccount;
-        generateHierarchy();
     }
 }

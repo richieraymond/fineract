@@ -18,19 +18,19 @@
  */
 package org.apache.fineract.interoperation.data;
 
-import com.google.gson.JsonObject;
-import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
-import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
-
-import javax.validation.constraints.NotNull;
-import java.util.Arrays;
-
 import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_KEY;
 import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_VALUE;
 
+import com.google.gson.JsonObject;
+import java.util.Arrays;
+import java.util.List;
+import javax.validation.constraints.NotNull;
+import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
+import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
+
 public class ExtensionData {
 
-    public static final String[] PARAMS = {PARAM_KEY, PARAM_VALUE};
+    public static final List<String> PARAMS = List.copyOf(Arrays.asList(PARAM_KEY, PARAM_VALUE));
 
     @NotNull
     private final String key;
@@ -55,13 +55,14 @@ public class ExtensionData {
     }
 
     public static ExtensionData validateAndParse(DataValidatorBuilder dataValidator, JsonObject element, FromJsonHelper jsonHelper) {
-        if (element == null)
+        if (element == null) {
             return null;
+        }
 
-        jsonHelper.checkForUnsupportedParameters(element, Arrays.asList(PARAMS));
+        jsonHelper.checkForUnsupportedParameters(element, PARAMS);
 
         String key = jsonHelper.extractStringNamed(PARAM_KEY, element);
-        DataValidatorBuilder  dataValidatorCopy = dataValidator.reset().parameter(PARAM_KEY).value(key).notBlank();
+        DataValidatorBuilder dataValidatorCopy = dataValidator.reset().parameter(PARAM_KEY).value(key).notBlank();
 
         String value = jsonHelper.extractStringNamed(PARAM_VALUE, element);
 

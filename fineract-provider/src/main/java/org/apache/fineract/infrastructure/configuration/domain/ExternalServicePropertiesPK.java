@@ -19,58 +19,48 @@
 package org.apache.fineract.infrastructure.configuration.domain;
 
 import java.io.Serializable;
-
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
-
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.Accessors;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 @Embeddable
+@Getter
+@Setter
+@NoArgsConstructor
+@Accessors(chain = true)
 public class ExternalServicePropertiesPK implements Serializable {
 
+    private static final long serialVersionUID = 1L;
     @Column(name = "name", length = 150)
     private String name;
 
     @Column(name = "external_service_id")
     private Long externalServiceId;
 
-    public ExternalServicePropertiesPK() {
-
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (obj == this) {
+            return true;
+        }
+        if (!(obj instanceof ExternalServicePropertiesPK)) {
+            return false;
+        }
+        final ExternalServicePropertiesPK rhs = (ExternalServicePropertiesPK) obj;
+        return new EqualsBuilder() //
+                .append(this.externalServiceId, rhs.externalServiceId) //
+                .append(this.name, rhs.name) //
+                .isEquals();
     }
 
-    public ExternalServicePropertiesPK(Long externalServiceId, String name) {
-        this.externalServiceId = externalServiceId;
-        this.name = name;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public Long getExternalService() {
-        return externalServiceId;
-    }
-    
-    @Override 
-	public boolean equals(Object obj) {
-		if (obj == null) {
-			return false;
-		}
-		if (obj == this) {
-			return true;
-		}
-		if (obj.getClass() != getClass()) {
-			return false;
-		}
-		final ExternalServicePropertiesPK rhs = (ExternalServicePropertiesPK) obj;
-		return new EqualsBuilder() //
-				.append(this.externalServiceId, rhs.externalServiceId) //
-				.append(this.name, rhs.name) //
-				.isEquals();
-	}
-
-    @Override 
+    @Override
     public int hashCode() {
         return new HashCodeBuilder(17, 37) //
                 .append(this.externalServiceId) //

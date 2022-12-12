@@ -18,24 +18,24 @@
  */
 package org.apache.fineract.interoperation.data;
 
-import com.google.gson.JsonObject;
-import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
-import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
-import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
-import org.apache.fineract.interoperation.util.MathUtil;
-
-import javax.validation.constraints.NotNull;
-import java.math.BigDecimal;
-import java.util.Arrays;
-
 import static org.apache.fineract.interoperation.util.InteropUtil.DEFAULT_LOCALE;
 import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_AMOUNT;
 import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_CURRENCY;
 import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_LOCALE;
 
+import com.google.gson.JsonObject;
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.List;
+import javax.validation.constraints.NotNull;
+import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
+import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
+import org.apache.fineract.interoperation.util.MathUtil;
+import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
+
 public class MoneyData {
 
-    public static final String[] PARAMS = {PARAM_AMOUNT, PARAM_CURRENCY, PARAM_LOCALE};
+    public static final List<String> PARAMS = List.copyOf(Arrays.asList(PARAM_AMOUNT, PARAM_CURRENCY, PARAM_LOCALE));
 
     @NotNull
     private final BigDecimal amount;
@@ -60,22 +60,24 @@ public class MoneyData {
     }
 
     public void normalizeAmount(@NotNull MonetaryCurrency currency) {
-        if (!currency.getCode().equals(this.currency))
+        if (!currency.getCode().equals(this.currency)) {
             throw new UnsupportedOperationException("Internal error: Invalid currency " + currency.getCode());
+        }
         MathUtil.normalizeAmount(amount, currency);
     }
 
     public static MoneyData validateAndParse(DataValidatorBuilder dataValidator, JsonObject element, FromJsonHelper jsonHelper) {
-        if (element == null)
+        if (element == null) {
             return null;
+        }
 
-        jsonHelper.checkForUnsupportedParameters(element, Arrays.asList(PARAMS));
+        jsonHelper.checkForUnsupportedParameters(element, PARAMS);
 
         String locale = jsonHelper.extractStringNamed(PARAM_LOCALE, element);
-        BigDecimal amount = locale == null
-                ? jsonHelper.extractBigDecimalNamed(PARAM_AMOUNT, element, DEFAULT_LOCALE)
+        BigDecimal amount = locale == null ? jsonHelper.extractBigDecimalNamed(PARAM_AMOUNT, element, DEFAULT_LOCALE)
                 : jsonHelper.extractBigDecimalWithLocaleNamed(PARAM_AMOUNT, element);
-        DataValidatorBuilder  dataValidatorCopy = dataValidator.reset().parameter(PARAM_AMOUNT).value(amount).notBlank().zeroOrPositiveAmount();
+        DataValidatorBuilder dataValidatorCopy = dataValidator.reset().parameter(PARAM_AMOUNT).value(amount).notBlank()
+                .zeroOrPositiveAmount();
 
         String currency = jsonHelper.extractStringNamed(PARAM_CURRENCY, element);
         dataValidatorCopy = dataValidatorCopy.reset().parameter(PARAM_CURRENCY).value(currency).notBlank().notExceedingLengthOf(3);

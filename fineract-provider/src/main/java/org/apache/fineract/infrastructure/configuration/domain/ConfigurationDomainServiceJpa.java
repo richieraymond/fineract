@@ -18,11 +18,10 @@
  */
 package org.apache.fineract.infrastructure.configuration.domain;
 
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
-
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.infrastructure.cache.domain.CacheType;
 import org.apache.fineract.infrastructure.cache.domain.PlatformCache;
 import org.apache.fineract.infrastructure.cache.domain.PlatformCacheRepository;
@@ -32,12 +31,21 @@ import org.apache.fineract.useradministration.domain.Permission;
 import org.apache.fineract.useradministration.domain.PermissionRepository;
 import org.apache.fineract.useradministration.exception.PermissionNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ConfigurationDomainServiceJpa implements ConfigurationDomainService {
 
+    public static final String ENABLE_BUSINESS_DATE = "enable_business_date";
+    public static final String ENABLE_AUTOMATIC_COB_DATE_ADJUSTMENT = "enable_automatic_cob_date_adjustment";
+    public static final String EXTERNAL_EVENTS_PURGE_DAYS = "purge-external-events-older-than-days";
+
+    public static final String PROCESSED_COMMANDS_PURGE_DAYS = "purge-processed-commands-older-than-days";
+    private static final String DAYS_BEFORE_REPAYMENT_IS_DUE = "days-before-repayment-is-due";
+    private static final String DAYS_AFTER_REPAYMENT_IS_OVERDUE = "days-after-repayment-is-overdue";
+    private static final String ENABLE_EXTERNAL_ID_AUTO_GENERATION = "enable-auto-generated-external-id";
     private final PermissionRepository permissionRepository;
     private final GlobalConfigurationRepositoryWrapper globalConfigurationRepository;
     private final PlatformCacheRepository cacheTypeRepository;
@@ -53,10 +61,14 @@ public class ConfigurationDomainServiceJpa implements ConfigurationDomainService
 
     @Override
     public boolean isMakerCheckerEnabledForTask(final String taskPermissionCode) {
-        if (StringUtils.isBlank(taskPermissionCode)) { throw new PermissionNotFoundException(taskPermissionCode); }
+        if (StringUtils.isBlank(taskPermissionCode)) {
+            throw new PermissionNotFoundException(taskPermissionCode);
+        }
 
         final Permission thisTask = this.permissionRepository.findOneByCode(taskPermissionCode);
-        if (thisTask == null) { throw new PermissionNotFoundException(taskPermissionCode); }
+        if (thisTask == null) {
+            throw new PermissionNotFoundException(taskPermissionCode);
+        }
 
         final String makerCheckerConfigurationProperty = "maker-checker";
         final GlobalConfigurationPropertyData property = getGlobalConfigurationPropertyData(makerCheckerConfigurationProperty);
@@ -78,9 +90,8 @@ public class ConfigurationDomainServiceJpa implements ConfigurationDomainService
 
     /*
      * (non-Javadoc)
-     * 
-     * @see org.apache.fineract.infrastructure.configuration.domain.
-     * ConfigurationDomainService#isHolidaysEnabled()
+     *
+     * @see org.apache.fineract.infrastructure.configuration.domain. ConfigurationDomainService#isHolidaysEnabled()
      */
     @Override
     public boolean isRescheduleRepaymentsOnHolidaysEnabled() {
@@ -112,15 +123,16 @@ public class ConfigurationDomainServiceJpa implements ConfigurationDomainService
 
     @Override
     public boolean isEhcacheEnabled() {
-        return this.cacheTypeRepository.findOne(Long.valueOf(1)).isEhcacheEnabled();
+        return this.cacheTypeRepository.findById(1L).map(PlatformCache::isEhcacheEnabled).orElseThrow();
     }
 
     @Transactional
     @Override
     public void updateCache(final CacheType cacheType) {
-        final PlatformCache cache = this.cacheTypeRepository.findOne(Long.valueOf(1));
-        cache.update(cacheType);
-        this.cacheTypeRepository.save(cache);
+        this.cacheTypeRepository.findById(1L).ifPresent(cache -> {
+            cache.setCacheType(cacheType.getValue());
+            this.cacheTypeRepository.save(cache);
+        });
     }
 
     @Override
@@ -169,7 +181,9 @@ public class ConfigurationDomainServiceJpa implements ConfigurationDomainService
     public Integer retrieveFinancialYearBeginningMonth() {
         final String propertyName = "financial-year-beginning-month";
         final GlobalConfigurationPropertyData property = getGlobalConfigurationPropertyData(propertyName);
-        if (property.isEnabled()) return property.getValue().intValue();
+        if (property.isEnabled()) {
+            return property.getValue().intValue();
+        }
         return 1;
     }
 
@@ -177,7 +191,9 @@ public class ConfigurationDomainServiceJpa implements ConfigurationDomainService
     public Integer retrieveMinAllowedClientsInGroup() {
         final String propertyName = "min-clients-in-group";
         final GlobalConfigurationPropertyData property = getGlobalConfigurationPropertyData(propertyName);
-        if (property.isEnabled()) { return property.getValue().intValue(); }
+        if (property.isEnabled()) {
+            return property.getValue().intValue();
+        }
         return null;
     }
 
@@ -185,7 +201,9 @@ public class ConfigurationDomainServiceJpa implements ConfigurationDomainService
     public Integer retrieveMaxAllowedClientsInGroup() {
         final String propertyName = "max-clients-in-group";
         final GlobalConfigurationPropertyData property = getGlobalConfigurationPropertyData(propertyName);
-        if (property.isEnabled()) { return property.getValue().intValue(); }
+        if (property.isEnabled()) {
+            return property.getValue().intValue();
+        }
         return null;
     }
 
@@ -226,22 +244,37 @@ public class ConfigurationDomainServiceJpa implements ConfigurationDomainService
     }
 
     @Override
-    public Date retrieveOrganisationStartDate() {
+    public LocalDate retrieveOrganisationStartDate() {
         final String propertyName = "organisation-start-date";
         final GlobalConfigurationPropertyData property = getGlobalConfigurationPropertyData(propertyName);
         return property.getDateValue();
     }
 
-	@Override
-	public boolean isPaymnetypeApplicableforDisbursementCharge() {
-		final String propertyName = "paymenttype-applicable-for-disbursement-charges";
+    @Override
+    public boolean isPaymentTypeApplicableForDisbursementCharge() {
+        final String propertyName = "paymenttype-applicable-for-disbursement-charges";
         final GlobalConfigurationPropertyData property = getGlobalConfigurationPropertyData(propertyName);
         return property.isEnabled();
-	}
-	
+    }
+
     @Override
     public boolean isSkippingMeetingOnFirstDayOfMonthEnabled() {
         return getGlobalConfigurationPropertyData("skip-repayment-on-first-day-of-month").isEnabled();
+    }
+
+    @Override
+    public boolean isFirstRepaymentDateAfterRescheduleAllowedOnHoliday() {
+        return getGlobalConfigurationPropertyData("loan-reschedule-is-first-payday-allowed-on-holiday").isEnabled();
+    }
+
+    @Override
+    public boolean isInterestToBeRecoveredFirstWhenGreaterThanEMI() {
+        return getGlobalConfigurationPropertyData("is-interest-to-be-recovered-first-when-greater-than-emi").isEnabled();
+    }
+
+    @Override
+    public boolean isPrincipalCompoundingDisabledForOverdueLoans() {
+        return getGlobalConfigurationPropertyData("is-principal-compounding-disabled-for-overdue-loans").isEnabled();
     }
 
     @Override
@@ -258,7 +291,7 @@ public class ConfigurationDomainServiceJpa implements ConfigurationDomainService
         final GlobalConfigurationPropertyData property = getGlobalConfigurationPropertyData(propertyName);
         return property.isEnabled();
     }
-    
+
     @Override
     public boolean isChangeEmiIfRepaymentDateSameAsDisbursementDateEnabled() {
         final String propertyName = "change-emi-if-repaymentdate-same-as-disbursementdate";
@@ -266,19 +299,19 @@ public class ConfigurationDomainServiceJpa implements ConfigurationDomainService
         return property.isEnabled();
     }
 
-	@Override
-	public boolean isDailyTPTLimitEnabled() {
+    @Override
+    public boolean isDailyTPTLimitEnabled() {
         final String propertyName = "daily-tpt-limit";
         final GlobalConfigurationPropertyData property = getGlobalConfigurationPropertyData(propertyName);
         return property.isEnabled();
-	}
+    }
 
-	@Override
-	public Long getDailyTPTLimit() {
+    @Override
+    public Long getDailyTPTLimit() {
         final String propertyName = "daily-tpt-limit";
         final GlobalConfigurationPropertyData property = getGlobalConfigurationPropertyData(propertyName);
         return property.getValue();
-	}
+    }
 
     @Override
     public void removeGlobalConfigurationPropertyDataFromCache(final String propertyName) {
@@ -307,8 +340,9 @@ public class ConfigurationDomainServiceJpa implements ConfigurationDomainService
         final GlobalConfigurationPropertyData property = getGlobalConfigurationPropertyData(propertyName);
         int defaultValue = 6;
         int value = property.getValue().intValue();
-        if(value < 1)
+        if (value < 1) {
             return defaultValue;
+        }
         return value;
     }
 
@@ -318,13 +352,39 @@ public class ConfigurationDomainServiceJpa implements ConfigurationDomainService
         final GlobalConfigurationPropertyData property = getGlobalConfigurationPropertyData(propertyName);
         int defaultValue = 300;
         int value = property.getValue().intValue();
-        if(value < 1) {
+        if (value < 1) {
             return defaultValue;
         }
         return value;
     }
 
-    private GlobalConfigurationPropertyData getGlobalConfigurationPropertyData(final String propertyName) {
+    @Override
+    public boolean retrievePivotDateConfig() {
+        final String propertyName = "allow-backdated-transaction-before-interest-posting";
+        final GlobalConfigurationPropertyData property = getGlobalConfigurationPropertyData(propertyName);
+        return !property.isEnabled();
+
+    }
+
+    @Override
+    public boolean isRelaxingDaysConfigForPivotDateEnabled() {
+        final String propertyName = "allow-backdated-transaction-before-interest-posting-date-for-days";
+        final GlobalConfigurationPropertyData property = getGlobalConfigurationPropertyData(propertyName);
+        return property.isEnabled();
+    }
+
+    @Override
+    public Long retrieveRelaxingDaysConfigForPivotDate() {
+        final String propertyName = "allow-backdated-transaction-before-interest-posting-date-for-days";
+        final GlobalConfigurationPropertyData property = getGlobalConfigurationPropertyData(propertyName);
+        if (property.getValue() == null) {
+            return 0L;
+        }
+        return property.getValue();
+    }
+
+    @Cacheable(value = "configByName", key = "T(org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil).getTenant().getTenantIdentifier().concat(#propertyName)")
+    public GlobalConfigurationPropertyData getGlobalConfigurationPropertyData(final String propertyName) {
         String identifier = ThreadLocalContextUtil.getTenant().getTenantIdentifier();
         String key = identifier + "_" + propertyName;
         if (!configurations.containsKey(key)) {
@@ -332,5 +392,101 @@ public class ConfigurationDomainServiceJpa implements ConfigurationDomainService
             configurations.put(key, configuration.toData());
         }
         return configurations.get(key);
+    }
+
+    @Override
+    public boolean isSubRatesEnabled() {
+        GlobalConfigurationPropertyData configuration = getGlobalConfigurationPropertyData("sub-rates");
+        if (configuration == null) {
+            return false;
+        } else {
+            return configuration.isEnabled();
+        }
+    }
+
+    @Override
+    public String getAccountMappingForPaymentType() {
+        final String propertyName = "account-mapping-for-payment-type";
+        String defaultValue = "Asset"; // 1 Stands for Account mapped from asset only
+        final GlobalConfigurationPropertyData property = getGlobalConfigurationPropertyData(propertyName);
+        if (property.isEnabled()) {
+            String value = property.getStringValue();
+            if (StringUtils.isBlank(value)) {
+                return defaultValue;
+            }
+            return value;
+        }
+        return defaultValue;
+    }
+
+    @Override
+    public String getAccountMappingForCharge() {
+        final String propertyName = "account-mapping-for-charge";
+        String defaultValue = "Income"; // 1 Stands for Account mapped from income only
+        final GlobalConfigurationPropertyData property = getGlobalConfigurationPropertyData(propertyName);
+        if (property.isEnabled()) {
+            String value = property.getStringValue();
+            if (StringUtils.isBlank(value)) {
+                return defaultValue;
+            }
+            return value;
+        }
+        return defaultValue;
+    }
+
+    @Override
+    public boolean isNextDayFixedDepositInterestTransferEnabledForPeriodEnd() {
+        final String propertyName = "fixed-deposit-transfer-interest-next-day-for-period-end-posting";
+        final GlobalConfigurationPropertyData property = getGlobalConfigurationPropertyData(propertyName);
+        return property.isEnabled();
+    }
+
+    @Override
+    public boolean isBusinessDateEnabled() {
+        return getGlobalConfigurationPropertyData(ENABLE_BUSINESS_DATE).isEnabled();
+    }
+
+    @Override
+    public boolean isCOBDateAdjustmentEnabled() {
+        return getGlobalConfigurationPropertyData(ENABLE_AUTOMATIC_COB_DATE_ADJUSTMENT).isEnabled();
+    }
+
+    @Override
+    public boolean isReversalTransactionAllowed() {
+        final String propertyName = "enable-post-reversal-txns-for-reverse-transactions";
+        final GlobalConfigurationPropertyData property = getGlobalConfigurationPropertyData(propertyName);
+        return property.isEnabled();
+    }
+
+    @Override
+    public Long retrieveExternalEventsPurgeDaysCriteria() {
+        final GlobalConfigurationPropertyData property = getGlobalConfigurationPropertyData(EXTERNAL_EVENTS_PURGE_DAYS);
+        return property.getValue();
+
+    }
+
+    @Override
+    public Long retrieveProcessedCommandsPurgeDaysCriteria() {
+        final GlobalConfigurationPropertyData property = getGlobalConfigurationPropertyData(PROCESSED_COMMANDS_PURGE_DAYS);
+        return property.getValue();
+
+    }
+
+    @Override
+    public Long retrieveRepaymentDueDays() {
+        final GlobalConfigurationPropertyData property = getGlobalConfigurationPropertyData(DAYS_BEFORE_REPAYMENT_IS_DUE);
+        return property.getValue();
+    }
+
+    @Override
+    public Long retrieveRepaymentOverdueDays() {
+        final GlobalConfigurationPropertyData property = getGlobalConfigurationPropertyData(DAYS_AFTER_REPAYMENT_IS_OVERDUE);
+        return property.getValue();
+    }
+
+    @Override
+    public boolean isExternalIdAutoGenerationEnabled() {
+        final GlobalConfigurationPropertyData property = getGlobalConfigurationPropertyData(ENABLE_EXTERNAL_ID_AUTO_GENERATION);
+        return property.isEnabled();
     }
 }

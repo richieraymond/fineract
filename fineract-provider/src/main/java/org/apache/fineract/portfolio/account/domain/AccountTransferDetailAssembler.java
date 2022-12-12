@@ -26,8 +26,8 @@ import static org.apache.fineract.portfolio.account.AccountDetailConstants.toCli
 import static org.apache.fineract.portfolio.account.AccountDetailConstants.toOfficeIdParamName;
 import static org.apache.fineract.portfolio.account.AccountDetailConstants.transferTypeParamName;
 
+import com.google.gson.JsonElement;
 import java.util.Locale;
-
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
 import org.apache.fineract.organisation.office.domain.Office;
@@ -41,8 +41,6 @@ import org.apache.fineract.portfolio.savings.domain.SavingsAccountAssembler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.google.gson.JsonElement;
-
 @Service
 public class AccountTransferDetailAssembler {
 
@@ -53,9 +51,9 @@ public class AccountTransferDetailAssembler {
     private final LoanAssembler loanAccountAssembler;
 
     @Autowired
-    public AccountTransferDetailAssembler(final ClientRepositoryWrapper clientRepository, final OfficeRepositoryWrapper officeRepositoryWrapper,
-            final SavingsAccountAssembler savingsAccountAssembler, final FromJsonHelper fromApiJsonHelper,
-            final LoanAssembler loanAccountAssembler) {
+    public AccountTransferDetailAssembler(final ClientRepositoryWrapper clientRepository,
+            final OfficeRepositoryWrapper officeRepositoryWrapper, final SavingsAccountAssembler savingsAccountAssembler,
+            final FromJsonHelper fromApiJsonHelper, final LoanAssembler loanAccountAssembler) {
         this.clientRepository = clientRepository;
         this.officeRepositoryWrapper = officeRepositoryWrapper;
         this.savingsAccountAssembler = savingsAccountAssembler;
@@ -66,10 +64,11 @@ public class AccountTransferDetailAssembler {
     public AccountTransferDetails assembleSavingsToSavingsTransfer(final JsonCommand command) {
 
         final Long fromSavingsId = command.longValueOfParameterNamed(fromAccountIdParamName);
-        final SavingsAccount fromSavingsAccount = this.savingsAccountAssembler.assembleFrom(fromSavingsId);
+        final SavingsAccount fromSavingsAccount = this.savingsAccountAssembler.assembleFrom(fromSavingsId, false);
 
+        final boolean backdatedTxnsAllowedTill = false;
         final Long toSavingsId = command.longValueOfParameterNamed(toAccountIdParamName);
-        final SavingsAccount toSavingsAccount = this.savingsAccountAssembler.assembleFrom(toSavingsId);
+        final SavingsAccount toSavingsAccount = this.savingsAccountAssembler.assembleFrom(toSavingsId, backdatedTxnsAllowedTill);
 
         return assembleSavingsToSavingsTransfer(command, fromSavingsAccount, toSavingsAccount);
 
@@ -78,7 +77,8 @@ public class AccountTransferDetailAssembler {
     public AccountTransferDetails assembleSavingsToLoanTransfer(final JsonCommand command) {
 
         final Long fromSavingsAccountId = command.longValueOfParameterNamed(fromAccountIdParamName);
-        final SavingsAccount fromSavingsAccount = this.savingsAccountAssembler.assembleFrom(fromSavingsAccountId);
+        final boolean backdatedTxnsAllowedTill = false;
+        final SavingsAccount fromSavingsAccount = this.savingsAccountAssembler.assembleFrom(fromSavingsAccountId, backdatedTxnsAllowedTill);
 
         final Long toLoanAccountId = command.longValueOfParameterNamed(toAccountIdParamName);
         final Loan toLoanAccount = this.loanAccountAssembler.assembleFrom(toLoanAccountId);
@@ -91,9 +91,9 @@ public class AccountTransferDetailAssembler {
 
         final Long fromLoanAccountId = command.longValueOfParameterNamed(fromAccountIdParamName);
         final Loan fromLoanAccount = this.loanAccountAssembler.assembleFrom(fromLoanAccountId);
-
+        final boolean backdatedTxnsAllowedTill = false;
         final Long toSavingsAccountId = command.longValueOfParameterNamed(toAccountIdParamName);
-        final SavingsAccount toSavingsAccount = this.savingsAccountAssembler.assembleFrom(toSavingsAccountId);
+        final SavingsAccount toSavingsAccount = this.savingsAccountAssembler.assembleFrom(toSavingsAccountId, backdatedTxnsAllowedTill);
 
         return assembleLoanToSavingsTransfer(command, fromLoanAccount, toSavingsAccount);
     }
@@ -164,7 +164,7 @@ public class AccountTransferDetailAssembler {
         final Client toClient = this.clientRepository.findOneWithNotFoundDetection(toClientId);
         final Integer transfertype = this.fromApiJsonHelper.extractIntegerNamed(transferTypeParamName, element, Locale.getDefault());
 
-        return AccountTransferDetails.LoanTosavingsTransfer(fromOffice, fromClient, fromLoanAccount, toOffice, toClient, toSavingsAccount,
+        return AccountTransferDetails.loanTosavingsTransfer(fromOffice, fromClient, fromLoanAccount, toOffice, toClient, toSavingsAccount,
                 transfertype);
     }
 
@@ -198,7 +198,7 @@ public class AccountTransferDetailAssembler {
         final Office toOffice = toSavingsAccount.office();
         final Client toClient = toSavingsAccount.getClient();
 
-        return AccountTransferDetails.LoanTosavingsTransfer(fromOffice, fromClient, fromLoanAccount, toOffice, toClient, toSavingsAccount,
+        return AccountTransferDetails.loanTosavingsTransfer(fromOffice, fromClient, fromLoanAccount, toOffice, toClient, toSavingsAccount,
                 transferType);
     }
 
@@ -208,7 +208,7 @@ public class AccountTransferDetailAssembler {
         final Office toOffice = toLoanAccount.getOffice();
         final Client toClient = toLoanAccount.client();
 
-        return AccountTransferDetails.LoanToLoanTransfer(fromOffice, fromClient, fromLoanAccount, toOffice, toClient, toLoanAccount,
+        return AccountTransferDetails.loanToLoanTransfer(fromOffice, fromClient, fromLoanAccount, toOffice, toClient, toLoanAccount,
                 transferType);
     }
 }

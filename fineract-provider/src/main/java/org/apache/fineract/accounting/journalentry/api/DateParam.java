@@ -18,17 +18,14 @@
  */
 package org.apache.fineract.accounting.journalentry.api;
 
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.Locale;
-
 import javax.ws.rs.WebApplicationException;
-
 import org.apache.fineract.infrastructure.core.serialization.JsonParserHelper;
-import org.joda.time.LocalDate;
 
 /**
  * Class for parsing dates sent as query parameters
- * 
+ *
  * TODO: Vishwas Should move this class to a more generic package
  */
 public class DateParam {
@@ -39,9 +36,8 @@ public class DateParam {
         this.dateAsString = dateStr;
     }
 
-    public Date getDate(final String parameterName, final String dateFormat, final String localeAsString) {
+    public LocalDate getDate(final String parameterName, final String dateFormat, final String localeAsString) {
         final Locale locale = JsonParserHelper.localeFromString(localeAsString);
-        final LocalDate localDate = JsonParserHelper.convertFrom(this.dateAsString, parameterName, dateFormat, locale);
-        return localDate.toDate();
+        return JsonParserHelper.convertFrom(this.dateAsString, parameterName, dateFormat, locale);
     }
 }

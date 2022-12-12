@@ -22,7 +22,9 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-public class HookApiConstants {
+public final class HookApiConstants {
+
+    private HookApiConstants() {}
 
     public static final String HOOK_RESOURCE_NAME = "HOOK";
 
@@ -33,6 +35,10 @@ public class HookApiConstants {
     public static final String isActiveParamName = "isActive";
 
     public static final String webTemplateName = "Web";
+
+    public static final String elasticSearchTemplateName = "Elastic Search";
+
+    public static final String httpSMSTemplateName = "Message Gateway";
 
     public static final String smsTemplateName = "SMS Bridge";
 
@@ -62,14 +68,12 @@ public class HookApiConstants {
 
     public static final String templateNameParamName = "templateName";
 
-    protected static final Set<String> RESPONSE_DATA_PARAMETERS = new HashSet<>(
-            Arrays.asList(nameParamName, displayNameParamName,
-                    templateIdParamName, isActiveParamName, configParamName,
-                    eventsParamName, templateNameParamName));
+    public static final String SMSProviderIdParamName = "SMS Provider Id";
 
-    protected static final Set<String> UPDATE_REQUEST_DATA_PARAMETERS = new HashSet<>(
-            Arrays.asList(nameParamName, displayNameParamName,
-                    templateIdParamName, isActiveParamName, configParamName,
-                    eventsParamName, templateNameParamName));
+    public static final Set<String> RESPONSE_DATA_PARAMETERS = new HashSet<>(Arrays.asList(nameParamName, displayNameParamName,
+            templateIdParamName, isActiveParamName, configParamName, eventsParamName, templateNameParamName));
+
+    public static final Set<String> UPDATE_REQUEST_DATA_PARAMETERS = new HashSet<>(Arrays.asList(nameParamName, displayNameParamName,
+            templateIdParamName, isActiveParamName, configParamName, eventsParamName, templateNameParamName));
 
 }

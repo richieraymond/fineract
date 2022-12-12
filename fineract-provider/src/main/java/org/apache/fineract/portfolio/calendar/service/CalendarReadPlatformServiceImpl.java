@@ -20,23 +20,22 @@ package org.apache.fineract.portfolio.calendar.service;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-
+import lombok.RequiredArgsConstructor;
 import org.apache.fineract.infrastructure.configuration.domain.ConfigurationDomainService;
 import org.apache.fineract.infrastructure.core.data.EnumOptionData;
 import org.apache.fineract.infrastructure.core.domain.JdbcSupport;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
-import org.apache.fineract.infrastructure.core.service.RoutingDataSource;
 import org.apache.fineract.portfolio.calendar.data.CalendarData;
 import org.apache.fineract.portfolio.calendar.domain.CalendarEntityType;
 import org.apache.fineract.portfolio.calendar.domain.CalendarType;
 import org.apache.fineract.portfolio.calendar.exception.CalendarNotFoundException;
 import org.apache.fineract.portfolio.meeting.data.MeetingData;
-import org.joda.time.LocalDate;
-import org.joda.time.LocalTime;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -44,16 +43,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 @Service
+@RequiredArgsConstructor
 public class CalendarReadPlatformServiceImpl implements CalendarReadPlatformService {
 
     private final JdbcTemplate jdbcTemplate;
     private final ConfigurationDomainService configurationDomainService;
-
-    @Autowired
-    public CalendarReadPlatformServiceImpl(final RoutingDataSource dataSource, final ConfigurationDomainService configurationDomainService) {
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
-        this.configurationDomainService = configurationDomainService;
-    }
 
     private static final class CalendarDataMapper implements RowMapper<CalendarData> {
 
@@ -63,9 +57,10 @@ public class CalendarReadPlatformServiceImpl implements CalendarReadPlatformServ
                     + " c.duration as duration, c.calendar_type_enum as typeId, c.repeating as repeating, "
                     + " c.recurrence as recurrence, c.remind_by_enum as remindById, c.first_reminder as firstReminder, c.second_reminder as secondReminder, "
                     + " c.created_date as createdDate, c.lastmodified_date as updatedDate, creatingUser.id as creatingUserId, creatingUser.username as creatingUserName, "
+                    + " c.created_on_utc as createdDateUtc, c.last_modified_on_utc as updatedDateUtc, "
                     + " updatingUser.id as updatingUserId, updatingUser.username as updatingUserName,c.meeting_time as meetingTime "
                     + " from m_calendar c join m_calendar_instance ci on ci.calendar_id=c.id, m_appuser as creatingUser, m_appuser as updatingUser"
-                    + " where c.createdby_id=creatingUser.id and c.lastmodifiedby_id=updatingUser.id ";
+                    + " where c.created_by=creatingUser.id and c.last_modified_by=updatingUser.id ";
         }
 
         @Override
@@ -87,9 +82,10 @@ public class CalendarReadPlatformServiceImpl implements CalendarReadPlatformServ
             final boolean repeating = rs.getBoolean("repeating");
             final String recurrence = rs.getString("recurrence");
             final EnumOptionData frequency = CalendarEnumerations.calendarFrequencyType(CalendarUtils.getFrequency(recurrence));
-            final Integer interval = new Integer(CalendarUtils.getInterval(recurrence));
+            final Integer interval = Integer.valueOf(CalendarUtils.getInterval(recurrence));
             final EnumOptionData repeatsOnDay = CalendarEnumerations.calendarWeekDaysType(CalendarUtils.getRepeatsOnDay(recurrence));
-            final EnumOptionData repeatsOnNthDayOfMonth = CalendarEnumerations.calendarFrequencyNthDayType(CalendarUtils.getRepeatsOnNthDayOfMonth(recurrence));
+            final EnumOptionData repeatsOnNthDayOfMonth = CalendarEnumerations
+                    .calendarFrequencyNthDayType(CalendarUtils.getRepeatsOnNthDayOfMonth(recurrence));
             final Integer remindById = rs.getInt("remindById");
             EnumOptionData remindBy = null;
             if (remindById != null && remindById != 0) {
@@ -102,18 +98,21 @@ public class CalendarReadPlatformServiceImpl implements CalendarReadPlatformServ
                 humanReadable = CalendarUtils.getRRuleReadable(startDate, recurrence);
             }
             Integer monthOnDay = CalendarUtils.getMonthOnDay(recurrence);
-            final LocalDate createdDate = JdbcSupport.getLocalDate(rs, "createdDate");
-            final LocalDate lastUpdatedDate = JdbcSupport.getLocalDate(rs, "updatedDate");
+            final OffsetDateTime createdDateLocal = JdbcSupport.getOffsetDateTime(rs, "createdDate");
+            final OffsetDateTime createdDateUtc = JdbcSupport.getOffsetDateTime(rs, "createdDateUtc");
+            final OffsetDateTime lastModifiedDateLocal = JdbcSupport.getOffsetDateTime(rs, "updatedDate");
+            final OffsetDateTime lastModifiedDateUtc = JdbcSupport.getOffsetDateTime(rs, "updatedDateUtc");
             final Long createdByUserId = rs.getLong("creatingUserId");
             final String createdByUserName = rs.getString("creatingUserName");
             final Long lastUpdatedByUserId = rs.getLong("updatingUserId");
             final String lastUpdatedByUserName = rs.getString("updatingUserName");
-            final LocalTime meetingTime = JdbcSupport.getLocalTime(rs,"meetingTime");
-
+            final LocalTime meetingTime = JdbcSupport.getLocalTime(rs, "meetingTime");
+            final OffsetDateTime createdDate = createdDateUtc != null ? createdDateUtc : createdDateLocal;
+            final OffsetDateTime lastModifiedDate = lastModifiedDateUtc != null ? lastModifiedDateUtc : lastModifiedDateLocal;
             return CalendarData.instance(id, calendarInstanceId, entityId, entityType, title, description, location, startDate, endDate,
-                    duration, type, repeating, recurrence, frequency, interval, repeatsOnDay, repeatsOnNthDayOfMonth, remindBy, firstReminder, secondReminder,
-                    humanReadable, createdDate, lastUpdatedDate, createdByUserId, createdByUserName, lastUpdatedByUserId,
-                    lastUpdatedByUserName,meetingTime, monthOnDay);
+                    duration, type, repeating, recurrence, frequency, interval, repeatsOnDay, repeatsOnNthDayOfMonth, remindBy,
+                    firstReminder, secondReminder, humanReadable, createdDate, lastModifiedDate, createdByUserId, createdByUserName,
+                    lastUpdatedByUserId, lastUpdatedByUserName, meetingTime, monthOnDay);
         }
     }
 
@@ -125,9 +124,9 @@ public class CalendarReadPlatformServiceImpl implements CalendarReadPlatformServ
 
             final String sql = rm.schema() + " and c.id = ? and ci.entity_id = ? and ci.entity_type_enum = ? ";
 
-            return this.jdbcTemplate.queryForObject(sql, rm, new Object[] { calendarId, entityId, entityTypeId });
+            return this.jdbcTemplate.queryForObject(sql, rm, new Object[] { calendarId, entityId, entityTypeId }); // NOSONAR
         } catch (final EmptyResultDataAccessException e) {
-            throw new CalendarNotFoundException(calendarId);
+            throw new CalendarNotFoundException(calendarId, e);
         }
     }
 
@@ -158,10 +157,12 @@ public class CalendarReadPlatformServiceImpl implements CalendarReadPlatformServ
 
         final String sql = rm.schema()
                 + " and ci.entity_id = ? and ci.entity_type_enum = ? and calendar_type_enum = ? order by c.start_date ";
-        final List<CalendarData> result = this.jdbcTemplate.query(sql, rm,
+        final List<CalendarData> result = this.jdbcTemplate.query(sql, rm, // NOSONAR
                 new Object[] { entityId, entityTypeId, CalendarType.COLLECTION.getValue() });
 
-        if (!result.isEmpty() && result.size() > 0) { return result.get(0); }
+        if (!result.isEmpty() && result.size() > 0) {
+            return result.get(0);
+        }
 
         return null;
     }
@@ -206,7 +207,8 @@ public class CalendarReadPlatformServiceImpl implements CalendarReadPlatformServ
     }
 
     @Override
-    public Collection<LocalDate> generateRecurringDates(final CalendarData calendarData, final boolean withHistory, final LocalDate tillDate) {
+    public Collection<LocalDate> generateRecurringDates(final CalendarData calendarData, final boolean withHistory,
+            final LocalDate tillDate) {
         final LocalDate fromDate = null;
         Collection<LocalDate> recurringDates = generateRecurringDate(calendarData, fromDate, tillDate, -1);
 
@@ -226,10 +228,12 @@ public class CalendarReadPlatformServiceImpl implements CalendarReadPlatformServ
         return generateRecurringDate(calendarData, DateUtils.getLocalDateOfTenant(), tillDate, 10);
     }
 
-    private Collection<LocalDate> generateRecurringDate(final CalendarData calendarData, final LocalDate fromDate,
-            final LocalDate tillDate, final int maxCount) {
+    private Collection<LocalDate> generateRecurringDate(final CalendarData calendarData, final LocalDate fromDate, final LocalDate tillDate,
+            final int maxCount) {
 
-        if (!calendarData.isRepeating()) { return null; }
+        if (!calendarData.isRepeating()) {
+            return null;
+        }
         final String rrule = calendarData.getRecurrence();
         /**
          * Start date or effective from date of calendar recurrence.
@@ -243,34 +247,32 @@ public class CalendarReadPlatformServiceImpl implements CalendarReadPlatformServ
          * till periodEndDate recurring dates will be generated.
          */
         final LocalDate periodEndDate = this.getPeriodEndDate(calendarData.getEndDate(), tillDate);
-         
-		Integer numberOfDays = 0;
-		boolean isSkipRepaymentOnFirstMonthEnabled = this.configurationDomainService
-				.isSkippingMeetingOnFirstDayOfMonthEnabled();
-		if (isSkipRepaymentOnFirstMonthEnabled) {
-			numberOfDays = this.configurationDomainService.retreivePeroidInNumberOfDaysForSkipMeetingDate().intValue();
-		}
 
-		final Collection<LocalDate> recurringDates = CalendarUtils.getRecurringDates(rrule, seedDate, periodStartDate,
-				periodEndDate, maxCount, isSkipRepaymentOnFirstMonthEnabled, numberOfDays);
-		return recurringDates;
-	}
+        Integer numberOfDays = 0;
+        boolean isSkipRepaymentOnFirstMonthEnabled = this.configurationDomainService.isSkippingMeetingOnFirstDayOfMonthEnabled();
+        if (isSkipRepaymentOnFirstMonthEnabled) {
+            numberOfDays = this.configurationDomainService.retreivePeroidInNumberOfDaysForSkipMeetingDate().intValue();
+        }
 
-	@Override
-	public Boolean isCalendarAssociatedWithEntity(final Long entityId, final Long calendarId, final Long entityTypeId) {
-		String query = "Select COUNT(*) from m_calendar_instance ci where ci.entity_id = ? and ci.calendar_id = ? and "
-				+ " ci.entity_type_enum = ?";
-		try {
-			int calendarInstaneId = this.jdbcTemplate.queryForObject(query,
-					new Object[] { entityId, calendarId, entityTypeId }, Integer.class);
-			if (calendarInstaneId > 0) {
-				return true;
-			}
-			return false;
-		} catch (final EmptyResultDataAccessException e) {
-			return false;
-		}
-	}
+        final Collection<LocalDate> recurringDates = CalendarUtils.getRecurringDates(rrule, seedDate, periodStartDate, periodEndDate,
+                maxCount, isSkipRepaymentOnFirstMonthEnabled, numberOfDays);
+        return recurringDates;
+    }
+
+    @Override
+    public Boolean isCalendarAssociatedWithEntity(final Long entityId, final Long calendarId, final Long entityTypeId) {
+        String query = "Select COUNT(*) from m_calendar_instance ci where ci.entity_id = ? and ci.calendar_id = ? and "
+                + " ci.entity_type_enum = ?";
+        try {
+            int calendarInstaneId = this.jdbcTemplate.queryForObject(query, Integer.class, entityId, calendarId, entityTypeId);
+            if (calendarInstaneId > 0) {
+                return true;
+            }
+            return false;
+        } catch (final EmptyResultDataAccessException e) {
+            return false;
+        }
+    }
 
     private LocalDate getSeedDate(LocalDate date) {
         return date;
@@ -319,48 +321,43 @@ public class CalendarReadPlatformServiceImpl implements CalendarReadPlatformServ
         CalendarData applicableCalendarData = calendarData;
         LocalDate nextEligibleMeetingDate = null;
         /**
-         * The next available meeting date for collection should be taken from
-         * application calendar for that time period. e.g. If the previous
-         * calendar details has weekly meeting starting from 1st of Oct 2013 on
-         * every Tuesday, then meeting dates for collection are 1,8,15,22,29..
-         * 
-         * If meeting schedule has changed from Tuesday to Friday with effective
-         * from 15th of Oct (calendar update has made on 2nd of Oct) , then
-         * application should allow to generate collection sheet on 8th of Oct
-         * which is still on Tuesday and next collection sheet date should be on
-         * 18th of Oct as per current calendar
+         * The next available meeting date for collection should be taken from application calendar for that time
+         * period. e.g. If the previous calendar details has weekly meeting starting from 1st of Oct 2013 on every
+         * Tuesday, then meeting dates for collection are 1,8,15,22,29..
+         *
+         * If meeting schedule has changed from Tuesday to Friday with effective from 15th of Oct (calendar update has
+         * made on 2nd of Oct) , then application should allow to generate collection sheet on 8th of Oct which is still
+         * on Tuesday and next collection sheet date should be on 18th of Oct as per current calendar
          */
-        
-       
-		Integer numberOfDays = 0;
-		boolean isSkipRepaymentOnFirstMonthEnabled = configurationDomainService
-				.isSkippingMeetingOnFirstDayOfMonthEnabled();
-		if (isSkipRepaymentOnFirstMonthEnabled) {
-			numberOfDays = configurationDomainService.retreivePeroidInNumberOfDaysForSkipMeetingDate().intValue();
-		}
 
-		if (lastMeetingDate != null && !calendarData.isBetweenStartAndEndDate(lastMeetingDate)
-				&& !calendarData.isBetweenStartAndEndDate(DateUtils.getLocalDateOfTenant())) {
-			applicableCalendarData = this.retrieveApplicableCalendarFromHistory(calendarData.getId(), lastMeetingDate);
-			nextEligibleMeetingDate = CalendarUtils.getRecentEligibleMeetingDate(applicableCalendarData.getRecurrence(),
-					lastMeetingDate, isSkipRepaymentOnFirstMonthEnabled, numberOfDays);
-		}
+        Integer numberOfDays = 0;
+        boolean isSkipRepaymentOnFirstMonthEnabled = configurationDomainService.isSkippingMeetingOnFirstDayOfMonthEnabled();
+        if (isSkipRepaymentOnFirstMonthEnabled) {
+            numberOfDays = configurationDomainService.retreivePeroidInNumberOfDaysForSkipMeetingDate().intValue();
+        }
 
-		/**
-		 * If nextEligibleMeetingDate is on or after current calendar startdate
-		 * then regenerate the nextEligible meeting date based on
-		 */
-		if (nextEligibleMeetingDate == null) {
-			final LocalDate seedDate = (lastMeetingDate != null) ? lastMeetingDate : calendarData.getStartDate();
-			nextEligibleMeetingDate = CalendarUtils.getRecentEligibleMeetingDate(applicableCalendarData.getRecurrence(),
-					seedDate, isSkipRepaymentOnFirstMonthEnabled, numberOfDays);
-		} else if (calendarData.isBetweenStartAndEndDate(nextEligibleMeetingDate)) {
-			nextEligibleMeetingDate = CalendarUtils.getRecentEligibleMeetingDate(applicableCalendarData.getRecurrence(),
-					calendarData.getStartDate(), isSkipRepaymentOnFirstMonthEnabled, numberOfDays);
-		}
+        if (lastMeetingDate != null && !calendarData.isBetweenStartAndEndDate(lastMeetingDate)
+                && !calendarData.isBetweenStartAndEndDate(DateUtils.getLocalDateOfTenant())) {
+            applicableCalendarData = this.retrieveApplicableCalendarFromHistory(calendarData.getId(), lastMeetingDate);
+            nextEligibleMeetingDate = CalendarUtils.getRecentEligibleMeetingDate(applicableCalendarData.getRecurrence(), lastMeetingDate,
+                    isSkipRepaymentOnFirstMonthEnabled, numberOfDays);
+        }
 
-		return nextEligibleMeetingDate;
-	}
+        /**
+         * If nextEligibleMeetingDate is on or after current calendar startdate then regenerate the nextEligible meeting
+         * date based on
+         */
+        if (nextEligibleMeetingDate == null) {
+            final LocalDate seedDate = (lastMeetingDate != null) ? lastMeetingDate : calendarData.getStartDate();
+            nextEligibleMeetingDate = CalendarUtils.getRecentEligibleMeetingDate(applicableCalendarData.getRecurrence(), seedDate,
+                    isSkipRepaymentOnFirstMonthEnabled, numberOfDays);
+        } else if (calendarData.isBetweenStartAndEndDate(nextEligibleMeetingDate)) {
+            nextEligibleMeetingDate = CalendarUtils.getRecentEligibleMeetingDate(applicableCalendarData.getRecurrence(),
+                    calendarData.getStartDate(), isSkipRepaymentOnFirstMonthEnabled, numberOfDays);
+        }
+
+        return nextEligibleMeetingDate;
+    }
 
     @Override
     public Collection<CalendarData> updateWithRecurringDates(final Collection<CalendarData> calendarsData) {
@@ -385,7 +382,7 @@ public class CalendarReadPlatformServiceImpl implements CalendarReadPlatformServ
 
         final String sql = rm.schema() + " and ci.entity_id = ? and ci.entity_type_enum = ? order by c.start_date ";
         CalendarData calendarData = null;
-        final Collection<CalendarData> calendars = this.jdbcTemplate.query(sql, rm,
+        final Collection<CalendarData> calendars = this.jdbcTemplate.query(sql, rm, // NOSONAR
                 new Object[] { loanId, CalendarEntityType.LOANS.getValue() });
 
         if (!CollectionUtils.isEmpty(calendars)) {
@@ -432,7 +429,8 @@ public class CalendarReadPlatformServiceImpl implements CalendarReadPlatformServ
 
             final String sql = rm.schema() + " where c.calendar_id = ? and date(?) between c.start_date and c.end_date limit 1";
 
-            return this.jdbcTemplate.queryForObject(sql, rm, new Object[] { calendarId, compareDate.toDate() });
+            return this.jdbcTemplate.queryForObject(sql, rm, // NOSONAR
+                    calendarId, compareDate);
         } catch (final EmptyResultDataAccessException e) {
             return null;
         }
@@ -444,7 +442,7 @@ public class CalendarReadPlatformServiceImpl implements CalendarReadPlatformServ
 
             final String sql = rm.schema() + " where c.calendar_id = ? ";
 
-            final Collection<CalendarData> calendars = this.jdbcTemplate.query(sql, rm, new Object[] { calendarId });
+            final Collection<CalendarData> calendars = this.jdbcTemplate.query(sql, rm, new Object[] { calendarId }); // NOSONAR
             return calendars;
         } catch (final EmptyResultDataAccessException e) {
             return null;
@@ -478,10 +476,10 @@ public class CalendarReadPlatformServiceImpl implements CalendarReadPlatformServ
             final boolean repeating = rs.getBoolean("repeating");
             final String recurrence = rs.getString("recurrence");
             final EnumOptionData frequency = CalendarEnumerations.calendarFrequencyType(CalendarUtils.getFrequency(recurrence));
-            final Integer interval = new Integer(CalendarUtils.getInterval(recurrence));
+            final Integer interval = Integer.valueOf(CalendarUtils.getInterval(recurrence));
             final EnumOptionData repeatsOnDay = CalendarEnumerations.calendarWeekDaysType(CalendarUtils.getRepeatsOnDay(recurrence));
-            final EnumOptionData repeatsOnNthDayOfMonth = CalendarEnumerations.calendarFrequencyNthDayType(CalendarUtils
-                    .getRepeatsOnNthDayOfMonth(recurrence));
+            final EnumOptionData repeatsOnNthDayOfMonth = CalendarEnumerations
+                    .calendarFrequencyNthDayType(CalendarUtils.getRepeatsOnNthDayOfMonth(recurrence));
             final Integer remindById = rs.getInt("remindById");
             EnumOptionData remindBy = null;
             if (remindById != null && remindById != 0) {
@@ -494,8 +492,8 @@ public class CalendarReadPlatformServiceImpl implements CalendarReadPlatformServ
                 humanReadable = CalendarUtils.getRRuleReadable(startDate, recurrence);
             }
 
-            final LocalDate createdDate = null;
-            final LocalDate lastUpdatedDate = null;
+            final OffsetDateTime createdDate = null;
+            final OffsetDateTime lastUpdatedDate = null;
             final Long createdByUserId = null;
             final String createdByUserName = null;
             final Long lastUpdatedByUserId = null;
@@ -509,6 +507,5 @@ public class CalendarReadPlatformServiceImpl implements CalendarReadPlatformServ
                     lastUpdatedByUserId, lastUpdatedByUserName, meetingTime, monthOnDay);
         }
     }
-    
-    
+
 }

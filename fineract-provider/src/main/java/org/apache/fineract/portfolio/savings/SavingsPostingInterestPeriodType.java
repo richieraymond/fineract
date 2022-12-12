@@ -22,12 +22,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The interest posting period is the span of time at the end of which savings
- * earned but not yet credited/posted in a client's account is credited/posted.
+ * The interest posting period is the span of time at the end of which savings earned but not yet credited/posted in a
+ * client's account is credited/posted.
  */
 public enum SavingsPostingInterestPeriodType {
 
     INVALID(0, "savingsPostingInterestPeriodType.invalid"), //
+    DAILY(1, "savingsPostingInterestPeriodType.daily"), //
     MONTHLY(4, "savingsPostingInterestPeriodType.monthly"), //
     QUATERLY(5, "savingsPostingInterestPeriodType.quarterly"), //
     BIANNUAL(6, "savingsPostingInterestPeriodType.biannual"), ANNUAL(7, "savingsPostingInterestPeriodType.annual");
@@ -35,7 +36,7 @@ public enum SavingsPostingInterestPeriodType {
     private final Integer value;
     private final String code;
 
-    private SavingsPostingInterestPeriodType(final Integer value, final String code) {
+    SavingsPostingInterestPeriodType(final Integer value, final String code) {
         this.value = value;
         this.code = code;
     }
@@ -63,6 +64,9 @@ public enum SavingsPostingInterestPeriodType {
         SavingsPostingInterestPeriodType repaymentFrequencyType = SavingsPostingInterestPeriodType.INVALID;
         if (type != null) {
             switch (type) {
+                case 1:
+                    repaymentFrequencyType = SavingsPostingInterestPeriodType.DAILY;
+                break;
                 case 4:
                     repaymentFrequencyType = SavingsPostingInterestPeriodType.MONTHLY;
                 break;

@@ -18,41 +18,34 @@
  */
 package org.apache.fineract.batch.command.internal;
 
+import com.google.common.base.Splitter;
+import java.util.List;
 import javax.ws.rs.core.UriInfo;
-
+import lombok.RequiredArgsConstructor;
 import org.apache.fineract.batch.command.CommandStrategy;
 import org.apache.fineract.batch.domain.BatchRequest;
 import org.apache.fineract.batch.domain.BatchResponse;
-import org.apache.fineract.batch.exception.ErrorHandler;
-import org.apache.fineract.batch.exception.ErrorInfo;
 import org.apache.fineract.portfolio.loanaccount.api.LoansApiResource;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
- * Implements {@link org.apache.fineract.batch.command.CommandStrategy} to handle
- * approval of a pending loan. It passes the contents of the body from the
- * BatchRequest to
- * {@link org.apache.fineract.portfolio.loanaccount.api.LoansApiResource} and gets
- * back the response. This class will also catch any errors raised by
- * {@link org.apache.fineract.portfolio.loanaccount.api.LoansApiResource} and map
- * those errors to appropriate status codes in BatchResponse.
- * 
+ * Implements {@link org.apache.fineract.batch.command.CommandStrategy} to handle approval of a pending loan. It passes
+ * the contents of the body from the BatchRequest to
+ * {@link org.apache.fineract.portfolio.loanaccount.api.LoansApiResource} and gets back the response. This class will
+ * also catch any errors raised by {@link org.apache.fineract.portfolio.loanaccount.api.LoansApiResource} and map those
+ * errors to appropriate status codes in BatchResponse.
+ *
  * @author Rishabh Shukla
- * 
+ *
  * @see org.apache.fineract.batch.command.CommandStrategy
  * @see org.apache.fineract.batch.domain.BatchRequest
  * @see org.apache.fineract.batch.domain.BatchResponse
  */
 @Component
+@RequiredArgsConstructor
 public class ApproveLoanCommandStrategy implements CommandStrategy {
 
     private final LoansApiResource loansApiResource;
-
-    @Autowired
-    public ApproveLoanCommandStrategy(final LoansApiResource loansApiResource) {
-        this.loansApiResource = loansApiResource;
-    }
 
     @Override
     public BatchResponse execute(final BatchRequest request, @SuppressWarnings("unused") UriInfo uriInfo) {
@@ -62,29 +55,18 @@ public class ApproveLoanCommandStrategy implements CommandStrategy {
 
         response.setRequestId(request.getRequestId());
         response.setHeaders(request.getHeaders());
-        
-        final String[] pathParameters = request.getRelativeUrl().split("/");
-        Long loanId = Long.parseLong(pathParameters[1].substring(0, pathParameters[1].indexOf("?")));
 
-        // Try-catch blocks to map exceptions to appropriate status codes
-        try {
+        final List<String> pathParameters = Splitter.on('/').splitToList(request.getRelativeUrl());
+        Long loanId = Long.parseLong(pathParameters.get(1).substring(0, pathParameters.get(1).indexOf("?")));
 
-            // Calls 'approve' function from 'LoansApiResource' to approve a loan          
-            responseBody = loansApiResource.stateTransitions(loanId, "approve", request.getBody());
+        // Calls 'approve' function from 'LoansApiResource' to approve a
+        // loan
+        responseBody = loansApiResource.stateTransitions(loanId, "approve", request.getBody());
 
-            response.setStatusCode(200);
-            // Sets the body of the response after the successful approval of a loan
-            response.setBody(responseBody);
-
-        } catch (RuntimeException e) {
-
-            // Gets an object of type ErrorInfo, containing information about
-            // raised exception
-            ErrorInfo ex = ErrorHandler.handler(e);
-
-            response.setStatusCode(ex.getStatusCode());
-            response.setBody(ex.getMessage());
-        }
+        response.setStatusCode(200);
+        // Sets the body of the response after the successful approval of a
+        // loan
+        response.setBody(responseBody);
 
         return response;
     }

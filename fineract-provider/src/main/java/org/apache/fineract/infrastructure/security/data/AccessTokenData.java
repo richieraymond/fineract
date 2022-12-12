@@ -18,30 +18,18 @@
  */
 package org.apache.fineract.infrastructure.security.data;
 
-import org.joda.time.DateTime;
+import java.time.ZonedDateTime;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 
+@Data
+@NoArgsConstructor
+@Accessors(chain = true)
 public class AccessTokenData {
 
-    private final String token;
+    private String token;
 
-    private final DateTime validFrom;
-    private final DateTime validTo;
-
-    public AccessTokenData(String token, DateTime validFrom, DateTime validTo) {
-        this.token = token;
-        this.validFrom = validFrom;
-        this.validTo = validTo;
-    }
-
-    public String getToken() {
-        return token;
-    }
-
-    public DateTime getValidFrom() {
-        return validFrom;
-    }
-
-    public DateTime getValidTo() {
-        return validTo;
-    }
+    private ZonedDateTime validFrom;
+    private ZonedDateTime validTo;
 }

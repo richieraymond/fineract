@@ -20,25 +20,24 @@ package org.apache.fineract.infrastructure.core.service;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-
 import javax.sql.DataSource;
-
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.datasource.AbstractDataSource;
 import org.springframework.jdbc.datasource.lookup.AbstractRoutingDataSource;
 import org.springframework.stereotype.Service;
 
 /**
- * Based on springs {@link AbstractRoutingDataSource} idea, this is a
- * {@link DataSource} that routes or delegates to another data source depending
- * on the tenant details passed in the request.
- * 
+ * Based on springs {@link AbstractRoutingDataSource} idea, this is a {@link DataSource} that routes or delegates to
+ * another data source depending on the tenant details passed in the request.
+ *
  * The tenant details are process earlier and stored in a {@link ThreadLocal}.
- * 
- * The {@link RoutingDataSourceService} is responsible for returning the
- * appropriate {@link DataSource} for the tenant of this request.
+ *
+ * The {@link RoutingDataSourceService} is responsible for returning the appropriate {@link DataSource} for the tenant
+ * of this request.
  */
 @Service(value = "routingDataSource")
+@Primary
 public class RoutingDataSource extends AbstractDataSource {
 
     @Autowired
@@ -49,7 +48,7 @@ public class RoutingDataSource extends AbstractDataSource {
         return determineTargetDataSource().getConnection();
     }
 
-    private DataSource determineTargetDataSource() {
+    public DataSource determineTargetDataSource() {
         return this.dataSourceServiceFactory.determineDataSourceService().retrieveDataSource();
     }
 

@@ -20,10 +20,10 @@ package org.apache.fineract.portfolio.loanproduct.domain;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import org.apache.fineract.portfolio.common.domain.PeriodFrequencyType;
 
 public enum RecalculationFrequencyType {
+
     INVALID(0, "interestRecalculationFrequencyType.invalid"), //
     SAME_AS_REPAYMENT_PERIOD(1, "interestRecalculationFrequencyType.same.as.repayment.period"), //
     DAILY(2, "interestRecalculationFrequencyType.daily"), //
@@ -41,12 +41,13 @@ public enum RecalculationFrequencyType {
     }
 
     public static RecalculationFrequencyType fromInt(final Integer ruleTypeValue) {
-        if (ruleTypeValue == null) { return RecalculationFrequencyType.INVALID; }
-        final RecalculationFrequencyType type = intToEnumMap.get(ruleTypeValue);
-        return type;
+        if (ruleTypeValue == null) {
+            return RecalculationFrequencyType.INVALID;
+        }
+        return intToEnumMap.get(ruleTypeValue);
     }
 
-    private RecalculationFrequencyType(final Integer value, final String code) {
+    RecalculationFrequencyType(final Integer value, final String code) {
         this.value = value;
         this.code = code;
     }
@@ -76,21 +77,11 @@ public enum RecalculationFrequencyType {
     }
 
     public boolean isSameFrequency(final PeriodFrequencyType frequencyType) {
-        boolean isSameFre = false;
-        switch (this) {
-            case DAILY:
-                isSameFre = frequencyType.isDaily();
-            break;
-            case MONTHLY:
-                isSameFre = frequencyType.isMonthly();
-            break;
-            case WEEKLY:
-                isSameFre = frequencyType.isWeekly();
-            break;
-            default:
-            break;
-        }
-
-        return isSameFre;
+        return switch (this) {
+            case DAILY -> frequencyType.isDaily();
+            case MONTHLY -> frequencyType.isMonthly();
+            case WEEKLY -> frequencyType.isWeekly();
+            default -> false;
+        };
     }
 }

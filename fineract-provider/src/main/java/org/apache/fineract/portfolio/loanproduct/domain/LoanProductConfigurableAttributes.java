@@ -18,54 +18,54 @@
  */
 package org.apache.fineract.portfolio.loanproduct.domain;
 
+import java.io.Serializable;
+import java.util.Objects;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
+import javax.persistence.OneToOne;
 import javax.persistence.Table;
-
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
 import org.apache.fineract.portfolio.loanproduct.LoanProductConstants;
 
 @Entity
 @Table(name = "m_product_loan_configurable_attributes")
-public class LoanProductConfigurableAttributes extends AbstractPersistableCustom<Long> {
+public class LoanProductConfigurableAttributes extends AbstractPersistableCustom implements Serializable {
 
-    @ManyToOne
+    @OneToOne
     @JoinColumn(name = "loan_product_id", nullable = false)
     private LoanProduct loanProduct;
 
-    @Column(name = "amortization_method_enum", nullable = true)
+    @Column(name = "amortization_method_enum")
     private Boolean amortizationType;
 
-    @Column(name = "interest_method_enum", nullable = true)
+    @Column(name = "interest_method_enum")
     private Boolean interestType;
 
-    @Column(name = "loan_transaction_strategy_id", nullable = true)
-    private Boolean transactionProcessingStrategyId;
+    @Column(name = "loan_transaction_strategy_code")
+    private Boolean transactionProcessingStrategyCode;
 
-    @Column(name = "interest_calculated_in_period_enum", nullable = true)
+    @Column(name = "interest_calculated_in_period_enum")
     private Boolean interestCalculationPeriodType;
 
-    @Column(name = "arrearstolerance_amount", nullable = true)
+    @Column(name = "arrearstolerance_amount")
     private Boolean inArrearsTolerance;
 
-    @Column(name = "repay_every", nullable = true)
+    @Column(name = "repay_every")
     private Boolean repaymentEvery;
 
-    @Column(name = "moratorium", nullable = true)
+    @Column(name = "moratorium")
     private Boolean graceOnPrincipalAndInterestPayment;
 
-    @Column(name = "grace_on_arrears_ageing", nullable = true)
+    @Column(name = "grace_on_arrears_ageing")
     private Boolean graceOnArrearsAgeing;
 
-	private static final String[] supportedloanConfigurableAttributes = {LoanProductConstants.amortizationTypeParamName,
-			LoanProductConstants.interestTypeParamName, LoanProductConstants.transactionProcessingStrategyIdParamName,
-			LoanProductConstants.interestCalculationPeriodTypeParamName,
-			LoanProductConstants.inArrearsToleranceParamName, LoanProductConstants.repaymentEveryParamName,
-			LoanProductConstants.graceOnPrincipalAndInterestPaymentParamName,
-			LoanProductConstants.graceOnArrearsAgeingParameterName};
+    private static final String[] supportedLoanConfigurableAttributes = { LoanProductConstants.amortizationTypeParamName,
+            LoanProductConstants.interestTypeParamName, LoanProductConstants.transactionProcessingStrategyCodeParamName,
+            LoanProductConstants.interestCalculationPeriodTypeParamName, LoanProductConstants.inArrearsToleranceParamName,
+            LoanProductConstants.repaymentEveryParamName, LoanProductConstants.graceOnPrincipalAndInterestPaymentParamName,
+            LoanProductConstants.GRACE_ON_ARREARS_AGEING_PARAMETER_NAME };
 
     public static LoanProductConfigurableAttributes createFrom(JsonCommand command) {
 
@@ -77,7 +77,7 @@ public class LoanProductConfigurableAttributes extends AbstractPersistableCustom
                 .getAsJsonPrimitive(LoanProductConstants.interestTypeParamName).getAsBoolean();
         final Boolean transactionProcessingStrategy = command.parsedJson().getAsJsonObject()
                 .getAsJsonObject(LoanProductConstants.allowAttributeOverridesParamName)
-                .getAsJsonPrimitive(LoanProductConstants.transactionProcessingStrategyIdParamName).getAsBoolean();
+                .getAsJsonPrimitive(LoanProductConstants.transactionProcessingStrategyCodeParamName).getAsBoolean();
         final Boolean interestCalcPeriod = command.parsedJson().getAsJsonObject()
                 .getAsJsonObject(LoanProductConstants.allowAttributeOverridesParamName)
                 .getAsJsonPrimitive(LoanProductConstants.interestCalculationPeriodTypeParamName).getAsBoolean();
@@ -92,7 +92,7 @@ public class LoanProductConfigurableAttributes extends AbstractPersistableCustom
                 .getAsJsonPrimitive(LoanProductConstants.graceOnPrincipalAndInterestPaymentParamName).getAsBoolean();
         final Boolean graceOnArrearsAging = command.parsedJson().getAsJsonObject()
                 .getAsJsonObject(LoanProductConstants.allowAttributeOverridesParamName)
-                .getAsJsonPrimitive(LoanProductConstants.graceOnArrearsAgeingParameterName).getAsBoolean();
+                .getAsJsonPrimitive(LoanProductConstants.GRACE_ON_ARREARS_AGEING_PARAMETER_NAME).getAsBoolean();
 
         return new LoanProductConfigurableAttributes(amortization, interestMethod, transactionProcessingStrategy, interestCalcPeriod,
                 arrearsTolerance, repaymentEvery, graceOnPrincipalAndInterestPayment, graceOnArrearsAging);
@@ -116,7 +116,7 @@ public class LoanProductConfigurableAttributes extends AbstractPersistableCustom
                 arrearsTolerance, repaymentEvery, graceOnPrincipalAndInterestPayment, graceOnArrearsAging);
     }
 
-    public LoanProductConfigurableAttributes(Boolean amortization, Boolean interestMethod, Boolean transactionProcessingStrategy,
+    public LoanProductConfigurableAttributes(Boolean amortization, Boolean interestMethod, Boolean transactionProcessingStrategyCode,
             Boolean interestCalcPeriod, Boolean arrearsTolerance, Boolean repaymentEvery, Boolean graceOnPrincipalAndInterestPayment,
             Boolean graceOnArrearsAging) {
         this.amortizationType = amortization;
@@ -126,7 +126,7 @@ public class LoanProductConfigurableAttributes extends AbstractPersistableCustom
         this.interestCalculationPeriodType = interestCalcPeriod;
         this.graceOnPrincipalAndInterestPayment = graceOnPrincipalAndInterestPayment;
         this.repaymentEvery = repaymentEvery;
-        this.transactionProcessingStrategyId = transactionProcessingStrategy;
+        this.transactionProcessingStrategyCode = transactionProcessingStrategyCode;
     }
 
     protected LoanProductConfigurableAttributes() {
@@ -134,7 +134,7 @@ public class LoanProductConfigurableAttributes extends AbstractPersistableCustom
     }
 
     public static String[] getAllowedLoanConfigurableAttributes() {
-        return supportedloanConfigurableAttributes;
+        return supportedLoanConfigurableAttributes;
     }
 
     public LoanProduct getLoanProduct() {
@@ -150,7 +150,7 @@ public class LoanProductConfigurableAttributes extends AbstractPersistableCustom
     }
 
     public Boolean getTransactionProcessingStrategyBoolean() {
-        return transactionProcessingStrategyId;
+        return transactionProcessingStrategyCode;
     }
 
     public Boolean getInterestCalcPeriodBoolean() {
@@ -185,8 +185,8 @@ public class LoanProductConfigurableAttributes extends AbstractPersistableCustom
         this.interestType = interestType;
     }
 
-    public void setTransactionProcessingStrategyId(Boolean transactionProcessingStrategyId) {
-        this.transactionProcessingStrategyId = transactionProcessingStrategyId;
+    public void setTransactionProcessingStrategyCode(Boolean transactionProcessingStrategyCode) {
+        this.transactionProcessingStrategyCode = transactionProcessingStrategyCode;
     }
 
     public void setInterestCalculationPeriodType(Boolean interestCalculationPeriodType) {
@@ -209,4 +209,30 @@ public class LoanProductConfigurableAttributes extends AbstractPersistableCustom
         this.graceOnArrearsAgeing = graceOnArrearsAgeing;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+
+        if (!(o instanceof LoanProductConfigurableAttributes)) {
+            return false;
+        }
+
+        LoanProductConfigurableAttributes that = (LoanProductConfigurableAttributes) o;
+
+        return Objects.equals(loanProduct, that.loanProduct) && Objects.equals(amortizationType, that.amortizationType)
+                && Objects.equals(interestType, that.interestType)
+                && Objects.equals(transactionProcessingStrategyCode, that.transactionProcessingStrategyCode)
+                && Objects.equals(interestCalculationPeriodType, that.interestCalculationPeriodType)
+                && Objects.equals(inArrearsTolerance, that.inArrearsTolerance) && Objects.equals(repaymentEvery, that.repaymentEvery)
+                && Objects.equals(graceOnPrincipalAndInterestPayment, that.graceOnPrincipalAndInterestPayment)
+                && Objects.equals(graceOnArrearsAgeing, that.graceOnArrearsAgeing);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(loanProduct, amortizationType, interestType, transactionProcessingStrategyCode, interestCalculationPeriodType,
+                inArrearsTolerance, repaymentEvery, graceOnPrincipalAndInterestPayment, graceOnArrearsAgeing);
+    }
 }

@@ -19,18 +19,15 @@
 package org.apache.fineract.portfolio.client.domain;
 
 import java.math.BigDecimal;
-import java.util.Date;
-
+import java.time.LocalDate;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
 import javax.persistence.Transient;
-
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
+import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
 import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
 import org.apache.fineract.organisation.monetary.domain.Money;
 import org.apache.fineract.organisation.office.domain.OrganisationCurrency;
@@ -38,12 +35,10 @@ import org.apache.fineract.portfolio.charge.domain.Charge;
 import org.apache.fineract.portfolio.charge.domain.ChargeCalculationType;
 import org.apache.fineract.portfolio.charge.domain.ChargeTimeType;
 import org.apache.fineract.portfolio.client.api.ClientApiConstants;
-import org.joda.time.LocalDate;
-import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
 
 @Entity
 @Table(name = "m_client_charge")
-public class ClientCharge extends AbstractPersistableCustom<Long> {
+public class ClientCharge extends AbstractPersistableCustom {
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "client_id", referencedColumnName = "id", nullable = false)
@@ -56,9 +51,8 @@ public class ClientCharge extends AbstractPersistableCustom<Long> {
     @Column(name = "charge_time_enum", nullable = false)
     private Integer chargeTime;
 
-    @Temporal(TemporalType.DATE)
     @Column(name = "charge_due_date")
-    private Date dueDate;
+    private LocalDate dueDate;
 
     @Column(name = "charge_calculation_enum")
     private Integer chargeCalculation;
@@ -90,9 +84,8 @@ public class ClientCharge extends AbstractPersistableCustom<Long> {
     @Column(name = "is_active", nullable = false)
     private boolean status = true;
 
-    @Temporal(TemporalType.DATE)
     @Column(name = "inactivated_on_date")
-    private Date inactivationDate;
+    private LocalDate inactivationDate;
 
     @Transient
     private OrganisationCurrency currency;
@@ -116,7 +109,7 @@ public class ClientCharge extends AbstractPersistableCustom<Long> {
         this.charge = charge;
         this.penaltyCharge = charge.isPenalty();
         this.chargeTime = charge.getChargeTimeType();
-        this.dueDate = (dueDate == null) ? null : dueDate.toDate();
+        this.dueDate = dueDate;
         this.chargeCalculation = charge.getChargeCalculation();
 
         BigDecimal chargeAmount = charge.getAmount();
@@ -220,11 +213,7 @@ public class ClientCharge extends AbstractPersistableCustom<Long> {
     }
 
     public LocalDate getDueLocalDate() {
-        LocalDate dueDate = null;
-        if (this.dueDate != null) {
-            dueDate = new LocalDate(this.dueDate);
-        }
-        return dueDate;
+        return this.dueDate;
     }
 
     public Client getClient() {
@@ -239,7 +228,7 @@ public class ClientCharge extends AbstractPersistableCustom<Long> {
         return this.chargeTime;
     }
 
-    public Date getDueDate() {
+    public LocalDate getDueDate() {
         return this.dueDate;
     }
 
@@ -267,7 +256,7 @@ public class ClientCharge extends AbstractPersistableCustom<Long> {
         return !this.status;
     }
 
-    public Date getInactivationDate() {
+    public LocalDate getInactivationDate() {
         return this.inactivationDate;
     }
 

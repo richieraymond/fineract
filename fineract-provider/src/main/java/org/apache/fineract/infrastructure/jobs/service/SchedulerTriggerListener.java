@@ -18,8 +18,13 @@
  */
 package org.apache.fineract.infrastructure.jobs.service;
 
-import java.util.Random;
-
+import java.time.LocalDate;
+import java.util.HashMap;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.fineract.infrastructure.businessdate.domain.BusinessDateType;
+import org.apache.fineract.infrastructure.businessdate.service.BusinessDateReadPlatformService;
+import org.apache.fineract.infrastructure.core.domain.ActionContext;
 import org.apache.fineract.infrastructure.core.domain.FineractPlatformTenant;
 import org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil;
 import org.apache.fineract.infrastructure.security.service.TenantDetailsService;
@@ -28,85 +33,61 @@ import org.quartz.JobKey;
 import org.quartz.Trigger;
 import org.quartz.Trigger.CompletedExecutionInstruction;
 import org.quartz.TriggerListener;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
+@RequiredArgsConstructor
 @Component
 public class SchedulerTriggerListener implements TriggerListener {
 
-    private final static Logger logger = LoggerFactory.getLogger(SchedulerTriggerListener.class);
-    
-    private final String name = "Global trigger Listner";
-
     private final SchedularWritePlatformService schedularService;
-
     private final TenantDetailsService tenantDetailsService;
 
-    @Autowired
-    public SchedulerTriggerListener(final SchedularWritePlatformService schedularService, final TenantDetailsService tenantDetailsService) {
-        this.schedularService = schedularService;
-        this.tenantDetailsService = tenantDetailsService;
-
-    }
+    private final BusinessDateReadPlatformService businessDateReadPlatformService;
 
     @Override
     public String getName() {
-        return this.name;
+        return "Fineract Global Scheduler Trigger Listener";
     }
 
     @Override
-    public void triggerFired(@SuppressWarnings("unused") final Trigger trigger,
-            @SuppressWarnings("unused") final JobExecutionContext context) {
-
+    public void triggerFired(Trigger trigger, JobExecutionContext context) {
+        log.debug("triggerFired() trigger={}, context={}", trigger, context);
     }
 
     @Override
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public boolean vetoJobExecution(final Trigger trigger, final JobExecutionContext context) {
-
         final String tenantIdentifier = trigger.getJobDataMap().getString(SchedulerServiceConstants.TENANT_IDENTIFIER);
         final FineractPlatformTenant tenant = this.tenantDetailsService.loadTenantById(tenantIdentifier);
         ThreadLocalContextUtil.setTenant(tenant);
+        ThreadLocalContextUtil.setActionContext(ActionContext.DEFAULT);
+        HashMap<BusinessDateType, LocalDate> businessDates = businessDateReadPlatformService.getBusinessDates();
+        ThreadLocalContextUtil.setBusinessDates(businessDates);
         final JobKey key = trigger.getJobKey();
         final String jobKey = key.getName() + SchedulerServiceConstants.JOB_KEY_SEPERATOR + key.getGroup();
         String triggerType = SchedulerServiceConstants.TRIGGER_TYPE_CRON;
         if (context.getMergedJobDataMap().containsKey(SchedulerServiceConstants.TRIGGER_TYPE_REFERENCE)) {
             triggerType = context.getMergedJobDataMap().getString(SchedulerServiceConstants.TRIGGER_TYPE_REFERENCE);
         }
-        Integer maxNumberOfRetries = ThreadLocalContextUtil.getTenant().getConnection().getMaxRetriesOnDeadlock();
-        Integer maxIntervalBetweenRetries = ThreadLocalContextUtil.getTenant().getConnection().getMaxIntervalBetweenRetries();
-        Integer numberOfRetries = 0;
-        boolean proceedJob = false;
-        while (numberOfRetries <= maxNumberOfRetries) {
-            try {
-                proceedJob = this.schedularService.processJobDetailForExecution(jobKey, triggerType);
-                numberOfRetries = maxNumberOfRetries + 1;
-            } catch (Exception exception) { //Adding generic exception as it depends on JPA provider
-                logger.debug("Not able to acquire the lock to update job running status for JobKey: " + jobKey);
-                try {
-                    Random random = new Random();
-                    int randomNum = random.nextInt(maxIntervalBetweenRetries + 1);
-                    Thread.sleep(1000 + (randomNum * 1000));
-                    numberOfRetries = numberOfRetries + 1;
-                } catch (InterruptedException e) {
-
-                }
-            }
+        boolean vetoJob = this.schedularService.processJobDetailForExecution(jobKey, triggerType);
+        if (vetoJob) {
+            log.warn(
+                    "vetoJobExecution() WILL veto the execution (returning vetoJob == true; the job's execute method will NOT be called); tenant={}, jobKey={}, triggerType={}, trigger={}, context={}",
+                    tenantIdentifier, jobKey, triggerType, trigger, context);
         }
-        return proceedJob;
+        return vetoJob;
     }
 
     @Override
-    public void triggerMisfired(@SuppressWarnings("unused") final Trigger trigger) {
-
+    public void triggerMisfired(final Trigger trigger) {
+        log.error("triggerMisfired() trigger={}", trigger);
     }
 
     @Override
-    public void triggerComplete(@SuppressWarnings("unused") final Trigger trigger,
-            @SuppressWarnings("unused") final JobExecutionContext context,
-            @SuppressWarnings("unused") final CompletedExecutionInstruction triggerInstructionCode) {
-
+    public void triggerComplete(Trigger trigger, JobExecutionContext context, CompletedExecutionInstruction triggerInstructionCode) {
+        log.debug("triggerComplete() trigger={}, context={}, completedExecutionInstruction={}", trigger, context, triggerInstructionCode);
     }
-
 }

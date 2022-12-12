@@ -19,6 +19,8 @@
 package org.apache.fineract.infrastructure.jobs.exception;
 
 import org.apache.fineract.infrastructure.core.exception.AbstractPlatformResourceNotFoundException;
+import org.springframework.batch.core.launch.NoSuchJobException;
+import org.springframework.dao.EmptyResultDataAccessException;
 
 /**
  * A {@link RuntimeException} thrown when Job resources are not found.
@@ -27,5 +29,13 @@ public class JobNotFoundException extends AbstractPlatformResourceNotFoundExcept
 
     public JobNotFoundException(final String identifier) {
         super("error.msg.sheduler.job.id.invalid", "Job with identifier " + identifier + " does not exist", identifier);
+    }
+
+    public JobNotFoundException(final String identifier, NoSuchJobException e) {
+        super("error.msg.sheduler.job.id.invalid", "Job with identifier " + identifier + " does not exist", identifier, e);
+    }
+
+    public JobNotFoundException(String identifier, EmptyResultDataAccessException e) {
+        super("error.msg.sheduler.job.id.invalid", "Job with identifier " + identifier + " does not exist", identifier, e);
     }
 }

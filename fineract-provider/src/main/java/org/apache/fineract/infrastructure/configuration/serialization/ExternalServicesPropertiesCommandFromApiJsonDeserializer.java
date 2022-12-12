@@ -18,30 +18,28 @@
  */
 package org.apache.fineract.infrastructure.configuration.serialization;
 
+import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.infrastructure.configuration.exception.ExternalServiceConfigurationNotFoundException;
-import org.apache.fineract.infrastructure.configuration.service.ExternalServicesConstants.NOTIFICATION_JSON_INPUT_PARAMS;
-import org.apache.fineract.infrastructure.configuration.service.ExternalServicesConstants.S3_JSON_INPUT_PARAMS;
-import org.apache.fineract.infrastructure.configuration.service.ExternalServicesConstants.SMS_JSON_INPUT_PARAMS;
-import org.apache.fineract.infrastructure.configuration.service.ExternalServicesConstants.SMTP_JSON_INPUT_PARAMS;
+import org.apache.fineract.infrastructure.configuration.service.ExternalServicesConstants.NotificationJSONinputParams;
+import org.apache.fineract.infrastructure.configuration.service.ExternalServicesConstants.S3JSONinputParams;
+import org.apache.fineract.infrastructure.configuration.service.ExternalServicesConstants.SMSJSONinputParams;
+import org.apache.fineract.infrastructure.configuration.service.ExternalServicesConstants.SMTPJSONinputParams;
 import org.apache.fineract.infrastructure.core.exception.InvalidJsonException;
 import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.google.gson.reflect.TypeToken;
-
 @Component
 public class ExternalServicesPropertiesCommandFromApiJsonDeserializer {
 
-    private final Set<String> S3SupportedParameters = S3_JSON_INPUT_PARAMS.getAllValues();
-    private final Set<String> SMTPSupportedParameters = SMTP_JSON_INPUT_PARAMS.getAllValues();
-    private final Set<String> SMSSupportedParameters = SMS_JSON_INPUT_PARAMS.getAllValues();
-    private final Set<String> NotificationSupportedParameters = NOTIFICATION_JSON_INPUT_PARAMS.getAllValues();
+    private static final Set<String> S3_SUPPORTED_PARAMETERS = S3JSONinputParams.getAllValues();
+    private static final Set<String> SMTP_SUPPORTED_PARAMETERS = SMTPJSONinputParams.getAllValues();
+    private static final Set<String> SMS_SUPPORTED_PARAMETERS = SMSJSONinputParams.getAllValues();
+    private static final Set<String> NOTIFICATION_SUPPORTED_PARAMETERS = NotificationJSONinputParams.getAllValues();
     private final FromJsonHelper fromApiJsonHelper;
 
     @Autowired
@@ -50,36 +48,28 @@ public class ExternalServicesPropertiesCommandFromApiJsonDeserializer {
     }
 
     public void validateForUpdate(final String json, final String externalServiceName) {
-        if (StringUtils.isBlank(json)) { throw new InvalidJsonException(); }
+        if (StringUtils.isBlank(json)) {
+            throw new InvalidJsonException();
+        }
 
-        final Type typeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
+        final Type typeOfMap = new TypeToken<Map<String, Object>>() {
+
+        }.getType();
         switch (externalServiceName) {
-            case "S3":
-                this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, this.S3SupportedParameters);
-            break;
-
-            case "SMTP":
-                this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, this.SMTPSupportedParameters);
-            break;
-
-            case "SMS":
-                this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, this.SMSSupportedParameters);
-            break;
-
-            case "NOTIFICATION":
-                this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, this.NotificationSupportedParameters);
-            break;
-
-            default:
-                throw new ExternalServiceConfigurationNotFoundException(externalServiceName);
+            case "S3" -> this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, S3_SUPPORTED_PARAMETERS);
+            case "SMTP" -> this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, SMTP_SUPPORTED_PARAMETERS);
+            case "SMS" -> this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, SMS_SUPPORTED_PARAMETERS);
+            case "NOTIFICATION" -> this.fromApiJsonHelper.checkForUnsupportedParameters(typeOfMap, json, NOTIFICATION_SUPPORTED_PARAMETERS);
+            default -> throw new ExternalServiceConfigurationNotFoundException(externalServiceName);
         }
 
     }
 
     public Set<String> getNameKeys(final String json) {
-        final Type typeOfMap = new TypeToken<Map<String, Object>>() {}.getType();
+        final Type typeOfMap = new TypeToken<Map<String, Object>>() {
+
+        }.getType();
         Map<String, String> jsonMap = this.fromApiJsonHelper.extractDataMap(typeOfMap, json);
-        Set<String> keyNames = jsonMap.keySet();
-        return keyNames;
+        return jsonMap.keySet();
     }
 }

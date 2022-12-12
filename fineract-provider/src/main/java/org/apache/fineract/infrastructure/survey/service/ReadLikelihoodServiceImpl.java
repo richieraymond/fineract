@@ -20,10 +20,6 @@ package org.apache.fineract.infrastructure.survey.service;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.sql.DataSource;
-
-import org.apache.fineract.infrastructure.core.service.RoutingDataSource;
 import org.apache.fineract.infrastructure.survey.data.LikelihoodData;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -34,33 +30,27 @@ import org.springframework.stereotype.Service;
 public class ReadLikelihoodServiceImpl implements ReadLikelihoodService {
 
     private final JdbcTemplate jdbcTemplate;
-    private final DataSource dataSource;
 
     @Autowired
-    ReadLikelihoodServiceImpl(final RoutingDataSource dataSource) {
-        this.dataSource = dataSource;
-        this.jdbcTemplate = new JdbcTemplate(this.dataSource);
-
+    ReadLikelihoodServiceImpl(final JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
     public List<LikelihoodData> retrieveAll(final String ppiName) {
-        final SqlRowSet likelihood = this._getLikelihood(ppiName);
+        final SqlRowSet likelihood = this.getLikelihood(ppiName);
 
         List<LikelihoodData> likelihoodDatas = new ArrayList<>();
 
         while (likelihood.next()) {
-            likelihoodDatas.add(new LikelihoodData(likelihood.getLong("id"), likelihood.getString("name"), likelihood.getString("code"),
-                    likelihood.getLong("enabled")
-
-            ));
+            likelihoodDatas.add(new LikelihoodData().setResourceId(likelihood.getLong("id")).setLikeliHoodName(likelihood.getString("name"))
+                    .setLikeliHoodCode(likelihood.getString("code")).setEnabled(likelihood.getLong("enabled")));
 
         }
-
         return likelihoodDatas;
     }
 
-    private SqlRowSet _getLikelihood(final String ppiName) {
+    private SqlRowSet getLikelihood(final String ppiName) {
         String sql = "SELECT lkp.id, lkh.code , lkh.name, lkp.enabled " + " FROM ppi_poverty_line pl "
                 + " JOIN ppi_likelihoods_ppi lkp on lkp.id = pl.likelihood_ppi_id "
                 + " JOIN ppi_likelihoods lkh on lkp.likelihood_id = lkh.id " + " WHERE lkp.ppi_name = ? "
@@ -72,18 +62,16 @@ public class ReadLikelihoodServiceImpl implements ReadLikelihoodService {
 
     @Override
     public LikelihoodData retrieve(final Long likelihoodId) {
-        final SqlRowSet likelihood = this._getLikelihood(likelihoodId);
+        final SqlRowSet likelihood = this.getLikelihood(likelihoodId);
 
         likelihood.first();
 
-        return new LikelihoodData(likelihood.getLong("id"), likelihood.getString("name"), likelihood.getString("code"),
-                likelihood.getLong("enabled")
-
-        );
+        return new LikelihoodData().setResourceId(likelihood.getLong("id")).setLikeliHoodName(likelihood.getString("name"))
+                .setLikeliHoodCode(likelihood.getString("code")).setEnabled(likelihood.getLong("enabled"));
 
     }
 
-    private SqlRowSet _getLikelihood(final Long likelihoodId) {
+    private SqlRowSet getLikelihood(final Long likelihoodId) {
         String sql = "SELECT lkp.id, lkh.code , lkh.name, lkp.enabled " + " FROM ppi_likelihoods lkh "
                 + " JOIN ppi_likelihoods_ppi lkp on lkp.likelihood_id = lkh.id " + " WHERE lkp.id = ? ";
 

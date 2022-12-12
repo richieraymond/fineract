@@ -18,10 +18,9 @@
  */
 package org.apache.fineract.portfolio.loanaccount.domain;
 
+import java.time.LocalDate;
 import java.util.Collection;
-import java.util.Date;
 import java.util.List;
-
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -29,56 +28,63 @@ import org.springframework.data.repository.query.Param;
 
 public interface LoanRepository extends JpaRepository<Loan, Long>, JpaSpecificationExecutor<Loan> {
 
-    public static final String FIND_GROUP_LOANS_DISBURSED_AFTER = "select l from Loan l where ( l.actualDisbursementDate IS NOT NULL and l.actualDisbursementDate > :disbursementDate) and "
+    String FIND_GROUP_LOANS_DISBURSED_AFTER = "select l from Loan l where ( l.actualDisbursementDate IS NOT NULL and l.actualDisbursementDate > :disbursementDate) and "
             + "l.group.id = :groupId and l.loanType = :loanType order by l.actualDisbursementDate";
 
-    public static final String FIND_CLIENT_OR_JLG_LOANS_DISBURSED_AFTER = "select l from Loan l where (l.actualDisbursementDate IS NOT NULL and l.actualDisbursementDate > :disbursementDate) and "
+    String FIND_CLIENT_OR_JLG_LOANS_DISBURSED_AFTER = "select l from Loan l where (l.actualDisbursementDate IS NOT NULL and l.actualDisbursementDate > :disbursementDate) and "
             + "l.client.id = :clientId order by l.actualDisbursementDate";
 
-    public static final String FIND_MAX_GROUP_LOAN_COUNTER_QUERY = "Select MAX(l.loanCounter) from Loan l where l.group.id = :groupId "
+    String FIND_MAX_GROUP_LOAN_COUNTER_QUERY = "Select MAX(l.loanCounter) from Loan l where l.group.id = :groupId "
             + "and l.loanType = :loanType";
 
-    public static final String FIND_MAX_GROUP_LOAN_PRODUCT_COUNTER_QUERY = "Select MAX(l.loanProductCounter) from Loan l where "
+    String FIND_MAX_GROUP_LOAN_PRODUCT_COUNTER_QUERY = "Select MAX(l.loanProductCounter) from Loan l where "
             + "l.group.id = :groupId and l.loanType = :loanType and l.loanProduct.id = :productId";
 
-    public static final String FIND_MAX_CLIENT_OR_JLG_LOAN_COUNTER_QUERY = "Select MAX(l.loanCounter) from Loan l where "
-            + "l.client.id = :clientId";
+    String FIND_MAX_CLIENT_OR_JLG_LOAN_COUNTER_QUERY = "Select MAX(l.loanCounter) from Loan l where " + "l.client.id = :clientId";
 
-    public static final String FIND_MAX_CLIENT_OR_JLG_LOAN_PRODUCT_COUNTER_QUERY = "Select MAX(l.loanProductCounter) from Loan l where "
+    String FIND_MAX_CLIENT_OR_JLG_LOAN_PRODUCT_COUNTER_QUERY = "Select MAX(l.loanProductCounter) from Loan l where "
             + "l.client.id = :clientId and l.loanProduct.id = :productId";
 
-    public static final String FIND_GROUP_LOANS_TO_UPDATE = "select l from Loan l where l.loanCounter > :loanCounter and "
+    String FIND_GROUP_LOANS_TO_UPDATE = "select l from Loan l where l.loanCounter > :loanCounter and "
             + "l.group.id = :groupId and l.loanType = :groupLoanType order by l.loanCounter";
 
-    public static final String FIND_CLIENT_OR_JLG_LOANS_TO_UPDATE = "select l from Loan l where l.loanCounter > :loanCounter and "
+    String FIND_CLIENT_OR_JLG_LOANS_TO_UPDATE = "select l from Loan l where l.loanCounter > :loanCounter and "
             + "l.client.id = :clientId order by l.loanCounter";
 
-    public static final String FIND_GROUP_LOANS_TO_UPDATE_LOANPRODUCT_COUNTER = "select l from Loan l where l.loanProductCounter > :loanProductCounter"
+    String FIND_GROUP_LOANS_TO_UPDATE_LOANPRODUCT_COUNTER = "select l from Loan l where l.loanProductCounter > :loanProductCounter"
             + " and l.group.id = :groupId and l.loanType = :groupLoanType and l.loanCounter is NULL order by l.loanProductCounter";
 
-    public static final String FIND_CLIENT_LOANS_TO_UPDATE_LOANPRODUCT_COUNTER = "select l from Loan l where l.loanProductCounter > :loanProductCounter"
+    String FIND_CLIENT_LOANS_TO_UPDATE_LOANPRODUCT_COUNTER = "select l from Loan l where l.loanProductCounter > :loanProductCounter"
             + " and l.client.id = :clientId and l.loanCounter is NULL order by l.loanProductCounter";
 
-    public static final String FIND_ACTIVE_LOANS_PRODUCT_IDS_BY_CLIENT = "Select loan.loanProduct.id from Loan loan where "
+    String FIND_ACTIVE_LOANS_PRODUCT_IDS_BY_CLIENT = "Select loan.loanProduct.id from Loan loan where "
             + "loan.client.id = :clientId and loan.loanStatus = :loanStatus group by loan.loanProduct.id";
 
-    public static final String FIND_ACTIVE_LOANS_PRODUCT_IDS_BY_GROUP = "Select loan.loanProduct.id from Loan loan where "
+    String FIND_ACTIVE_LOANS_PRODUCT_IDS_BY_GROUP = "Select loan.loanProduct.id from Loan loan where "
             + "loan.group.id = :groupId and loan.loanStatus = :loanStatus and loan.client.id is NULL group by loan.loanProduct.id";
 
-    public static final String DOES_CLIENT_HAVE_NON_CLOSED_LOANS = "select case when (count (loan) > 0) then 'true' else 'false' end from Loan loan where loan.client.id = :clientId and loan.loanStatus in (100,200,300,303,304,700)";
+    String DOES_CLIENT_HAVE_NON_CLOSED_LOANS = "select case when (count (loan) > 0) then 'true' else 'false' end from Loan loan where loan.client.id = :clientId and loan.loanStatus in (100,200,300,303,304,700)";
 
-    public static final String DOES_PRODUCT_HAVE_NON_CLOSED_LOANS = "select case when (count (loan) > 0) then 'true' else 'false' end from Loan loan where loan.loanProduct.id = :productId and loan.loanStatus in (100,200,300,303,304,700)";
+    String DOES_PRODUCT_HAVE_NON_CLOSED_LOANS = "select case when (count (loan) > 0) then 'true' else 'false' end from Loan loan where loan.loanProduct.id = :productId and loan.loanStatus in (100,200,300,303,304,700)";
 
-    public static final String FIND_BY_ACCOUNT_NUMBER = "select loan from Loan loan where loan.accountNumber = :accountNumber and loan.loanStatus in (100,200,300,303,304)";
+    String FIND_NON_CLOSED_BY_ACCOUNT_NUMBER = "select loan from Loan loan where loan.accountNumber = :accountNumber and loan.loanStatus in (100,200,300,303,304)";
 
-    public static final String FIND_NON_CLOSED_LOAN_THAT_BELONGS_TO_CLIENT = "select loan from Loan loan where loan.id = :loanId and loan.loanStatus = 300 and loan.client.id = :clientId";
+    String FIND_ALL_NON_CLOSED = "select loan.id from Loan loan where loan.loanStatus in (100,200,300,303,304)";
+
+    String FIND_ALL_NON_CLOSED_ONE_DAY_BEHIND = "select loan.id from Loan loan where loan.loanStatus in (100,200,300,303,304) and (:last_closed_business_date = loan.lastClosedBusinessDate or loan.lastClosedBusinessDate is NULL)";
+
+    String FIND_NON_CLOSED_LOAN_THAT_BELONGS_TO_CLIENT = "select loan from Loan loan where loan.id = :loanId and loan.loanStatus = 300 and loan.client.id = :clientId";
+
+    String FIND_BY_ACCOUNT_NUMBER = "select loan from Loan loan where loan.accountNumber = :accountNumber";
+
+    String FIND_ID_BY_EXTERNAL_ID = "SELECT loan.id FROM Loan loan WHERE loan.externalId = :externalId";
 
     @Query(FIND_GROUP_LOANS_DISBURSED_AFTER)
-    List<Loan> getGroupLoansDisbursedAfter(@Param("disbursementDate") Date disbursementDate, @Param("groupId") Long groupId,
+    List<Loan> getGroupLoansDisbursedAfter(@Param("disbursementDate") LocalDate disbursementDate, @Param("groupId") Long groupId,
             @Param("loanType") Integer loanType);
 
     @Query(FIND_CLIENT_OR_JLG_LOANS_DISBURSED_AFTER)
-    List<Loan> getClientOrJLGLoansDisbursedAfter(@Param("disbursementDate") Date disbursementDate, @Param("clientId") Long clientId);
+    List<Loan> getClientOrJLGLoansDisbursedAfter(@Param("disbursementDate") LocalDate disbursementDate, @Param("clientId") Long clientId);
 
     @Query(FIND_MAX_GROUP_LOAN_COUNTER_QUERY)
     Integer getMaxGroupLoanCounter(@Param("groupId") Long groupId, @Param("loanType") Integer loanType);
@@ -121,12 +127,15 @@ public interface LoanRepository extends JpaRepository<Loan, Long>, JpaSpecificat
     @Query("select loan from Loan loan where loan.group.id = :groupId and loan.client.id is null")
     List<Loan> findByGroupId(@Param("groupId") Long groupId);
 
+    @Query("select loan from Loan loan where loan.glim.id = :glimId")
+    List<Loan> findByGlimId(@Param("glimId") Long glimId);
+
     @Query("select loan from Loan loan where loan.id IN :ids and loan.loanStatus IN :loanStatuses and loan.loanType IN :loanTypes")
     List<Loan> findByIdsAndLoanStatusAndLoanType(@Param("ids") Collection<Long> ids,
             @Param("loanStatuses") Collection<Integer> loanStatuses, @Param("loanTypes") Collection<Integer> loanTypes);
 
     @Query("select loan.id from Loan loan where loan.actualDisbursementDate > :disbursalDate order by loan.actualDisbursementDate")
-    List<Long> getLoansDisbursedAfter(@Param("disbursalDate") Date disbursalDate);
+    List<Long> getLoansDisbursedAfter(@Param("disbursalDate") LocalDate disbursalDate);
 
     @Query("select loan from Loan loan where loan.client.office.id IN :officeIds and loan.loanStatus IN :loanStatuses")
     List<Loan> findByClientOfficeIdsAndLoanStatus(@Param("officeIds") Collection<Long> officeIds,
@@ -145,13 +154,28 @@ public interface LoanRepository extends JpaRepository<Loan, Long>, JpaSpecificat
 
     @Query(DOES_CLIENT_HAVE_NON_CLOSED_LOANS)
     boolean doNonClosedLoanAccountsExistForClient(@Param("clientId") Long clientId);
-    
+
     @Query(DOES_PRODUCT_HAVE_NON_CLOSED_LOANS)
     boolean doNonClosedLoanAccountsExistForProduct(@Param("productId") Long productId);
-    
-    @Query(FIND_BY_ACCOUNT_NUMBER)
+
+    @Query(FIND_NON_CLOSED_BY_ACCOUNT_NUMBER)
     Loan findNonClosedLoanByAccountNumber(@Param("accountNumber") String accountNumber);
 
     @Query(FIND_NON_CLOSED_LOAN_THAT_BELONGS_TO_CLIENT)
     Loan findNonClosedLoanThatBelongsToClient(@Param("loanId") Long loanId, @Param("clientId") Long clientId);
+
+    @Query(FIND_BY_ACCOUNT_NUMBER)
+    Loan findLoanAccountByAccountNumber(@Param("accountNumber") String accountNumber);
+
+    boolean existsByExternalId(@Param("externalId") String externalId);
+
+    @Query(FIND_ALL_NON_CLOSED)
+    List<Long> findAllNonClosedLoanIds();
+
+    @Query(FIND_ID_BY_EXTERNAL_ID)
+    Long findIdByExternalId(@Param("externalId") String externalId);
+
+    @Query(FIND_ALL_NON_CLOSED_ONE_DAY_BEHIND)
+    List<Long> findAllNonClosedLoanIdsOneDayBehind(@Param("last_closed_business_date") LocalDate businessDate);
+
 }

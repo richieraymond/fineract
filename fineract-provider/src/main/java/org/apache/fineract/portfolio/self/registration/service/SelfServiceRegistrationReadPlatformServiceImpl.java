@@ -18,7 +18,6 @@
  */
 package org.apache.fineract.portfolio.self.registration.service;
 
-import org.apache.fineract.infrastructure.core.service.RoutingDataSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -29,8 +28,8 @@ public class SelfServiceRegistrationReadPlatformServiceImpl implements SelfServi
     private final JdbcTemplate jdbcTemplate;
 
     @Autowired
-    public SelfServiceRegistrationReadPlatformServiceImpl(final RoutingDataSource dataSource) {
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
+    public SelfServiceRegistrationReadPlatformServiceImpl(final JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
@@ -42,8 +41,10 @@ public class SelfServiceRegistrationReadPlatformServiceImpl implements SelfServi
             sql = sql + " and mobile_no = ?";
             params = new Object[] { accountNumber, firstName, lastName, mobileNumber };
         }
-        Integer count = this.jdbcTemplate.queryForObject(sql, params, Integer.class);
-        if (count == 0) { return false; }
+        Integer count = this.jdbcTemplate.queryForObject(sql, Integer.class, params);
+        if (count == 0) {
+            return false;
+        }
         return true;
     }
 

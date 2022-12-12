@@ -28,7 +28,7 @@ public enum LoanProductParamType {
     private final Integer value;
     private final String code;
 
-    private LoanProductParamType(final Integer value, final String code) {
+    LoanProductParamType(final Integer value, final String code) {
         this.value = value;
         this.code = code;
     }
@@ -44,20 +44,12 @@ public enum LoanProductParamType {
     public static LoanProductParamType fromInt(final Integer chargeTime) {
         LoanProductParamType loanProductParamType = LoanProductParamType.INVALID;
         if (chargeTime != null) {
-            switch (chargeTime) {
-                case 1:
-                    loanProductParamType = PRINCIPAL;
-                break;
-                case 2:
-                    loanProductParamType = INTERESTRATE;
-                break;
-                case 3:
-                    loanProductParamType = REPAYMENT;
-                break;
-                default:
-                    loanProductParamType = INVALID;
-                break;
-            }
+            loanProductParamType = switch (chargeTime) {
+                case 1 -> PRINCIPAL;
+                case 2 -> INTERESTRATE;
+                case 3 -> REPAYMENT;
+                default -> INVALID;
+            };
         }
         return loanProductParamType;
     }

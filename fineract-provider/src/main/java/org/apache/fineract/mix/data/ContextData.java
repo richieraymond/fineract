@@ -18,29 +18,18 @@
  */
 package org.apache.fineract.mix.data;
 
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
+
+@Data
+@NoArgsConstructor
+@Accessors(chain = true)
 public class ContextData {
 
-    private final String dimensionType;
-    private final String dimension;
-    private final Integer periodType;
-
-    public ContextData(final String dimensionType, final String dimension, final Integer taxonomyType) {
-        this.dimensionType = dimensionType;
-        this.dimension = dimension;
-        this.periodType = taxonomyType == MixTaxonomyData.BALANCESHEET || taxonomyType == MixTaxonomyData.PORTFOLIO ? 0 : 1;
-    }
-
-    public String getDimensionType() {
-        return this.dimensionType;
-    }
-
-    public String getDimension() {
-        return this.dimension;
-    }
-
-    public Integer getPeriodType() {
-        return this.periodType;
-    }
+    private String dimensionType;
+    private String dimension;
+    private Integer periodType;
 
     @Override
     public int hashCode() {
@@ -54,19 +43,37 @@ public class ContextData {
 
     @Override
     public boolean equals(final Object obj) {
-        if (this == obj) { return true; }
-        if (obj == null) { return false; }
-        if (getClass() != obj.getClass()) { return false; }
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (!(obj instanceof ContextData)) {
+            return false;
+        }
         final ContextData other = (ContextData) obj;
         if (this.dimension == null) {
-            if (other.dimension != null) { return false; }
-        } else if (!this.dimension.equals(other.dimension)) { return false; }
+            if (other.dimension != null) {
+                return false;
+            }
+        } else if (!this.dimension.equals(other.dimension)) {
+            return false;
+        }
         if (this.dimensionType == null) {
-            if (other.dimensionType != null) { return false; }
-        } else if (!this.dimensionType.equals(other.dimensionType)) { return false; }
+            if (other.dimensionType != null) {
+                return false;
+            }
+        } else if (!this.dimensionType.equals(other.dimensionType)) {
+            return false;
+        }
         if (this.periodType == null) {
-            if (other.periodType != null) { return false; }
-        } else if (!this.periodType.equals(other.periodType)) { return false; }
+            if (other.periodType != null) {
+                return false;
+            }
+        } else if (!this.periodType.equals(other.periodType)) {
+            return false;
+        }
         return true;
     }
 }

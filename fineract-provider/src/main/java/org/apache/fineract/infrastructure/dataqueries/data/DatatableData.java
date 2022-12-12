@@ -18,46 +18,51 @@
  */
 package org.apache.fineract.infrastructure.dataqueries.data;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
  * Immutable data object representing datatable data.
  */
-public class DatatableData {
+public final class DatatableData implements Serializable {
 
     @SuppressWarnings("unused")
     private final String applicationTableName;
     @SuppressWarnings("unused")
     private final String registeredTableName;
     @SuppressWarnings("unused")
+    private final String entitySubType;
+    @SuppressWarnings("unused")
     private final List<ResultsetColumnHeaderData> columnHeaderData;
 
-
-    public static DatatableData create(final String applicationTableName, final String registeredTableName,
+    public static DatatableData create(final String applicationTableName, final String registeredTableName, final String entitySubType,
             final List<ResultsetColumnHeaderData> columnHeaderData) {
-        return new DatatableData(applicationTableName, registeredTableName, columnHeaderData);
+        return new DatatableData(applicationTableName, registeredTableName, entitySubType, columnHeaderData);
     }
 
-    private DatatableData(final String applicationTableName, final String registeredTableName,
+    private DatatableData(final String applicationTableName, final String registeredTableName, final String entitySubType,
             final List<ResultsetColumnHeaderData> columnHeaderData) {
         this.applicationTableName = applicationTableName;
         this.registeredTableName = registeredTableName;
+        this.entitySubType = entitySubType;
         this.columnHeaderData = columnHeaderData;
 
     }
 
-    public boolean hasColumn(final String columnName){
+    public boolean hasColumn(final String columnName) {
 
-        for(ResultsetColumnHeaderData c : this.columnHeaderData){
+        for (ResultsetColumnHeaderData c : this.columnHeaderData) {
 
-            if(c.getColumnName().equals(columnName)) return true;
+            if (c.getColumnName().equals(columnName)) {
+                return true;
+            }
         }
 
         return false;
     }
 
-    public String getRegisteredTableName(){
+    public String getRegisteredTableName() {
         return registeredTableName;
     }
-    
+
 }

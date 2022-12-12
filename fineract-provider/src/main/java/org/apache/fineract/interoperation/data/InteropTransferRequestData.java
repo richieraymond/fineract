@@ -18,25 +18,35 @@
  */
 package org.apache.fineract.interoperation.data;
 
-import com.google.gson.JsonObject;
-import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
-import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
-import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
-import org.apache.fineract.interoperation.domain.InteropTransactionRole;
-import org.joda.time.LocalDateTime;
+import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_ACCOUNT_ID;
+import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_AMOUNT;
+import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_DATE_FORMAT;
+import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_EXPIRATION;
+import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_EXTENSION_LIST;
+import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_FSP_COMMISSION;
+import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_FSP_FEE;
+import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_LOCALE;
+import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_NOTE;
+import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_TRANSACTION_CODE;
+import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_TRANSACTION_ROLE;
+import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_TRANSACTION_TYPE;
+import static org.apache.fineract.interoperation.util.InteropUtil.PARAM_TRANSFER_CODE;
 
-import javax.validation.constraints.NotNull;
+import com.google.gson.JsonObject;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
-
-import static org.apache.fineract.interoperation.util.InteropUtil.*;
+import javax.validation.constraints.NotNull;
+import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
+import org.apache.fineract.infrastructure.core.serialization.FromJsonHelper;
+import org.apache.fineract.interoperation.domain.InteropTransactionRole;
+import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
 
 public class InteropTransferRequestData extends InteropRequestData {
 
-    static final String[] PARAMS = {PARAM_TRANSACTION_CODE, PARAM_ACCOUNT_ID, PARAM_AMOUNT, PARAM_TRANSACTION_ROLE, PARAM_TRANSACTION_TYPE,
-            PARAM_NOTE, PARAM_EXPIRATION, PARAM_EXTENSION_LIST, PARAM_TRANSFER_CODE, PARAM_FSP_FEE, PARAM_FSP_COMMISSION,
-            PARAM_LOCALE, PARAM_DATE_FORMAT};
-
+    static final String[] PARAMS = { PARAM_TRANSACTION_CODE, PARAM_ACCOUNT_ID, PARAM_AMOUNT, PARAM_TRANSACTION_ROLE, PARAM_TRANSACTION_TYPE,
+            PARAM_NOTE, PARAM_EXPIRATION, PARAM_EXTENSION_LIST, PARAM_TRANSFER_CODE, PARAM_FSP_FEE, PARAM_FSP_COMMISSION, PARAM_LOCALE,
+            PARAM_DATE_FORMAT };
 
     @NotNull
     private final String transferCode;
@@ -47,8 +57,9 @@ public class InteropTransferRequestData extends InteropRequestData {
     private MoneyData fspCommission;
 
     public InteropTransferRequestData(@NotNull String transactionCode, @NotNull String accountId, @NotNull MoneyData amount,
-                                      @NotNull InteropTransactionRole transactionRole, InteropTransactionTypeData transactionType, String note, LocalDateTime expiration,
-                                      List<ExtensionData> extensionList, @NotNull String transferCode, MoneyData fspFee, MoneyData fspCommission) {
+            @NotNull InteropTransactionRole transactionRole, InteropTransactionTypeData transactionType, String note,
+            LocalDateTime expiration, List<ExtensionData> extensionList, @NotNull String transferCode, MoneyData fspFee,
+            MoneyData fspCommission) {
         super(transactionCode, null, accountId, amount, transactionRole, transactionType, note, null, expiration, extensionList);
         this.transferCode = transferCode;
         this.fspFee = fspFee;
@@ -56,7 +67,7 @@ public class InteropTransferRequestData extends InteropRequestData {
     }
 
     public InteropTransferRequestData(@NotNull String transactionCode, @NotNull String transferCode, @NotNull String accountId,
-                                      @NotNull MoneyData amount, @NotNull InteropTransactionRole transactionRole) {
+            @NotNull MoneyData amount, @NotNull InteropTransactionRole transactionRole) {
         this(transactionCode, accountId, amount, transactionRole, null, null, null, null, transferCode, null, null);
     }
 
@@ -77,15 +88,19 @@ public class InteropTransferRequestData extends InteropRequestData {
         return fspCommission;
     }
 
+    @Override
     public void normalizeAmounts(@NotNull MonetaryCurrency currency) {
         super.normalizeAmounts(currency);
-        if (fspFee != null)
+        if (fspFee != null) {
             fspFee.normalizeAmount(currency);
+        }
     }
 
-    public static InteropTransferRequestData validateAndParse(final DataValidatorBuilder dataValidator, JsonObject element, FromJsonHelper jsonHelper) {
-        if (element == null)
+    public static InteropTransferRequestData validateAndParse(final DataValidatorBuilder dataValidator, JsonObject element,
+            FromJsonHelper jsonHelper) {
+        if (element == null) {
             return null;
+        }
 
         jsonHelper.checkForUnsupportedParameters(element, Arrays.asList(PARAMS));
 

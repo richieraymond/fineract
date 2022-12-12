@@ -28,7 +28,7 @@ public enum JournalEntryType {
     private final Integer value;
     private final String code;
 
-    private JournalEntryType(final Integer value, final String code) {
+    JournalEntryType(final Integer value, final String code) {
         this.value = value;
         this.code = code;
     }
@@ -42,6 +42,7 @@ public enum JournalEntryType {
     }
 
     private static final Map<Integer, JournalEntryType> intToEnumMap = new HashMap<>();
+
     static {
         for (final JournalEntryType type : JournalEntryType.values()) {
             intToEnumMap.put(type.value, type);
@@ -49,13 +50,12 @@ public enum JournalEntryType {
     }
 
     public static JournalEntryType fromInt(final int i) {
-        final JournalEntryType type = intToEnumMap.get(Integer.valueOf(i));
-        return type;
+        return intToEnumMap.get(i);
     }
 
     @Override
     public String toString() {
-        return name().toString();
+        return name();
     }
 
     public boolean isDebitType() {

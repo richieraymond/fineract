@@ -18,22 +18,21 @@
  */
 package org.apache.fineract.portfolio.loanproduct.data;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
-
+import lombok.Getter;
 import org.apache.fineract.infrastructure.core.data.EnumOptionData;
 import org.apache.fineract.portfolio.loanproduct.domain.LoanProductParamType;
 import org.apache.fineract.portfolio.loanproduct.domain.LoanProductValueConditionType;
 
-public class LoanProductBorrowerCycleVariationData {
+@Getter
+public class LoanProductBorrowerCycleVariationData implements Serializable {
 
-    @SuppressWarnings("unused")
     private final Long id;
     private final Integer borrowerCycleNumber;
     private final EnumOptionData paramType;
     private final EnumOptionData valueConditionType;
-    @SuppressWarnings("unused")
     private final BigDecimal minValue;
-    @SuppressWarnings("unused")
     private final BigDecimal maxValue;
     private final BigDecimal defaultValue;
 
@@ -48,20 +47,12 @@ public class LoanProductBorrowerCycleVariationData {
         this.defaultValue = defaultValue;
     }
 
-    public LoanProductParamType getParamType() {
+    public LoanProductParamType getLoanProductParamType() {
         return LoanProductParamType.fromInt(this.paramType.getId().intValue());
     }
 
-    public Integer getBorrowerCycleNumber() {
-        return this.borrowerCycleNumber;
-    }
-
-    public LoanProductValueConditionType getValueConditionType() {
+    public LoanProductValueConditionType getLoanProductValueConditionType() {
         return LoanProductValueConditionType.fromInt(this.valueConditionType.getId().intValue());
-    }
-
-    public BigDecimal getDefaultValue() {
-        return this.defaultValue;
     }
 
 }

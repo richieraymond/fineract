@@ -18,7 +18,6 @@
  */
 package org.apache.fineract.infrastructure.core.api;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -26,14 +25,15 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-
 import javax.ws.rs.core.MultivaluedMap;
-
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.fineract.infrastructure.core.serialization.JsonParserHelper;
-import org.apache.fineract.infrastructure.security.utils.SQLInjectionValidator;
 
-public class ApiParameterHelper {
+public final class ApiParameterHelper {
+
+    private ApiParameterHelper() {
+
+    }
 
     public static Long commandId(final MultivaluedMap<String, String> queryParams) {
         Long id = null;
@@ -48,11 +48,11 @@ public class ApiParameterHelper {
 
     public static Set<String> extractFieldsForResponseIfProvided(final MultivaluedMap<String, String> queryParams) {
         Set<String> fields = new HashSet<>();
-        String commaSerperatedParameters = "";
+        String commaSeparatedParameters = "";
         if (queryParams.getFirst("fields") != null) {
-            commaSerperatedParameters = queryParams.getFirst("fields");
-            if (StringUtils.isNotBlank(commaSerperatedParameters)) {
-                fields = new HashSet<>(Arrays.asList(commaSerperatedParameters.split("\\s*,\\s*")));
+            commaSeparatedParameters = queryParams.getFirst("fields");
+            if (StringUtils.isNotBlank(commaSeparatedParameters)) {
+                fields = new HashSet<>(Arrays.asList(commaSeparatedParameters.split("\\s*,\\s*"))); // NOSONAR
             }
         }
         return fields;
@@ -60,23 +60,25 @@ public class ApiParameterHelper {
 
     public static Set<String> extractAssociationsForResponseIfProvided(final MultivaluedMap<String, String> queryParams) {
         Set<String> fields = new HashSet<>();
-        String commaSerperatedParameters = "";
+        String commaSeparatedParameters = "";
         if (queryParams.getFirst("associations") != null) {
-            commaSerperatedParameters = queryParams.getFirst("associations");
-            if (StringUtils.isNotBlank(commaSerperatedParameters)) {
-                fields = new HashSet<>(Arrays.asList(commaSerperatedParameters.split("\\s*,\\s*")));
+            commaSeparatedParameters = queryParams.getFirst("associations");
+            if (StringUtils.isNotBlank(commaSeparatedParameters)) {
+                fields = new HashSet<>(Arrays.asList(commaSeparatedParameters.split("\\s*,\\s*"))); // NOSONAR
             }
         }
         return fields;
     }
 
+    public static void excludeAssociationsForResponseIfProvided(final String commaSeparatedParameters, Set<String> fields) {
+        if (StringUtils.isNotBlank(commaSeparatedParameters)) {
+            fields.removeAll(new HashSet<>(Arrays.asList(commaSeparatedParameters.split("\\s*,\\s*")))); // NOSONAR
+        }
+    }
+
     public static void excludeAssociationsForResponseIfProvided(final MultivaluedMap<String, String> queryParams, Set<String> fields) {
-        String commaSerperatedParameters = "";
         if (queryParams.getFirst("exclude") != null) {
-            commaSerperatedParameters = queryParams.getFirst("exclude");
-            if (StringUtils.isNotBlank(commaSerperatedParameters)) {
-                fields.removeAll(new HashSet<>(Arrays.asList(commaSerperatedParameters.split("\\s*,\\s*"))));
-            }
+            excludeAssociationsForResponseIfProvided(queryParams.getFirst("exclude"), fields);
         }
     }
 
@@ -164,14 +166,6 @@ public class ApiParameterHelper {
     public static boolean genericResultSetPassed(final MultivaluedMap<String, String> queryParams) {
         return queryParams.getFirst("genericResultSet") != null;
     }
-
-    public static String sqlEncodeString(final String str) {
-        final String singleQuote = "'";
-        final String twoSingleQuotes = "''";
-        SQLInjectionValidator.validateSQLInput(str);
-        return singleQuote + StringUtils.replace(str, singleQuote, twoSingleQuotes, -1) + singleQuote;
-    }
-    
 
     public static Map<String, String> asMap(final MultivaluedMap<String, String> queryParameters) {
 

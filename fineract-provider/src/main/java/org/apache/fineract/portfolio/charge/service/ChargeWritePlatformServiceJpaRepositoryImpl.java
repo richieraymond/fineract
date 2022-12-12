@@ -20,18 +20,14 @@ package org.apache.fineract.portfolio.charge.service;
 
 import java.util.Collection;
 import java.util.Map;
-
 import javax.persistence.PersistenceException;
-import javax.sql.DataSource;
-
-import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.fineract.accounting.glaccount.domain.GLAccount;
 import org.apache.fineract.accounting.glaccount.domain.GLAccountRepositoryWrapper;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResultBuilder;
 import org.apache.fineract.infrastructure.core.exception.PlatformDataIntegrityException;
-import org.apache.fineract.infrastructure.core.service.RoutingDataSource;
 import org.apache.fineract.infrastructure.entityaccess.domain.FineractEntityAccessType;
 import org.apache.fineract.infrastructure.entityaccess.service.FineractEntityAccessUtil;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
@@ -44,6 +40,9 @@ import org.apache.fineract.portfolio.charge.exception.ChargeNotFoundException;
 import org.apache.fineract.portfolio.charge.serialization.ChargeDefinitionCommandFromApiJsonDeserializer;
 import org.apache.fineract.portfolio.loanproduct.domain.LoanProduct;
 import org.apache.fineract.portfolio.loanproduct.domain.LoanProductRepository;
+import org.apache.fineract.portfolio.paymentdetail.PaymentDetailConstants;
+import org.apache.fineract.portfolio.paymenttype.domain.PaymentType;
+import org.apache.fineract.portfolio.paymenttype.domain.PaymentTypeRepositoryWrapper;
 import org.apache.fineract.portfolio.tax.domain.TaxGroup;
 import org.apache.fineract.portfolio.tax.domain.TaxGroupRepositoryWrapper;
 import org.slf4j.Logger;
@@ -52,38 +51,39 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ChargeWritePlatformServiceJpaRepositoryImpl implements ChargeWritePlatformService {
 
-    private final static Logger logger = LoggerFactory.getLogger(ChargeWritePlatformServiceJpaRepositoryImpl.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ChargeWritePlatformServiceJpaRepositoryImpl.class);
     private final PlatformSecurityContext context;
     private final ChargeDefinitionCommandFromApiJsonDeserializer fromApiJsonDeserializer;
     private final JdbcTemplate jdbcTemplate;
-    private final DataSource dataSource;
     private final ChargeRepository chargeRepository;
     private final LoanProductRepository loanProductRepository;
     private final FineractEntityAccessUtil fineractEntityAccessUtil;
-    private final GLAccountRepositoryWrapper gLAccountRepository;
+    private final GLAccountRepositoryWrapper glAccountRepository;
     private final TaxGroupRepositoryWrapper taxGroupRepository;
+    private final PaymentTypeRepositoryWrapper paymentTyperepositoryWrapper;
 
     @Autowired
     public ChargeWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context,
             final ChargeDefinitionCommandFromApiJsonDeserializer fromApiJsonDeserializer, final ChargeRepository chargeRepository,
-            final LoanProductRepository loanProductRepository, final RoutingDataSource dataSource,
+            final LoanProductRepository loanProductRepository, final JdbcTemplate jdbcTemplate,
             final FineractEntityAccessUtil fineractEntityAccessUtil, final GLAccountRepositoryWrapper glAccountRepository,
-            final TaxGroupRepositoryWrapper taxGroupRepository) {
+            final TaxGroupRepositoryWrapper taxGroupRepository, final PaymentTypeRepositoryWrapper paymentTyperepositoryWrapper) {
         this.context = context;
         this.fromApiJsonDeserializer = fromApiJsonDeserializer;
-        this.dataSource = dataSource;
-        this.jdbcTemplate = new JdbcTemplate(this.dataSource);
+        this.jdbcTemplate = jdbcTemplate;
         this.chargeRepository = chargeRepository;
         this.loanProductRepository = loanProductRepository;
         this.fineractEntityAccessUtil = fineractEntityAccessUtil;
-        this.gLAccountRepository = glAccountRepository;
+        this.glAccountRepository = glAccountRepository;
         this.taxGroupRepository = taxGroupRepository;
+        this.paymentTyperepositoryWrapper = paymentTyperepositoryWrapper;
     }
 
     @Transactional
@@ -99,7 +99,7 @@ public class ChargeWritePlatformServiceJpaRepositoryImpl implements ChargeWriteP
 
             GLAccount glAccount = null;
             if (glAccountId != null) {
-                glAccount = this.gLAccountRepository.findOneWithNotFoundDetection(glAccountId);
+                glAccount = this.glAccountRepository.findOneWithNotFoundDetection(glAccountId);
             }
 
             final Long taxGroupId = command.longValueOfParameterNamed(ChargesApiConstants.taxGroupIdParamName);
@@ -108,8 +108,17 @@ public class ChargeWritePlatformServiceJpaRepositoryImpl implements ChargeWriteP
                 taxGroup = this.taxGroupRepository.findOneWithNotFoundDetection(taxGroupId);
             }
 
-            final Charge charge = Charge.fromJson(command, glAccount, taxGroup);
-            this.chargeRepository.save(charge);
+            final boolean enablePaymentType = command.booleanPrimitiveValueOfParameterNamed("enablePaymentType");
+            PaymentType paymentType = null;
+            if (enablePaymentType) {
+                final Long paymentTypeId = command.longValueOfParameterNamed(PaymentDetailConstants.paymentTypeParamName);
+                if (paymentTypeId != null) {
+                    paymentType = this.paymentTyperepositoryWrapper.findOneWithNotFoundDetection(paymentTypeId);
+                }
+            }
+
+            final Charge charge = Charge.fromJson(command, glAccount, taxGroup, paymentType);
+            this.chargeRepository.saveAndFlush(charge);
 
             // check if the office specific products are enabled. If yes, then
             // save this savings product against a specific office
@@ -118,13 +127,13 @@ public class ChargeWritePlatformServiceJpaRepositoryImpl implements ChargeWriteP
                     FineractEntityAccessType.OFFICE_ACCESS_TO_CHARGES, charge.getId());
 
             return new CommandProcessingResultBuilder().withCommandId(command.commandId()).withEntityId(charge.getId()).build();
-        }catch (final DataIntegrityViolationException dve) {
+        } catch (final JpaSystemException | DataIntegrityViolationException dve) {
             handleDataIntegrityIssues(command, dve.getMostSpecificCause(), dve);
             return CommandProcessingResult.empty();
-        }catch(final PersistenceException dve) {
-            Throwable throwable = ExceptionUtils.getRootCause(dve.getCause()) ;
+        } catch (final PersistenceException dve) {
+            Throwable throwable = ExceptionUtils.getRootCause(dve.getCause());
             handleDataIntegrityIssues(command, throwable, dve);
-        	return CommandProcessingResult.empty();
+            return CommandProcessingResult.empty();
         }
     }
 
@@ -136,8 +145,8 @@ public class ChargeWritePlatformServiceJpaRepositoryImpl implements ChargeWriteP
         try {
             this.fromApiJsonDeserializer.validateForUpdate(command.json());
 
-            final Charge chargeForUpdate = this.chargeRepository.findOne(chargeId);
-            if (chargeForUpdate == null) { throw new ChargeNotFoundException(chargeId); }
+            final Charge chargeForUpdate = this.chargeRepository.findById(chargeId)
+                    .orElseThrow(() -> new ChargeNotFoundException(chargeId));
 
             final Map<String, Object> changes = chargeForUpdate.update(command);
 
@@ -154,14 +163,17 @@ public class ChargeWritePlatformServiceJpaRepositoryImpl implements ChargeWriteP
                     final Boolean isChargeExistWithLoans = isAnyLoanProductsAssociateWithThisCharge(chargeId);
                     final Boolean isChargeExistWithSavings = isAnySavingsProductsAssociateWithThisCharge(chargeId);
 
-                    if (isChargeExistWithLoans || isChargeExistWithSavings) { throw new ChargeCannotBeUpdatedException(
-                            "error.msg.charge.cannot.be.updated.it.is.used.in.loan", "This charge cannot be updated, it is used in loan"); }
+                    if (isChargeExistWithLoans || isChargeExistWithSavings) {
+                        throw new ChargeCannotBeUpdatedException("error.msg.charge.cannot.be.updated.it.is.used.in.loan",
+                                "This charge cannot be updated, it is used in loan");
+                    }
                 }
             } else if ((changes.containsKey("feeFrequency") || changes.containsKey("feeInterval")) && chargeForUpdate.isLoanCharge()) {
                 final Boolean isChargeExistWithLoans = isAnyLoanProductsAssociateWithThisCharge(chargeId);
-                if (isChargeExistWithLoans) { throw new ChargeCannotBeUpdatedException(
-                        "error.msg.charge.frequency.cannot.be.updated.it.is.used.in.loan",
-                        "This charge frequency cannot be updated, it is used in loan"); }
+                if (isChargeExistWithLoans) {
+                    throw new ChargeCannotBeUpdatedException("error.msg.charge.frequency.cannot.be.updated.it.is.used.in.loan",
+                            "This charge frequency cannot be updated, it is used in loan");
+                }
             }
 
             // Has account Id been changed ?
@@ -169,9 +181,24 @@ public class ChargeWritePlatformServiceJpaRepositoryImpl implements ChargeWriteP
                 final Long newValue = command.longValueOfParameterNamed(ChargesApiConstants.glAccountIdParamName);
                 GLAccount newIncomeAccount = null;
                 if (newValue != null) {
-                    newIncomeAccount = this.gLAccountRepository.findOneWithNotFoundDetection(newValue);
+                    newIncomeAccount = this.glAccountRepository.findOneWithNotFoundDetection(newValue);
                 }
                 chargeForUpdate.setAccount(newIncomeAccount);
+            }
+
+            final String paymentTypeIdParamName = "paymentTypeId";
+            if (changes.containsKey(paymentTypeIdParamName)) {
+
+                final Integer paymentTypeIdNewValue = command.integerValueOfParameterNamed(paymentTypeIdParamName);
+
+                PaymentType paymentType = null;
+                if (paymentTypeIdNewValue != null) {
+                    final Long paymentTypeId = paymentTypeIdNewValue.longValue();
+
+                    paymentType = this.paymentTyperepositoryWrapper.findOneWithNotFoundDetection(paymentTypeId);
+                    chargeForUpdate.setPaymentType(paymentType);
+                }
+
             }
 
             if (changes.containsKey(ChargesApiConstants.taxGroupIdParamName)) {
@@ -188,13 +215,13 @@ public class ChargeWritePlatformServiceJpaRepositoryImpl implements ChargeWriteP
             }
 
             return new CommandProcessingResultBuilder().withCommandId(command.commandId()).withEntityId(chargeId).with(changes).build();
-        } catch (final DataIntegrityViolationException dve) {
+        } catch (final JpaSystemException | DataIntegrityViolationException dve) {
             handleDataIntegrityIssues(command, dve.getMostSpecificCause(), dve);
             return CommandProcessingResult.empty();
-        }catch(final PersistenceException dve) {
-        	Throwable throwable = ExceptionUtils.getRootCause(dve.getCause()) ;
+        } catch (final PersistenceException dve) {
+            Throwable throwable = ExceptionUtils.getRootCause(dve.getCause());
             handleDataIntegrityIssues(command, throwable, dve);
-         	return CommandProcessingResult.empty();
+            return CommandProcessingResult.empty();
         }
     }
 
@@ -203,17 +230,20 @@ public class ChargeWritePlatformServiceJpaRepositoryImpl implements ChargeWriteP
     @CacheEvict(value = "charges", key = "T(org.apache.fineract.infrastructure.core.service.ThreadLocalContextUtil).getTenant().getTenantIdentifier().concat('ch')")
     public CommandProcessingResult deleteCharge(final Long chargeId) {
 
-        final Charge chargeForDelete = this.chargeRepository.findOne(chargeId);
-        if (chargeForDelete == null || chargeForDelete.isDeleted()) { throw new ChargeNotFoundException(chargeId); }
+        final Charge chargeForDelete = this.chargeRepository.findById(chargeId).orElseThrow(() -> new ChargeNotFoundException(chargeId));
+        if (chargeForDelete.isDeleted()) {
+            throw new ChargeNotFoundException(chargeId);
+        }
 
         final Collection<LoanProduct> loanProducts = this.loanProductRepository.retrieveLoanProductsByChargeId(chargeId);
         final Boolean isChargeExistWithLoans = isAnyLoansAssociateWithThisCharge(chargeId);
         final Boolean isChargeExistWithSavings = isAnySavingsAssociateWithThisCharge(chargeId);
 
         // TODO: Change error messages around:
-        if (!loanProducts.isEmpty() || isChargeExistWithLoans || isChargeExistWithSavings) { throw new ChargeCannotBeDeletedException(
-                "error.msg.charge.cannot.be.deleted.it.is.already.used.in.loan",
-                "This charge cannot be deleted, it is already used in loan"); }
+        if (!loanProducts.isEmpty() || isChargeExistWithLoans || isChargeExistWithSavings) {
+            throw new ChargeCannotBeDeletedException("error.msg.charge.cannot.be.deleted.it.is.already.used.in.loan",
+                    "This charge cannot be deleted, it is already used in loan");
+        }
 
         chargeForDelete.delete();
 
@@ -223,8 +253,7 @@ public class ChargeWritePlatformServiceJpaRepositoryImpl implements ChargeWriteP
     }
 
     /*
-     * Guaranteed to throw an exception no matter what the data integrity issue
-     * is.
+     * Guaranteed to throw an exception no matter what the data integrity issue is.
      */
     private void handleDataIntegrityIssues(final JsonCommand command, final Throwable realCause, final Exception dve) {
 
@@ -234,36 +263,32 @@ public class ChargeWritePlatformServiceJpaRepositoryImpl implements ChargeWriteP
                     "name", name);
         }
 
-        logger.error(dve.getMessage(), dve);
+        LOG.error("Error occured.", dve);
         throw new PlatformDataIntegrityException("error.msg.charge.unknown.data.integrity.issue",
                 "Unknown data integrity issue with resource: " + realCause.getMessage());
     }
 
     private boolean isAnyLoansAssociateWithThisCharge(final Long chargeId) {
-
-        final String sql = "select if((exists (select 1 from m_loan_charge lc where lc.charge_id = ? and lc.is_active = 1)) = 1, 'true', 'false')";
+        final String sql = "select (CASE WHEN exists (select 1 from m_loan_charge lc where lc.charge_id = ? and lc.is_active = true) THEN 'true' ELSE 'false' END)";
         final String isLoansUsingCharge = this.jdbcTemplate.queryForObject(sql, String.class, new Object[] { chargeId });
-        return new Boolean(isLoansUsingCharge);
+        return Boolean.valueOf(isLoansUsingCharge);
     }
 
     private boolean isAnySavingsAssociateWithThisCharge(final Long chargeId) {
-
-        final String sql = "select if((exists (select 1 from m_savings_account_charge sc where sc.charge_id = ? and sc.is_active = 1)) = 1, 'true', 'false')";
+        final String sql = "select (CASE WHEN exists (select 1 from m_savings_account_charge sc where sc.charge_id = ? and sc.is_active = true) THEN 'true' ELSE 'false' END)";
         final String isSavingsUsingCharge = this.jdbcTemplate.queryForObject(sql, String.class, new Object[] { chargeId });
-        return new Boolean(isSavingsUsingCharge);
+        return Boolean.valueOf(isSavingsUsingCharge);
     }
 
     private boolean isAnyLoanProductsAssociateWithThisCharge(final Long chargeId) {
-
-        final String sql = "select if((exists (select 1 from m_product_loan_charge lc where lc.charge_id = ?)) = 1, 'true', 'false')";
+        final String sql = "select (CASE WHEN exists (select 1 from m_product_loan_charge lc where lc.charge_id = ?) THEN 'true' ELSE 'false' END)";
         final String isLoansUsingCharge = this.jdbcTemplate.queryForObject(sql, String.class, new Object[] { chargeId });
-        return new Boolean(isLoansUsingCharge);
+        return Boolean.valueOf(isLoansUsingCharge);
     }
 
     private boolean isAnySavingsProductsAssociateWithThisCharge(final Long chargeId) {
-
-        final String sql = "select if((exists (select 1 from m_savings_product_charge sc where sc.charge_id = ?)) = 1, 'true', 'false')";
+        final String sql = "select (CASE WHEN (exists (select 1 from m_savings_product_charge sc where sc.charge_id = ?)) = 1 THEN 'true' ELSE 'false' END)";
         final String isSavingsUsingCharge = this.jdbcTemplate.queryForObject(sql, String.class, new Object[] { chargeId });
-        return new Boolean(isSavingsUsingCharge);
+        return Boolean.valueOf(isSavingsUsingCharge);
     }
 }

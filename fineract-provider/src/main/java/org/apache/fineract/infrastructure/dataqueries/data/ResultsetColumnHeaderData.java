@@ -18,22 +18,21 @@
  */
 package org.apache.fineract.infrastructure.dataqueries.data;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.fineract.infrastructure.core.exception.PlatformDataIntegrityException;
 
 /**
  * Immutable data object representing a resultset column.
  */
-public final class ResultsetColumnHeaderData {
+public final class ResultsetColumnHeaderData implements Serializable {
 
     private final String columnName;
     private String columnType;
     private final Long columnLength;
     private final String columnDisplayType;
     private final boolean isColumnNullable;
-    @SuppressWarnings("unused")
     private final boolean isColumnPrimaryKey;
 
     private final List<ResultsetColumnValueData> columnValues;
@@ -76,6 +75,9 @@ public final class ResultsetColumnHeaderData {
             if (isString()) {
                 displayType = "STRING";
             } else if (isAnyInteger()) {
+                if (isInteger()) {
+                    this.columnType = this.columnType.toUpperCase();
+                }
                 displayType = "INTEGER";
             } else if (isDate()) {
                 displayType = "DATE";
@@ -85,21 +87,21 @@ public final class ResultsetColumnHeaderData {
                 displayType = "DECIMAL";
             } else if (isAnyText()) {
                 displayType = "TEXT";
-            } else if (isBit()) {
+            } else if (isBit() || isBoolean()) {
                 displayType = "BOOLEAN";
             } else {
-                throw new PlatformDataIntegrityException("error.msg.invalid.lookup.type", "Invalid Lookup Type:" + this.columnType
-                        + " - Column Name: " + this.columnName);
+                throw new PlatformDataIntegrityException("error.msg.invalid.lookup.type",
+                        "Invalid Lookup Type:" + this.columnType + " - Column Name: " + this.columnName);
             }
 
         } else {
-            if (isInt()) {
+            if (isInt() || isInteger()) {
                 displayType = "CODELOOKUP";
             } else if (isVarchar()) {
                 displayType = "CODEVALUE";
             } else {
-                throw new PlatformDataIntegrityException("error.msg.invalid.lookup.type", "Invalid Lookup Type:" + this.columnType
-                        + " - Column Name: " + this.columnName);
+                throw new PlatformDataIntegrityException("error.msg.invalid.lookup.type",
+                        "Invalid Lookup Type:" + this.columnType + " - Column Name: " + this.columnName);
             }
         }
 
@@ -158,7 +160,8 @@ public final class ResultsetColumnHeaderData {
     }
 
     private boolean isDecimal() {
-        return "decimal".equalsIgnoreCase(this.columnType) || "NEWDECIMAL".equalsIgnoreCase(this.columnType);
+        return "decimal".equalsIgnoreCase(this.columnType) || "NEWDECIMAL".equalsIgnoreCase(this.columnType)
+                || "numeric".equalsIgnoreCase(this.columnType);
         // Refer org.drizzle.jdbc.internal.mysql.MySQLType.java
     }
 
@@ -167,7 +170,8 @@ public final class ResultsetColumnHeaderData {
     }
 
     private boolean isDateTime() {
-        return "datetime".equalsIgnoreCase(this.columnType);
+        return "datetime".equalsIgnoreCase(this.columnType) || "timestamp without time zone".equalsIgnoreCase(this.columnType)
+                || "timestamptz".equalsIgnoreCase(this.columnType) || "timestamp with time zone".equalsIgnoreCase(this.columnType);
     }
 
     public boolean isString() {
@@ -175,7 +179,8 @@ public final class ResultsetColumnHeaderData {
     }
 
     private boolean isChar() {
-        return "char".equalsIgnoreCase(this.columnType);
+        return "char".equalsIgnoreCase(this.columnType) || "CHARACTER VARYING".equalsIgnoreCase(this.columnType)
+                || "bpchar".equalsIgnoreCase(this.columnType);
     }
 
     private boolean isVarchar() {
@@ -183,11 +188,22 @@ public final class ResultsetColumnHeaderData {
     }
 
     private boolean isAnyInteger() {
-        return isInt() || isSmallInt() || isTinyInt() || isMediumInt() || isBigInt() || isLong();
+        return isInt() || isInteger() || isSmallInt() || isTinyInt() || isMediumInt() || isBigInt() || isLong() || isSerial();
+    }
+
+    private boolean isSerial() {
+        return "SERIAL".equalsIgnoreCase(this.columnType) || "SERIAL4".equalsIgnoreCase(this.columnType)
+                || "SERIAL8".equalsIgnoreCase(this.columnType) || "SMALLSERIAL".equalsIgnoreCase(this.columnType)
+                || "BIGSERIAL".equalsIgnoreCase(this.columnType);
     }
 
     private boolean isInt() {
         return "int".equalsIgnoreCase(this.columnType);
+    }
+
+    private boolean isInteger() {
+        return "integer".equalsIgnoreCase(this.columnType) || "int2".equalsIgnoreCase(this.columnType)
+                || "int4".equalsIgnoreCase(this.columnType);
     }
 
     private boolean isSmallInt() {
@@ -203,7 +219,7 @@ public final class ResultsetColumnHeaderData {
     }
 
     private boolean isBigInt() {
-        return "bigint".equalsIgnoreCase(this.columnType);
+        return "bigint".equalsIgnoreCase(this.columnType) || "int8".equalsIgnoreCase(this.columnType);
     }
 
     private boolean isLong() {
@@ -213,6 +229,10 @@ public final class ResultsetColumnHeaderData {
 
     private boolean isBit() {
         return "bit".equalsIgnoreCase(this.columnType);
+    }
+
+    private boolean isBoolean() {
+        return "boolean".equalsIgnoreCase(this.columnType) || "bool".equalsIgnoreCase(this.columnType);
     }
 
     public String getColumnName() {
@@ -225,6 +245,14 @@ public final class ResultsetColumnHeaderData {
 
     public Long getColumnLength() {
         return this.columnLength;
+    }
+
+    public boolean getIsColumnNullable() {
+        return isColumnNullable;
+    }
+
+    public boolean getIsColumnPrimaryKey() {
+        return isColumnPrimaryKey;
     }
 
     public String getColumnDisplayType() {
@@ -301,5 +329,9 @@ public final class ResultsetColumnHeaderData {
 
     public String getColumnCode() {
         return this.columnCode;
+    }
+
+    public List<ResultsetColumnValueData> getColumnValues() {
+        return this.columnValues;
     }
 }

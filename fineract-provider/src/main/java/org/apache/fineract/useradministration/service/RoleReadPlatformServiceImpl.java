@@ -21,9 +21,8 @@ package org.apache.fineract.useradministration.service;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
-
 import org.apache.fineract.infrastructure.core.domain.JdbcSupport;
-import org.apache.fineract.infrastructure.core.service.RoutingDataSource;
+import org.apache.fineract.portfolio.self.registration.SelfServiceApiConstants;
 import org.apache.fineract.useradministration.data.RoleData;
 import org.apache.fineract.useradministration.exception.RoleNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,8 +38,8 @@ public class RoleReadPlatformServiceImpl implements RoleReadPlatformService {
     private final RoleMapper roleRowMapper;
 
     @Autowired
-    public RoleReadPlatformServiceImpl(final RoutingDataSource dataSource) {
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
+    public RoleReadPlatformServiceImpl(final JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
         this.roleRowMapper = new RoleMapper();
     }
 
@@ -48,25 +47,32 @@ public class RoleReadPlatformServiceImpl implements RoleReadPlatformService {
     public Collection<RoleData> retrieveAll() {
         final String sql = "select " + this.roleRowMapper.schema() + " order by r.id";
 
-        return this.jdbcTemplate.query(sql, this.roleRowMapper);
+        return this.jdbcTemplate.query(sql, this.roleRowMapper); // NOSONAR
     }
 
     @Override
     public Collection<RoleData> retrieveAllActiveRoles() {
-        final String sql = "select " + this.roleRowMapper.schema() + " where r.is_disabled = 0 order by r.id";
+        final String sql = "select " + this.roleRowMapper.schema() + " where r.is_disabled = false order by r.id";
 
-        return this.jdbcTemplate.query(sql, this.roleRowMapper);
+        return this.jdbcTemplate.query(sql, this.roleRowMapper); // NOSONAR
+    }
+
+    @Override
+    public Collection<RoleData> retrieveAllSelfServiceRoles() {
+        final String role = SelfServiceApiConstants.SELF_SERVICE_USER_ROLE;
+        final String sql = "select " + this.roleRowMapper.schema() + " where r.name = ? order by r.id";
+
+        return this.jdbcTemplate.query(sql, this.roleRowMapper, role); // NOSONAR
     }
 
     @Override
     public RoleData retrieveOne(final Long id) {
-
         try {
             final String sql = "select " + this.roleRowMapper.schema() + " where r.id=?";
 
-            return this.jdbcTemplate.queryForObject(sql, this.roleRowMapper, new Object[] { id });
+            return this.jdbcTemplate.queryForObject(sql, this.roleRowMapper, id); // NOSONAR
         } catch (final EmptyResultDataAccessException e) {
-            throw new RoleNotFoundException(id);
+            throw new RoleNotFoundException(id, e);
         }
     }
 
@@ -79,7 +85,7 @@ public class RoleReadPlatformServiceImpl implements RoleReadPlatformService {
             final String name = rs.getString("name");
             final String description = rs.getString("description");
             final Boolean disabled = rs.getBoolean("disabled");
-            
+
             return new RoleData(id, name, description, disabled);
         }
 
@@ -93,6 +99,6 @@ public class RoleReadPlatformServiceImpl implements RoleReadPlatformService {
         final String sql = "select " + this.roleRowMapper.schema() + " inner join m_appuser_role"
                 + " ar on ar.role_id = r.id where ar.appuser_id= ?";
 
-        return this.jdbcTemplate.query(sql, this.roleRowMapper, new Object[] { appUserId });
+        return this.jdbcTemplate.query(sql, this.roleRowMapper, appUserId); // NOSONAR
     }
 }

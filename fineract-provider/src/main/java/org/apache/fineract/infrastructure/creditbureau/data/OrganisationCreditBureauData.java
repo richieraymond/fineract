@@ -18,74 +18,38 @@
  */
 package org.apache.fineract.infrastructure.creditbureau.data;
 
-public class OrganisationCreditBureauData {
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 
-	private final long organisationCreditBureauId;
+@Data
+@NoArgsConstructor
+@Accessors(chain = true)
+public final class OrganisationCreditBureauData {
 
-	private final String alias;
+    private long organisationCreditBureauId;
 
-	private final long creditBureauId;
+    private String alias;
 
-	private final String creditBureauName;
+    private long creditBureauId;
 
-	private final String creditBureauProduct;
+    private String creditBureauName;
 
-	private final String creditBureauCountry;
+    private String creditBureauProduct;
 
-	private final String creditBureauSummary;
+    private String creditBureauCountry;
 
-	private final boolean is_active;
+    private String creditBureauSummary;
 
-	private OrganisationCreditBureauData(final long organisationCreditBureauId, final String alias,
-			final long creditBureauId, final String creditBureauName, final String creditBureauProduct,
-			final String creditBureauCountry, final String creditBureauSummary, final boolean is_active) {
-		this.organisationCreditBureauId = organisationCreditBureauId;
-		this.alias = alias;
-		this.creditBureauId = creditBureauId;
-		this.creditBureauName = creditBureauName;
-		this.creditBureauProduct = creditBureauProduct;
-		this.creditBureauCountry = creditBureauCountry;
-		this.creditBureauSummary = creditBureauSummary;
-		this.is_active = is_active;
-	}
+    private boolean active;
 
-	public static OrganisationCreditBureauData instance(final long organisationCreditBureauId, final String alias,
-			final long creditBureauId, final String creditBureauName, final String creditBureauProduct,
-			final String creditBureauCountry, final String creditBureauSummary, final boolean is_active) {
-		return new OrganisationCreditBureauData(organisationCreditBureauId, alias, creditBureauId, creditBureauName,
-				creditBureauProduct, creditBureauCountry, creditBureauSummary, is_active);
-	}
+    public static OrganisationCreditBureauData instance(final long organisationCreditBureauId, final String alias,
+            final long creditBureauId, final String creditBureauName, final String creditBureauProduct, final String creditBureauCountry,
+            final String creditBureauSummary, final boolean active) {
+        return new OrganisationCreditBureauData().setOrganisationCreditBureauId(organisationCreditBureauId).setAlias(alias)
+                .setCreditBureauId(creditBureauId).setCreditBureauName(creditBureauName).setCreditBureauProduct(creditBureauProduct)
+                .setCreditBureauCountry(creditBureauCountry).setCreditBureauSummary(creditBureauSummary).setActive(active);
 
-	public long getOrganisationCreditBureauId() {
-		return this.organisationCreditBureauId;
-	}
-
-	public String getCreditBureauName() {
-		return this.creditBureauName;
-	}
-
-	public String getCreditBureauProduct() {
-		return this.creditBureauProduct;
-	}
-
-	public String getCreditBureauCountry() {
-		return this.creditBureauCountry;
-	}
-
-	public String getCreditBureauSummary() {
-		return this.creditBureauSummary;
-	}
-
-	public String getAlias() {
-		return this.alias;
-	}
-
-	public long getCreditBureauId() {
-		return this.creditBureauId;
-	}
-
-	public boolean isActive() {
-		return this.is_active;
-	}
+    }
 
 }

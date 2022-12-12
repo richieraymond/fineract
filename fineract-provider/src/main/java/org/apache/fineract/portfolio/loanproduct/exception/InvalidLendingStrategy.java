@@ -21,12 +21,11 @@ package org.apache.fineract.portfolio.loanproduct.exception;
 import org.apache.fineract.infrastructure.core.exception.AbstractPlatformDomainRuleException;
 
 /**
- * {@link AbstractPlatformDomainRuleException} thrown when lending strategy
- * mismatch occurs
+ * {@link AbstractPlatformDomainRuleException} thrown when lending strategy mismatch occurs
  */
 public class InvalidLendingStrategy extends AbstractPlatformDomainRuleException {
 
     public InvalidLendingStrategy(final Integer strategyId) {
-        super("error.msg.unsupported.lending.strategy", "Stratagy code [" + strategyId + "] passed is not valid.");
+        super("error.msg.unsupported.lending.strategy", "Strategy code [" + strategyId + "] passed is not valid.");
     }
 }

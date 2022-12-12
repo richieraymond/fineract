@@ -19,7 +19,8 @@
 package org.apache.fineract.adhocquery.service;
 
 import java.util.Map;
-
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.fineract.adhocquery.domain.AdHoc;
 import org.apache.fineract.adhocquery.domain.AdHocRepository;
 import org.apache.fineract.adhocquery.exception.AdHocNotFoundException;
@@ -28,30 +29,20 @@ import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResultBuilder;
 import org.apache.fineract.infrastructure.core.exception.PlatformDataIntegrityException;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.NonTransientDataAccessException;
+import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Slf4j
+@RequiredArgsConstructor
 public class AdHocWritePlatformServiceJpaRepositoryImpl implements AdHocWritePlatformService {
 
-    private final static Logger logger = LoggerFactory.getLogger(AdHocWritePlatformServiceJpaRepositoryImpl.class);
     private final PlatformSecurityContext context;
     private final AdHocRepository adHocRepository;
     private final AdHocDataValidator adHocCommandFromApiJsonDeserializer;
-   
-
-    @Autowired
-    public AdHocWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context, final AdHocRepository adHocRepository,
-             final AdHocDataValidator adHocCommandFromApiJsonDeserializer) {
-        this.context = context;
-        this.adHocRepository = adHocRepository;
-        this.adHocCommandFromApiJsonDeserializer = adHocCommandFromApiJsonDeserializer;
-       
-    }
 
     @Transactional
     @Override
@@ -63,38 +54,32 @@ public class AdHocWritePlatformServiceJpaRepositoryImpl implements AdHocWritePla
             this.adHocCommandFromApiJsonDeserializer.validateForCreate(command.json());
 
             final AdHoc entity = AdHoc.fromJson(command);
-            this.adHocRepository.save(entity);
+            this.adHocRepository.saveAndFlush(entity);
 
             return new CommandProcessingResultBuilder().withCommandId(command.commandId()).withEntityId(entity.getId()).build();
-        } catch (final DataIntegrityViolationException dve) {
-            handleDataIntegrityIssues(command, dve);
-            return new CommandProcessingResultBuilder() //
-                    .withCommandId(command.commandId()) //
-                    .build();
+        } catch (final JpaSystemException | DataIntegrityViolationException dve) {
+            final Throwable throwable = dve.getMostSpecificCause();
+            handleDataIntegrityIssues(command, throwable, dve);
+            return new CommandProcessingResultBuilder().withCommandId(command.commandId()).build();
         }
     }
 
     /*
-     * Guaranteed to throw an exception no matter what the data integrity issue
-     * is.
+     * Guaranteed to throw an exception no matter what the data integrity issue is.
      */
-    private void handleDataIntegrityIssues(final JsonCommand command, final DataIntegrityViolationException dve) {
+    private void handleDataIntegrityIssues(final JsonCommand command, final Throwable realCause,
+            final NonTransientDataAccessException dve) {
 
-        final Throwable realCause = dve.getMostSpecificCause();
         if (realCause.getMessage().contains("unq_name")) {
 
             final String name = command.stringValueOfParameterNamed("name");
-            throw new PlatformDataIntegrityException("error.msg.adhocquery.duplicate.name", "AdHocQuery with name `" + name + "` already exists",
-                    "name", name);
+            throw new PlatformDataIntegrityException("error.msg.adhocquery.duplicate.name",
+                    "AdHocQuery with name `" + name + "` already exists", "name", name);
         }
 
-        logAsErrorUnexpectedDataIntegrityException(dve);
+        log.error("Error occured.", dve);
         throw new PlatformDataIntegrityException("error.msg.adhocquery.unknown.data.integrity.issue",
                 "Unknown data integrity issue with resource.");
-    }
-
-    private void logAsErrorUnexpectedDataIntegrityException(final DataIntegrityViolationException dve) {
-        logger.error(dve.getMessage(), dve);
     }
 
     @Transactional
@@ -105,26 +90,21 @@ public class AdHocWritePlatformServiceJpaRepositoryImpl implements AdHocWritePla
 
             this.adHocCommandFromApiJsonDeserializer.validateForUpdate(command.json());
 
-            final AdHoc adHoc = this.adHocRepository.findOne(adHocId);
-            if (adHoc == null) { throw new AdHocNotFoundException(adHocId); }
+            final AdHoc adHoc = this.adHocRepository.findById(adHocId).orElseThrow(() -> new AdHocNotFoundException(adHocId));
 
             final Map<String, Object> changes = adHoc.update(command);
             if (!changes.isEmpty()) {
                 this.adHocRepository.saveAndFlush(adHoc);
             }
 
-            return new CommandProcessingResultBuilder() //
-                    .withCommandId(command.commandId()) //
-                    .withEntityId(adHocId) //
-                    .with(changes) //
-                    .build();
-        } catch (final DataIntegrityViolationException dve) {
-            handleDataIntegrityIssues(command, dve);
-            return new CommandProcessingResultBuilder() //
-                    .withCommandId(command.commandId()) //
-                    .build();
+            return new CommandProcessingResultBuilder().withCommandId(command.commandId()).withEntityId(adHocId).with(changes).build();
+        } catch (final JpaSystemException | DataIntegrityViolationException dve) {
+            final Throwable throwable = dve.getMostSpecificCause();
+            handleDataIntegrityIssues(command, throwable, dve);
+            return new CommandProcessingResultBuilder().withCommandId(command.commandId()).build();
         }
     }
+
     /**
      * Method for Delete adhoc
      */
@@ -136,14 +116,13 @@ public class AdHocWritePlatformServiceJpaRepositoryImpl implements AdHocWritePla
             /**
              * Checking the adhocQuery present in DB or not using adHocId
              */
-            final AdHoc adHoc = this.adHocRepository.findOne(adHocId);
-            if (adHoc == null) { throw new AdHocNotFoundException(adHocId); }
-            
+            final AdHoc adHoc = this.adHocRepository.findById(adHocId).orElseThrow(() -> new AdHocNotFoundException(adHocId));
+
             this.adHocRepository.delete(adHoc);
             return new CommandProcessingResultBuilder().withEntityId(adHocId).build();
-        } catch (final DataIntegrityViolationException e) {
+        } catch (final JpaSystemException | DataIntegrityViolationException e) {
             throw new PlatformDataIntegrityException("error.msg.unknown.data.integrity.issue",
-                    "Unknown data integrity issue with resource: " + e.getMostSpecificCause());
+                    "Unknown data integrity issue with resource: " + e.getMostSpecificCause(), e);
         }
     }
 
@@ -157,15 +136,14 @@ public class AdHocWritePlatformServiceJpaRepositoryImpl implements AdHocWritePla
             /**
              * Checking the adhocquery present in DB or not using adHocId
              */
-            final AdHoc adHoc = this.adHocRepository.findOne(adHocId);
-            if (adHoc == null) { throw new AdHocNotFoundException(adHocId); }
-            adHoc.disableActive();
+            final AdHoc adHoc = this.adHocRepository.findById(adHocId).orElseThrow(() -> new AdHocNotFoundException(adHocId));
+            adHoc.setActive(true);
             this.adHocRepository.save(adHoc);
             return new CommandProcessingResultBuilder().withEntityId(adHocId).build();
 
-        } catch (final DataIntegrityViolationException e) {
+        } catch (final JpaSystemException | DataIntegrityViolationException e) {
             throw new PlatformDataIntegrityException("error.msg.unknown.data.integrity.issue",
-                    "Unknown data integrity issue with resource: " + e.getMostSpecificCause());
+                    "Unknown data integrity issue with resource: " + e.getMostSpecificCause(), e);
         }
     }
 
@@ -179,15 +157,14 @@ public class AdHocWritePlatformServiceJpaRepositoryImpl implements AdHocWritePla
             /**
              * Checking the adHoc present in DB or not using id
              */
-            final AdHoc adHoc = this.adHocRepository.findOne(adHocId);
-            if (adHoc == null) { throw new AdHocNotFoundException(adHocId); }
-            adHoc.enableActive();
+            final AdHoc adHoc = this.adHocRepository.findById(adHocId).orElseThrow(() -> new AdHocNotFoundException(adHocId));
+            adHoc.setActive(false);
             this.adHocRepository.save(adHoc);
             return new CommandProcessingResultBuilder().withEntityId(adHocId).build();
 
-        } catch (final DataIntegrityViolationException e) {
+        } catch (final JpaSystemException | DataIntegrityViolationException e) {
             throw new PlatformDataIntegrityException("error.msg.unknown.data.integrity.issue",
-                    "Unknown data integrity issue with resource: " + e.getMostSpecificCause());
+                    "Unknown data integrity issue with resource: " + e.getMostSpecificCause(), e);
         }
     }
 }

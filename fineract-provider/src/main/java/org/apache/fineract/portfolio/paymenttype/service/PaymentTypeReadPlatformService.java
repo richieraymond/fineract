@@ -19,12 +19,14 @@
 package org.apache.fineract.portfolio.paymenttype.service;
 
 import java.util.Collection;
-
 import org.apache.fineract.portfolio.paymenttype.data.PaymentTypeData;
 
 public interface PaymentTypeReadPlatformService {
 
     Collection<PaymentTypeData> retrieveAllPaymentTypes();
+
+    Collection<PaymentTypeData> retrieveAllPaymentTypesWithCode();
+
     PaymentTypeData retrieveOne(Long paymentTypeId);
 
 }
